@@ -28,12 +28,15 @@
 
 | 决策 | 验收性质（`../tests/acceptance/`）| 现状 |
 |---|---|---|
-| D-001 语义C（盲腔判例）| `test_known_answers.py::test_blind_cavity_inaccessible` | PENDING（待 oracle）|
-| D-002 基板不建模/下半球 | `test_known_answers.py::test_open_downface_accessible` | PENDING |
-| D-003 体素腐蚀口径 | `test_properties.py::test_radius_monotonic` `::test_direction_monotonic` · `test_differential.py::test_voxel_matches_bruteforce` | PENDING |
-| D-005 球模型/方向灵活 | `test_properties.py::test_rotation_equivariance` `::test_scale_invariance` | PENDING |
-| （治理自检）| `test_charter.py`（schema / 参考在位 / 无残留 / params 键）| **GREEN** |
-| （环境自检）| `test_env.py`（env_ready：igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（sfa 内）|
+| D-001 语义C（盲腔判例）| `test_known_answers.py::test_blind_cavity_inaccessible` | **GREEN** |
+| D-002 基板不建模/下半球 | `test_known_answers.py::test_open_downface_accessible` | **GREEN** |
+| D-003 体素口径对拍 | `test_differential.py::test_voxel_matches_bruteforce`（voxel==暴力参考，ε边界带）| **GREEN** |
+| D-005 尺度不变 | `test_properties.py::test_scale_invariance`（整数上采样）| **GREEN** |
+| D-003 半径单调 | `test_properties.py::test_radius_monotonic` | **证伪（D-008）**·不作不变量 |
+| D-003 方向单调 | `test_properties.py::test_direction_monotonic` | deferred（需显式方向集）|
+| D-005 旋转等变 | `test_properties.py::test_rotation_equivariance` | deferred（mesh 前端）|
+| （治理自检）| `test_charter.py`（schema/参考/无残留/params）| **GREEN** |
+| （环境自检）| `test_env.py`（igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（sfa 内）|
 
 跑门：`python ../tests/gate.py` → JSON 裁决 + 退出码。当前 **RED**（几何未实现），但 `test_charter` 已 **GREEN**——治理散文这层当场就有牙。
 

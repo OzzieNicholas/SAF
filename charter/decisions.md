@@ -59,3 +59,10 @@
 - 裁决：用 conda（miniforge，`D:\Miniforge\Install`）建环境 `sfa`：python=3.12 + conda-forge 的 igl/numpy/scipy/trimesh/pytest/hypothesis。**canonical 源 = `environment.yml`**（`conda env create -f environment.yml` 可复现）；`pyproject.toml` 只列抽象 pip 依赖(numpy/scipy/trimesh)+dev(pytest/hypothesis)，不列 igl。运行期由 `tests/acceptance/test_env.py` 的 `env_ready` 门守护。
 - 依据：igl（libigl）的 generalized winding number 判内外、scipy 距离变换是 oracle 口径（D-002/D-003）的直接依赖；几何栈在 conda-forge 上装最省事（pip 的 libigl 轮子易踩坑）；把环境写成机器可读 + 会检查的门，消除"环境歧义"。env 名沿用创建时的 `sfa`（与项目名 SAF 大小写不同，治理里以 `sfa` 为准）。
 - 状态：接受
+
+## D-008  半径单调性证伪：point-touch 语义C 下不成立（经验发现）
+
+- 日期：2026-07-11
+- 裁决：不把"半径单调"（r↑→不可达集/区域只增不减）当作 oracle 不变量。原六项趋势审核的"工具半径↑→不可达区域不反常减少"criterion（见 `reference/1_§12.1`、`reference/3_§6.6`）收窄为**仅受限腔体几何适用**；一般/开放几何不成立，其行为待真实网格上复核。`test_properties::test_radius_monotonic` 不接绿（skip）。
+- 依据：清单5 改前在 sfa 内对随机 occupancy 实测——per-point 违反率 label 44/200、**暴力参考 reference_label 也违反 33/300**（故非 voxel bug，是语义本身性质）；aggregate 不可达数随 r 递减（85→44）。几何原因：point-touch 下大球能从更远处够到开放面上的点，小球反因贴近表面被挡。受限案例（已知答案件盲腔）仍直觉成立（r↑→更难进→不可达）。
+- 状态：接受（语义 D-001 暂不改——random speckle 非真实网格；是否因此细化"工具-可达"模型待真实几何证据。本条只如实记录并暂不接 radius 不变量）
