@@ -66,3 +66,17 @@
 - 裁决：不把"半径单调"（r↑→不可达集/区域只增不减）当作 oracle 不变量。原六项趋势审核的"工具半径↑→不可达区域不反常减少"criterion（见 `reference/1_§12.1`、`reference/3_§6.6`）收窄为**仅受限腔体几何适用**；一般/开放几何不成立，其行为待真实网格上复核。`test_properties::test_radius_monotonic` 不接绿（skip）。
 - 依据：清单5 改前在 sfa 内对随机 occupancy 实测——per-point 违反率 label 44/200、**暴力参考 reference_label 也违反 33/300**（故非 voxel bug，是语义本身性质）；aggregate 不可达数随 r 递减（85→44）。几何原因：point-touch 下大球能从更远处够到开放面上的点，小球反因贴近表面被挡。受限案例（已知答案件盲腔）仍直觉成立（r↑→更难进→不可达）。
 - 状态：接受（语义 D-001 暂不改——random speckle 非真实网格；是否因此细化"工具-可达"模型待真实几何证据。本条只如实记录并暂不接 radius 不变量）
+
+## D-009  网格前端口径：mesh → occupancy（igl fast winding number）+ 无 CSG 用 numpy V/F 堆叠
+
+- 日期：2026-07-11
+- 裁决：真实网格 → 占据栅格用 `igl.fast_winding_number(V,F,栅格中心) > 0.5` 判内外（D-007 选定 igl 的落地）。多实体件用 **numpy 手动 V/F 堆叠**（`np.vstack` 顶点 + 面索引偏移；winding number 对不相交实体可加），**禁用 `trimesh.util.concatenate` / `apply_translation`**——本 env 下二者原生崩溃（0xC06D）。默认 resolution=48、pad=0.2；占据以 (occ, lo, pitch) 表达，查询点世界坐标经 `world_to_voxel` 转体素喂 oracle。
+- 依据：清单8-1 改前实测——igl 判内外正确（box solidify fill=0.375 与解析一致）；全链 box→solidify→oracle 复现"下朝面=accessible、两盒窄间隙=inaccessible"；无 manifold3d/blender 故不能布尔挖洞；trimesh concat/translate 稳定崩溃、numpy 堆叠稳定。
+- 状态：接受（本片仅 mesh→occupancy + 已知答案复现；支撑接触区提取【法向·d 悬垂】、真实数据集接入属后续小片）
+
+## D-010  支撑接触区提取判据：下朝悬垂面 S(P,d) = { n·d̂ < -cos(θc) }
+
+- 日期：2026-07-11
+- 裁决：给网格(V,F)+构建方向 d，支撑接触区代理 S(P,d) = 外法向 n 满足 `n·d̂ < -cos(radians(θc))` 的面集合，θc=`overhang_angle_deg`=45（conf/params.yaml）。外法向用 numpy cross（探针验证与 trimesh outward 一致），MVP 用悬垂面**质心**作支撑接触点；评价可达性时质心沿外法向外移 ~2 体素到自由侧作查询点。S 随 d 变（reference §9.2）。
+- 依据：reference §9.1 定义"外法向与 d 夹角超阈值 ⟺ 局部倾角<自支撑临界角"；改前探针（box）：d=+z→底面2面(n·d=-1)、d=+x→-x面、tilt 45°边界干净、numpy cross==trimesh outward、无崩溃。
+- 状态：接受（本片仅提取 + box 验证；真实网格法向缠绕修复、更密表面采样、真实数据集属后续小片）

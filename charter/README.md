@@ -35,6 +35,8 @@
 | D-003 半径单调 | `test_properties.py::test_radius_monotonic` | **证伪（D-008）**·不作不变量 |
 | D-003 方向单调 | `test_properties.py::test_direction_monotonic` | deferred（需显式方向集）|
 | D-005 旋转等变 | `test_properties.py::test_rotation_equivariance` | deferred（mesh 前端）|
+| D-007 网格前端 | `test_mesh_frontend.py`（igl solidify→occupancy，复现已知答案 + IoU）| **GREEN** |
+| D-010 支撑接触区 | `test_support_contact.py`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）| **GREEN** |
 | （治理自检）| `test_charter.py`（schema/参考/无残留/params）| **GREEN** |
 | （环境自检）| `test_env.py`（igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（sfa 内）|
 

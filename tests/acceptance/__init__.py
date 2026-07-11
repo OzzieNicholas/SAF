@@ -7,6 +7,8 @@
   test_differential   D-003        体素 vs 暴力胶囊对拍
   test_invariants     ——          网格 sanity
   test_charter        ——          文档断言机检（现在就真跑变绿）
+  test_mesh_frontend  D-007        网格前端（igl solidify→occupancy）复现已知答案 + IoU
+  test_support_contact D-010       支撑接触区提取（下朝悬垂面 S(P,d)：提取/方向/阈值/端到端）
 
 决策↔性质映射见 charter/README.md。几何性质在 oracle 实现 + 依赖安装前保持 PENDING；
 pytest 下相应 test_* 抛 unittest.SkipTest。
