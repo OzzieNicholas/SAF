@@ -52,3 +52,10 @@
 - 裁决：把 D-000 起的协议结构改名为语义清晰、收敛为主流 src-layout —— `research/`→`charter/`（problem-card→problem）；根 `constitution.md`→`charter/constraints.md`；`docs/`→`charter/reference/`（退役富参考）；`workflow/`→`method/`（研发方法论中枢）；`harness/` 溶入 `tests/acceptance/`（性质/变形/差分/已知答案）+ `tests/gate.py`（棘轮门）+ `src/support_accessibility/eval/`（指标）；包名 `saf`→`src/support_accessibility/`（唯一 py 包）；`params.yaml`→`conf/params.yaml`。并把验收层从占位升级为"决策↔性质"映射骨架（见 `charter/README.md` 映射表），加文档机检 `tests/acceptance/test_charter.py`。
 - 依据：命名去黑话（读者语言）；三个 py 根（harness+src+tests）收敛为"一个包 + tests/"，根保持浅（主流 src-layout / Cookiecutter-DS / Hydra）；把 ffm §9 文档机检升级到"机检科学决策"。用户 2026-07-11 确认 `charter`、其余按推荐。
 - 状态：接受（supersede D-000 的**命名/布局**部分；D-000 的范式实质——协议结构、门先于码、旧编号文档退役——仍有效）
+
+## D-007  开发环境 = conda-forge + Python 3.12（env 名 sfa）
+
+- 日期：2026-07-11
+- 裁决：用 conda（miniforge，`D:\Miniforge\Install`）建环境 `sfa`：python=3.12 + conda-forge 的 igl/numpy/scipy/trimesh/pytest/hypothesis。**canonical 源 = `environment.yml`**（`conda env create -f environment.yml` 可复现）；`pyproject.toml` 只列抽象 pip 依赖(numpy/scipy/trimesh)+dev(pytest/hypothesis)，不列 igl。运行期由 `tests/acceptance/test_env.py` 的 `env_ready` 门守护。
+- 依据：igl（libigl）的 generalized winding number 判内外、scipy 距离变换是 oracle 口径（D-002/D-003）的直接依赖；几何栈在 conda-forge 上装最省事（pip 的 libigl 轮子易踩坑）；把环境写成机器可读 + 会检查的门，消除"环境歧义"。env 名沿用创建时的 `sfa`（与项目名 SAF 大小写不同，治理里以 `sfa` 为准）。
+- 状态：接受

@@ -12,6 +12,8 @@
 | 可执行 | 必须恒真的性质、门 | `../tests/acceptance/` `../tests/gate.py` `../src/support_accessibility/` | 跑起来会红（最强）|
 | 过程 | 研发方法 / loop 约定 | `../method/` | 运行时循环门 |
 
+> 环境：conda env `sfa`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n sfa python ../tests/gate.py`。
+
 ## 阅读顺序
 
 1. `problem.md` — 做什么、硬约束、非目标、指标、样例
@@ -26,11 +28,12 @@
 
 | 决策 | 验收性质（`../tests/acceptance/`）| 现状 |
 |---|---|---|
-| D-001 语义C（盲腔判例）| `known_answers.py::test_blind_cavity_inaccessible` | PENDING（待 oracle）|
-| D-002 基板不建模/下半球 | `known_answers.py::test_open_downface_accessible` | PENDING |
-| D-003 体素腐蚀口径 | `properties.py::test_radius_monotonic` `::test_direction_monotonic` · `differential.py::test_voxel_matches_bruteforce` | PENDING |
-| D-005 球模型/方向灵活 | `properties.py::test_rotation_equivariance` `::test_scale_invariance` | PENDING |
+| D-001 语义C（盲腔判例）| `test_known_answers.py::test_blind_cavity_inaccessible` | PENDING（待 oracle）|
+| D-002 基板不建模/下半球 | `test_known_answers.py::test_open_downface_accessible` | PENDING |
+| D-003 体素腐蚀口径 | `test_properties.py::test_radius_monotonic` `::test_direction_monotonic` · `test_differential.py::test_voxel_matches_bruteforce` | PENDING |
+| D-005 球模型/方向灵活 | `test_properties.py::test_rotation_equivariance` `::test_scale_invariance` | PENDING |
 | （治理自检）| `test_charter.py`（schema / 参考在位 / 无残留 / params 键）| **GREEN** |
+| （环境自检）| `test_env.py`（env_ready：igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（sfa 内）|
 
 跑门：`python ../tests/gate.py` → JSON 裁决 + 退出码。当前 **RED**（几何未实现），但 `test_charter` 已 **GREEN**——治理散文这层当场就有牙。
 

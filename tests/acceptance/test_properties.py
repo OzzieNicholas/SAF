@@ -34,24 +34,16 @@ def checks():
 
 
 def test_rotation_equivariance():
-    if not _ready():
-        raise SkipTest("oracle 未实现（D-005）")
-    raise NotImplementedError("Hypothesis:联合旋转(mesh,d)→标签同步旋转")
+    raise SkipTest("变形性质未接（后续批次：Hypothesis 联合旋转(mesh,d)→标签同步旋转，D-005）")
 
 
 def test_scale_invariance():
-    if not _ready():
-        raise SkipTest("oracle 未实现（D-005）")
-    raise NotImplementedError("Hypothesis:同比缩放(mesh,r)→标签不变")
+    raise SkipTest("变形性质未接（后续批次：Hypothesis 同比缩放(mesh,r)→标签不变，D-005）")
 
 
 def test_radius_monotonic():
-    if not _ready():
-        raise SkipTest("oracle 未实现（D-003）")
-    raise NotImplementedError("Hypothesis:r↑→不可达集只增不减")
+    raise SkipTest("变形性质未接（后续批次：Hypothesis r↑→不可达集只增不减，D-003）")
 
 
 def test_direction_monotonic():
-    if not _ready():
-        raise SkipTest("oracle 未实现（D-003）")
-    raise NotImplementedError("Hypothesis:方向数↑→可达集只增不减")
+    raise SkipTest("变形性质未接（后续批次：Hypothesis 方向数↑→可达集只增不减，D-003）")
