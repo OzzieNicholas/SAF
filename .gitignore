@@ -1,3 +1,7 @@
+# me (hand-managed, ignored)
+charter/reference/
+method/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

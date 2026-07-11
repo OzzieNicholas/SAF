@@ -1,0 +1,36 @@
+# params.yaml — Hydra 配置（几何 oracle / 采样 / 标签）
+#
+# 注意：以下**连续数值为临时值**，用于解锁 D0（10–30 程序化模型）小闭环。
+# 阶段"标签质量审核"六项趋势通过后，由 charter/decisions.md 新增条目正式冻结。
+# 离散选择（语义C / 球模型 / 基板不建模+下半球 / 体素腐蚀口径 / 二分类）已冻结，见 D-001..D-005。
+
+oracle:
+  semantic: C                    # D-001 多方向直线插入无碰撞（不可改，见 constraints §4）
+  tool_model: ball               # D-005 球模型、方向灵活
+  model_build_plate: false       # D-002 基板不建模
+  approach_hemisphere: lower      # D-002 工具从下半球逼近；只计零件本体遮挡（遮挡下界）
+  method: voxel_erosion          # D-003 体素/距离场腐蚀 + 边界带精确胶囊细化
+  direction_sampling: fibonacci_hemisphere
+  n_directions: 128              # 临时；敏感性扫 32/64/128/256
+  voxel_res: 256                 # 临时；分辨率 vs 成本/薄壁权衡
+  epsilon_voxels: 1.5            # 临时；边界不确定带宽（体素数）
+  boundary_refine: exact_capsule # 边界带用精确胶囊-网格求交细化
+
+tool:
+  # 相对归一尺度（geometry.normalize）的工具半径；须对齐槽宽分布使 H2（工具尺寸不可忽略）可显
+  radii: [0.02, 0.05]            # 临时：主半径 + 一个变化半径
+
+geometry:
+  normalize: longest_edge_1      # 最长包围盒边 = 1
+  overhang_angle_deg: 45         # 自支撑临界角；鲁棒性扫 40/45/50
+
+sampling:
+  contact_points_per_model: 3000 # 临时；范围 2000–5000
+  method: poisson_disk_area      # 按面积均匀（蓝噪声）
+
+labels:
+  mode: binary                   # D-004 二分类先行
+  emit_uncertain_band: true      # 边界不确定单列（可排除/降权/单独报告）
+
+split:
+  by: model                      # 必须按模型切分；禁止按点随机切分
