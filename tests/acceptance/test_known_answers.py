@@ -4,7 +4,7 @@
   D-001  盲腔底部 = 不可达（语义C 的旗舰正确性）
   D-002  开阔外表面下朝面 = 可达（下半球逼近、基板不建模、只计本体遮挡）
 
-在 conda env sfa（numpy/scipy）内 checks() 真跑 oracle 并与构造答案比对；
+在 conda env saf（numpy/scipy）内 checks() 真跑 oracle 并与构造答案比对；
 依赖缺失时优雅降级为 PENDING（env_ready 门另会红），oracle 抛错则记 FAIL（不静默）。
 """
 

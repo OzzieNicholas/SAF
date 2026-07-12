@@ -16,20 +16,20 @@
 
 ## 1. 回来怎么快速上手
 
-**环境**：conda env 名 `sfa`（Python 3.12，conda-forge）。miniforge 装在 `D:\Miniforge\Install`。
+**环境**：conda env 名 `saf`（Python 3.12，conda-forge）。miniforge 装在 `D:\Miniforge\Install`。
 - conda 在非交互 shell 里不在 PATH → 用**绝对路径的 python**最稳：
-  `D:\Miniforge\Install\envs\sfa\python.exe`
-- 交互 PowerShell 里可以 `conda activate sfa` 后直接 `python ...`。
+  `D:\Miniforge\Install\envs\saf\python.exe`
+- 交互 PowerShell 里可以 `conda activate saf` 后直接 `python ...`。
 
 **一条命令看全局（你的仪表盘）**：
 ```powershell
-& "D:\Miniforge\Install\envs\sfa\python.exe" D:\Work\SAF\tests\gate.py
+& "D:\Miniforge\Install\envs\saf\python.exe" D:\Work\SAF\tests\gate.py
 ```
 → 打印 JSON 裁决：`overall`（GREEN/RED）+ `summary{PASS,PENDING}` + 每条 `acceptance` 检查。退出码 0=绿 1=红。**现在是 RED**（几何/实验还没做完，正常）。
 
 **跑测试**：
 ```powershell
-& "D:\Miniforge\Install\envs\sfa\python.exe" -m pytest D:\Work\SAF\tests -q
+& "D:\Miniforge\Install\envs\saf\python.exe" -m pytest D:\Work\SAF\tests -q
 ```
 
 **看"为什么这么定"**：`charter/decisions.md`（只增不改的决策台账，D-000..D-010）。
@@ -150,7 +150,7 @@ D:\Work\SAF\
 - **D-004** 第一版标签 = 二分类可达/不可达。
 - **D-005** 工具 = 球模型、方向灵活。
 - **D-006** 语义化重命名 + 收敛标准 Python 布局（supersede D-000 命名部分）。
-- **D-007** 开发环境 = conda-forge + Python 3.12，env 名 `sfa`。
+- **D-007** 开发环境 = conda-forge + Python 3.12，env 名 `saf`。
 - **D-008** ⚠️ **半径单调性证伪**：point-touch 语义C 下"r↑→不可达↑"不成立（暴力参考也违反，非 bug）。radius 不作不变量。
 - **D-009** ⚠️ 网格前端口径：igl fast_winding_number>0.5；**无 CSG → numpy V/F 堆叠**；**禁用 trimesh concat/translate（本 env 原生崩溃 0xC06D）**。
 - **D-010** 支撑接触区提取：S(P,d) = 外法向 `n·d̂ < -cos(θc)` 的面（θc=overhang_angle_deg=45）；外法向用 numpy cross；质心作接触点。
@@ -177,7 +177,7 @@ D:\Work\SAF\
 
 ## 9. 环境与坑（gotchas，省得再踩）
 
-- **python 路径**：`D:\Miniforge\Install\envs\sfa\python.exe`。conda 不在非交互 shell PATH。
+- **python 路径**：`D:\Miniforge\Install\envs\saf\python.exe`。conda 不在非交互 shell PATH。
 - **PowerShell `>` 重定向写的是 UTF-16** → 直接 `json.load` 会 UnicodeDecodeError。要么 subprocess 抓 stdout、要么管道，别用 `>` 存 JSON 再读。
 - **trimesh.util.concatenate / apply_translation 在本 env 原生崩溃（0xC06D）**。合并多实体/平移一律用 numpy（`np.vstack` 顶点 + 面索引偏移；平移用坐标加法）。`trimesh.creation.box` / `.face_normals` 本身没问题。
 - **内联 python 探针要 `print(..., flush=True)`**，否则长时间原生调用崩溃/结束时缓冲输出会丢，看着像"127 无输出"。
@@ -214,7 +214,7 @@ D:\Work\SAF\
 
 每做一小片：
 1. 进计划模式；
-2. **动手前探针核查**（在 sfa 里跑只读探针，验证设计、避免认知偏差——历史上多次靠这个抓出错误假设：radius 证伪、trimesh 崩溃、scale 假绿）；
+2. **动手前探针核查**（在 saf 里跑只读探针，验证设计、避免认知偏差——历史上多次靠这个抓出错误假设：radius 证伪、trimesh 崩溃、scale 假绿）；
 3. 写**小**计划（切小片，别一次吃太大），审批；
 4. 执行；
 5. **事后核验**：gate + pytest 数字对齐预期 + 范围检查（find -mmin 隔离本片，确认没波及计划外文件）；

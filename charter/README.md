@@ -12,7 +12,7 @@
 | 可执行 | 必须恒真的性质、门 | `../tests/acceptance/` `../tests/gate.py` `../src/support_accessibility/` | 跑起来会红（最强）|
 | 过程 | 研发方法 / loop 约定 | `../method/` | 运行时循环门 |
 
-> 环境：conda env `sfa`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n sfa python ../tests/gate.py`。
+> 环境：conda env `saf`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n saf python ../tests/gate.py`。
 
 ## 阅读顺序
 
@@ -38,7 +38,7 @@
 | D-007 网格前端 | `test_mesh_frontend.py`（igl solidify→occupancy，复现已知答案 + IoU）| **GREEN** |
 | D-010 支撑接触区 | `test_support_contact.py`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）| **GREEN** |
 | （治理自检）| `test_charter.py`（schema/参考/无残留/params）| **GREEN** |
-| （环境自检）| `test_env.py`（igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（sfa 内）|
+| （环境自检）| `test_env.py`（igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（saf 内）|
 
 跑门：`python ../tests/gate.py` → JSON 裁决 + 退出码。当前 **RED**（几何未实现），但 `test_charter` 已 **GREEN**——治理散文这层当场就有牙。
 

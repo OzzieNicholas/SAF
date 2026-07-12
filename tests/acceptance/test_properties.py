@@ -95,7 +95,7 @@ if _HAS_HYP:
         assert ok, f"scale 不变量被 robust 违反：seed={seed}"
 else:
     def test_scale_invariance():
-        raise SkipTest("hypothesis 未安装（env sfa 内应有）")
+        raise SkipTest("hypothesis 未安装（env saf 内应有）")
 
 
 def test_radius_monotonic():
