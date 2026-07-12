@@ -86,3 +86,17 @@
 - 裁决：不把"尺度不变"（整数上采样 k×，label 不变）当作 oracle 不变量。`test_properties::test_scale_invariance` 不接绿（skip），`checks()` 记 pending。真实分辨率稳定性留待足够细的真实网格复核。（本条起决策不再写日期——身份靠 ID、因果靠 supersede、时间归 git；去日期与生成式状态的完整治理范式详见后续治理重设计条目。）
 - 依据：Hypothesis 随机搜索抓到反例（如 seed=91102904）——粗网格(N³)判 accessible，2× 上采样(2N³)判 inaccessible，且 r±ε 邻域全程不一致（robust 违反、非边界噪声）。根因：粗网格漏判"欠分辨薄特征"（误判可达），细网格纠正为不可达；故"尺度不变"实为分辨率稳定性，粗网格不够细时会真错。与 radius（D-008）同类：以为是不变量、实则不是。清单5 当时的绿是运气（有限种子未撞上）。
 - 状态：接受（语义 D-001 暂不改——合成 speckle 非真实网格；是否因此细化"工具-可达"模型待真实几何证据。本条只如实记录并暂不接 scale 不变量）
+
+## D-012  治理基础设施化 + 命名/文档/CI 口径（supersede D-007 命名部分；退役 charter/reference/ 期望）
+
+- 裁决（本次治理重设计逐项冻结）：
+  1) **环境改名 `sfa`→`saf`**（对齐项目名 SAF）。canonical 源 environment.yml `name: saf`；**supersede D-007 的命名部分**（D-007 正文的 `sfa` 作历史保留、不改）。
+  2) **富参考家 = 顶层 `docs/`**（已 git 跟踪）：`test_charter::check_reference_docs` 认 `docs/`，`check_no_stale_paths` 去 `docs/` token；**退役 gitignored `charter/reference/` 期望**（本机可留镜像，clean clone/CI 以 docs/ 为准）。
+  3) **CI = conda/environment.yml 忠实栈**：`.github/workflows/gate.yml` 用 setup-micromamba 建 `saf` 跑 gate+pytest；CI 成败以 **pytest**（回归信号）为准，`gate.py` 全程 RED（budget/regression 恒 PENDING）只作 job-summary 展示、不决定 CI。
+  4) **决策去日期**（D-011 起）：身份靠 ID、因果靠 supersede、时间归 git；`check_decisions_schema` 不再要求"日期"子串。
+  5) **状态生成、非手抄**：`gate.py --format md` 渲染 STATUS（CI 写 `$GITHUB_STEP_SUMMARY`，本地 `--format md`）；`charter/README.md` 映射表**删手写"现状"列**，状态一律回落门。
+  6) **未决触发册** `charter/open.md`（前置条件→义务、无日期）：`test_open` 接进门——未决项 surfaced 为门项、机器可判者附注休眠/可闭合（人肉提醒→门提醒）。
+  7) **完整性入门**：`test_charter::check_decisions_covered`——每条 D-0NN 须被验收层引用或在结构 allowlist（D-000/004/006/012），杜绝孤儿决策。
+  8) **record.md 退役**为非权威指针（状态跑门 / 为什么看 decisions / 地图看 charter/README / 未决看 open.md）；权威三分工不变。
+- 依据：本会话实证——① 云端 uv+pypi 数秒复现 saf 环境、gate+pytest 全跑（几何全绿、solidify IoU=1.000），验证器可移植上 CI；② record.md 手抄状态/地图/理据违反 charter 自立"一个事实一个家、指针不复制"，且实测漂移（写 test_charter GREEN 而 clean clone 为红、scale 写 GREEN 实为假绿）；③ 命名 sfa 系笔误。用户 Phase-3 全取推荐项（A 追加决策 / B conda 栈 / C docs 家 / D 去日期）。
+- 状态：接受（判定语义/oracle 口径 D-001..D-005/D-009/D-010 分毫未动；本条只碰治理·工具·CI·文档层）

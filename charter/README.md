@@ -24,23 +24,23 @@
 
 ## 决策 ↔ 性质 映射（棘轮门守护）
 
-每条冻结决策都有一条会跑的验收性质守护它；改一条决策 → 改对应性质（见"修改触发"）。
+每条冻结决策都有会跑的验收性质守护它；**现状不在此手写——跑 `../tests/gate.py`（`--format md` 出 markdown STATUS）看实时裁决**。改一条决策 → 改对应性质（见"修改触发"）。完整性由 `test_charter.py::check_decisions_covered` 守护：每条 D-0NN 须被验收层引用或在结构 allowlist，杜绝孤儿。
 
-| 决策 | 验收性质（`../tests/acceptance/`）| 现状 |
-|---|---|---|
-| D-001 语义C（盲腔判例）| `test_known_answers.py::test_blind_cavity_inaccessible` | **GREEN** |
-| D-002 基板不建模/下半球 | `test_known_answers.py::test_open_downface_accessible` | **GREEN** |
-| D-003 体素口径对拍 | `test_differential.py::test_voxel_matches_bruteforce`（voxel==暴力参考，ε边界带）| **GREEN** |
-| D-005 尺度不变 | `test_properties.py::test_scale_invariance`（整数上采样）| **GREEN** |
-| D-003 半径单调 | `test_properties.py::test_radius_monotonic` | **证伪（D-008）**·不作不变量 |
-| D-003 方向单调 | `test_properties.py::test_direction_monotonic` | deferred（需显式方向集）|
-| D-005 旋转等变 | `test_properties.py::test_rotation_equivariance` | deferred（mesh 前端）|
-| D-007 网格前端 | `test_mesh_frontend.py`（igl solidify→occupancy，复现已知答案 + IoU）| **GREEN** |
-| D-010 支撑接触区 | `test_support_contact.py`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）| **GREEN** |
-| （治理自检）| `test_charter.py`（schema/参考/无残留/params）| **GREEN** |
-| （环境自检）| `test_env.py`（igl/numpy/scipy/trimesh + py≥3.12）| **GREEN**（saf 内）|
+| 决策 | 守护性质（`../tests/acceptance/`）|
+|---|---|
+| D-001 语义C（盲腔判例）| `test_known_answers`（盲腔不可达）+ `test_mesh_frontend`（两盒窄隙）|
+| D-002 基板不建模/下半球 | `test_known_answers`（开阔下朝面可达）+ `test_mesh_frontend`（盒下朝面）|
+| D-003 体素腐蚀口径 | `test_differential`（voxel==暴力参考，ε边界带）|
+| D-005 球模型/方向灵活 | `test_properties`（旋转等变、尺度等变形性质）|
+| D-007 环境 | `test_env`（env_ready）|
+| D-008 半径单调证伪 | `test_properties::test_radius_monotonic`（skip，不作不变量）|
+| D-009 网格 igl 口径 | `test_mesh_frontend`（solidify IoU；无 CSG numpy 堆叠）|
+| D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
+| D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
+| D-000/004/006/012 结构·标注·布局·治理 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**）+ `test_open`（未决触发册接门）|
 
-跑门：`python ../tests/gate.py` → JSON 裁决 + 退出码。当前 **RED**（几何未实现），但 `test_charter` 已 **GREEN**——治理散文这层当场就有牙。
+跑门：`python ../tests/gate.py`（`--format md` 出 markdown STATUS）→ 裁决 + 退出码。**状态一律看门、不在此手写**；棘轮：绿了不许静默退绿。
 
 ## 修改触发（改什么必须同步什么）
 

@@ -77,9 +77,28 @@ def check_params_keys():
                   "关键键在位" if not missing else "缺:" + ",".join(missing))
 
 
+def check_decisions_covered():
+    """完整性：每条 decisions.md 的 D-0NN 都被验收层交代（被测试引用，或在结构 allowlist）——杜绝孤儿决策。"""
+    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012"}   # 结构/标注/布局/治理：无专属性质，由 test_charter 或本身守护
+    try:
+        dtxt = _read("charter/decisions.md")
+    except OSError as e:
+        return result("decisions_covered", False, f"读不到 decisions.md: {e}")
+    ids = set(re.findall(r"^##\s+(D-\d+)", dtxt, re.M))
+    acc = os.path.join(_ROOT, "tests", "acceptance")
+    referenced = set()
+    for fn in os.listdir(acc):
+        if fn.endswith(".py"):
+            with open(os.path.join(acc, fn), encoding="utf-8") as f:
+                referenced |= set(re.findall(r"D-\d+", f.read()))
+    orphan = sorted(ids - (referenced | STRUCTURAL))
+    return result("decisions_covered", not orphan,
+                  f"{len(ids)} 条决策全被验收层交代" if not orphan else "孤儿决策:" + ",".join(orphan))
+
+
 def checks():
     return [check_decisions_schema(), check_reference_docs(),
-            check_no_stale_paths(), check_params_keys()]
+            check_no_stale_paths(), check_params_keys(), check_decisions_covered()]
 
 
 # —— pytest 入口：真断言，现在就应绿 ——
@@ -100,4 +119,9 @@ def test_no_stale_paths():
 
 def test_params_keys():
     r = check_params_keys()
+    assert r["status"] == "PASS", r["detail"]
+
+
+def test_decisions_covered():
+    r = check_decisions_covered()
     assert r["status"] == "PASS", r["detail"]

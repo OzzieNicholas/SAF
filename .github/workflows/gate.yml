@@ -25,6 +25,6 @@ jobs:
           cache-environment: true
       - name: pytest（回归信号——CI 成败以此为准）
         run: micromamba run -n saf python -m pytest tests -q
-      - name: acceptance gate（完整性棘轮——展示用，不决定 CI 成败）
+      - name: acceptance gate（完整性棘轮——渲染进 job summary，不决定 CI 成败）
         if: always()
-        run: micromamba run -n saf python tests/gate.py || true
+        run: micromamba run -n saf python tests/gate.py --format md >> "$GITHUB_STEP_SUMMARY" || true
