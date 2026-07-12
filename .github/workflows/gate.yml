@@ -1,0 +1,30 @@
+# 验收门 CI（棘轮上云）：忠实复现 canonical 环境（environment.yml，env saf）跑 gate + pytest。
+# CI 成败以 pytest 为准（回归信号：无 test 失败=绿）。tests/gate.py 是"项目完整性"棘轮，
+# 全程 RED 直到 budget/regression 门就绪，故只作可视展示（|| true）、不决定 CI 成败。
+# 见 charter/README.md、charter/decisions.md。
+name: gate
+
+on: [push, pull_request]
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 建 conda 环境 saf（micromamba + environment.yml，忠实 D-007 canonical）
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+      - name: pytest（回归信号——CI 成败以此为准）
+        run: micromamba run -n saf python -m pytest tests -q
+      - name: acceptance gate（完整性棘轮——展示用，不决定 CI 成败）
+        if: always()
+        run: micromamba run -n saf python tests/gate.py || true

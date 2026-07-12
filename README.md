@@ -1,5 +1,7 @@
 # SAF — Support Accessibility Field
 
+[![gate](https://github.com/OzzieNicholas/SAF/actions/workflows/gate.yml/badge.svg)](https://github.com/OzzieNicholas/SAF/actions/workflows/gate.yml)
+
 金属增材制造**支撑接触区**表面的几何可达性代理评价与**形状条件神经预测**。
 在单个公开三维零件上，识别构建方向决定的支撑接触区，评价其在简化工具条件下的几何可接近性，
 并用形状条件神经场在未见模型上预测——为 DfAM 预处理提供不同于支撑体积/过悬面积的后处理几何风险维度。
