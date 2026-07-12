@@ -1,10 +1,10 @@
 """文档断言机检 —— 把 ffm §9「文档断言机检」升级到"机检科学决策"。
 
 纯文本校验，只用 stdlib，**现在就真跑、应全绿**（证明治理散文这层当场就有牙）：
-  1) decisions schema：每条 D-00x 有 日期/裁决/依据/状态
-  2) reference 富参考在位：charter/reference/ 的 5 份编号文档存在
+  1) decisions schema：每条 D-00x 有 裁决/依据/状态（日期已去，时间归 git；见 D-011 起）
+  2) reference 富参考在位：docs/ 的 5 份编号文档存在（committed 富参考家）
   3) 无残留黑话路径：当前态散文/配置（含 conf/params.yaml）不再出现
-     docs/ research/ harness/ workflow/ governance/ constitution report.py（旧名/旧路径）
+     research/ harness/ workflow/ governance/ constitution report.py（旧名/旧路径）
      （decisions.md 是只增不改的历史台账，合法保留旧名，故豁免）
   4) params 关键键存在：conf/params.yaml 含 semantic/n_directions/voxel_res/radii/overhang_angle_deg
 """
@@ -31,7 +31,7 @@ def check_decisions_schema():
     blocks = re.split(r"^##\s+D-\d+", txt, flags=re.M)[1:]
     missing = []
     for did, block in zip(ids, blocks):
-        for field in ("日期", "裁决", "依据", "状态"):
+        for field in ("裁决", "依据", "状态"):
             if field not in block:
                 missing.append(f"{did}:缺{field}")
     ok = bool(ids) and not missing
@@ -43,13 +43,13 @@ def check_reference_docs():
     need = ["0_背景与边界.md", "0_执行路线与阶段门.md", "1_选题与研究定位.md",
             "2_文献矩阵与相关工作.md", "3_实验闭环设计.md"]
     missing = [n for n in need
-               if not os.path.exists(os.path.join(_ROOT, "charter", "reference", n))]
+               if not os.path.exists(os.path.join(_ROOT, "docs", n))]
     return result("reference_docs_exist", not missing,
                   "5 份富参考在位" if not missing else "缺:" + ",".join(missing))
 
 
 def check_no_stale_paths():
-    stale = ("docs/", "research/", "harness/", "workflow/", "governance/", "constitution", "report.py")
+    stale = ("research/", "harness/", "workflow/", "governance/", "constitution", "report.py")
     # decisions.md 豁免（只增不改的历史台账）
     files = ["charter/problem.md", "charter/evidence.md", "charter/constraints.md",
              "charter/README.md", "CLAUDE.md", "conf/params.yaml"]

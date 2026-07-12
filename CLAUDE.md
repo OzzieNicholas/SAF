@@ -34,7 +34,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 
 ## 约定
 
-- 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `charter/reference/`（退役只读）。
+- 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `docs/`（退役只读）。
 - 验收层 `tests/acceptance/` 是规格脊椎，先于 `src/` 建（建门先于建码）；门 `tests/gate.py` 做棘轮。
 - 代码按**模块**：`src/support_accessibility/{oracle,data,eval,models,viz}`，不按阶段号前缀。
 - 研发方法在 `method/`；产物进 `runs/`（DVC，按 E0–E8 + run-id，机器 emit）。
