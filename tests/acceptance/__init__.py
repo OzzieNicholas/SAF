@@ -11,6 +11,7 @@
   test_support_contact D-010       支撑接触区提取（下朝悬垂面 S(P,d)：提取/方向/阈值/端到端）
   test_eval           ——          指标（不可达 F1 / 区域 IoU / 面积比例误差）已知答案锚定
   test_data           ——          程序化标签数据集（oracle 自动打标、两类俱在、按模型切分）
+  test_model          H3          形状条件预测：留出(未见)模型上不可达 F1 胜基线（跨模型可行性）
 
 决策↔性质映射见 charter/README.md。几何性质在 oracle 实现 + 依赖安装前保持 PENDING；
 pytest 下相应 test_* 抛 unittest.SkipTest。
