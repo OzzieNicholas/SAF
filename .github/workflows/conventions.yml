@@ -12,5 +12,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0        # 需完整历史以定位 conventions.md 引入点 + 遍历提交
+      - name: 取 main 作 base（排除 base 历史 + 合并提交）
+        run: git fetch --no-tags origin main:refs/remotes/origin/main || true
       - name: 校验 commit 主题 + 分支名规范
-        run: python3 tools/check_conventions.py --branch "${GITHUB_REF_NAME}"
+        # PR 用 head_ref（真源分支，非 1/merge）；push 用 ref_name。base=main 只查本分支新增（非 merge）。
+        run: python3 tools/check_conventions.py --branch "${{ github.head_ref || github.ref_name }}" --base origin/main

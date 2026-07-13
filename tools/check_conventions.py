@@ -4,12 +4,14 @@
 由 .github/workflows/conventions.yml（CI）与 hooks/（本地可选）共用。校验：
   - commit 主题匹配 <type>(<scope>): <主题>，type ∈ TYPES；
   - 当前分支名匹配 <type>/<slug>，或属豁免（main / master / claude/* harness 分支）。
-规范**自其引入**（charter/conventions.md 首次加入的提交）向后强制；之前的 bootstrap 提交祖父豁免，
-不改写历史。理据 / 生命周期散文见 charter/conventions.md，冻结见 decisions D-013。
+只强制**本分支新增**（相对 base=main，且非 merge 提交）且**自规范引入**
+（charter/conventions.md 首次加入的提交）起的提交；base 上的历史与合并提交祖父豁免、不改写历史。
+理据 / 生命周期散文见 charter/conventions.md，冻结见 decisions D-013。
 
 用法：
-  python tools/check_conventions.py [--branch <name>]     # 校验分支名 + 历史提交（CI / pre-push）
-  python tools/check_conventions.py --message-file <path> # 校验单条待写消息（commit-msg hook）
+  python tools/check_conventions.py [--branch <name>] [--base <ref>]  # 分支名 + 历史提交（CI / pre-push）
+  python tools/check_conventions.py --message-file <path>             # 单条待写消息（commit-msg hook）
+CI（pull_request）须传 --branch ${{ github.head_ref }}（真源分支，非 1/merge）与 --base origin/main。
 """
 import re
 import subprocess
@@ -25,23 +27,32 @@ def _git(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
 
 
-def _commits_to_check():
-    """规范自 charter/conventions.md 引入的提交起强制；祖父豁免更早的 bootstrap 提交。"""
-    added = _git("log", "--diff-filter=A", "--reverse", "--format=%H", "--", "charter/conventions.md")
-    start = added.splitlines()[0] if added else None
+def _has(ref):
+    return bool(_git("rev-parse", "--verify", "-q", ref))
+
+
+def _commits_to_check(base=None):
+    """要强制的提交：自规范引入起（祖父豁免更早）∩ 本分支新增（相对 base、非 merge）。"""
+    intro = _git("log", "--diff-filter=A", "--reverse", "--format=%H", "--", "charter/conventions.md")
+    start = intro.splitlines()[0] if intro else None
     if not start:
-        return []                                          # 规范尚未引入：不强制
+        return []                                                  # 规范未引入：不强制
     has_parent = len(_git("rev-list", "--parents", "-n", "1", start).split()) > 1
-    rng = f"{start}^..HEAD" if has_parent else "HEAD"
-    return [s for s in _git("rev-list", rng).splitlines() if s]
+    adopt = set(_git("rev-list", "--no-merges", f"{start}^..HEAD" if has_parent else "HEAD").splitlines())
+    if base is None and _has("origin/main"):
+        base = "origin/main"
+    if base and _has(base):
+        new = set(_git("rev-list", "--no-merges", f"{base}..HEAD").splitlines())
+        return [s for s in adopt if s in new]                      # 仅本分支引入 + 采纳后
+    return [s for s in adopt if s]                                 # 无 base（本地单分支）：采纳后全查
 
 
-def check(branch=None):
+def check(base=None, branch=None):
     errs = []
     branch = branch or _git("rev-parse", "--abbrev-ref", "HEAD")
     if branch and not (BRANCH_RE.match(branch) or BRANCH_EXEMPT.match(branch)):
         errs.append(f"分支名 '{branch}' 不合规：应为 <type>/<slug>（type∈{{{','.join(TYPES)}}}；main/claude-* 豁免）")
-    for sha in _commits_to_check():
+    for sha in _commits_to_check(base):
         subj = _git("show", "-s", "--format=%s", sha)
         if not SUBJECT_RE.match(subj):
             errs.append(f"提交 {sha[:9]} 主题 '{subj[:56]}' 不合规：应为 <type>(<scope>): …")
@@ -57,13 +68,16 @@ def check_message(path):
     return [] if SUBJECT_RE.match(subj) else [f"消息主题 '{subj[:56]}' 不合规：应为 <type>(<scope>): …"]
 
 
+def _arg(a, name):
+    return a[a.index(name) + 1] if name in a and a.index(name) + 1 < len(a) else None
+
+
 def main():
     a = sys.argv[1:]
     if "--message-file" in a:
-        errs = check_message(a[a.index("--message-file") + 1])
+        errs = check_message(_arg(a, "--message-file"))
     else:
-        branch = a[a.index("--branch") + 1] if "--branch" in a else None
-        errs = check(branch)
+        errs = check(_arg(a, "--base"), _arg(a, "--branch"))
     if errs:
         sys.stderr.write("动作规范校验未过（见 charter/conventions.md）：\n")
         for e in errs:
