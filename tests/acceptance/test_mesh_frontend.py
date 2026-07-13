@@ -1,6 +1,6 @@
 """网格前端验收：真实网格 → igl solidify → occupancy → oracle，复现已知答案。
 
-守护 mesh 前端口径（D-007 选 igl / D-009 本片口径）。在 sfa（igl/trimesh/scipy）内真跑；
+守护 mesh 前端口径（D-007 选 igl / D-009 本片口径）。在 saf（igl/trimesh/scipy）内真跑；
 依赖缺失 → PENDING/skip。双重锚定：① solidify 占据与解析盒 IoU≈1；② 两条已知答案在真实网格上复现。
 """
 

@@ -12,7 +12,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 - 神经：PyTorch；可选 tiny-cuda-nn / Kaolin / PyTorch3D。
 - 实验：DVC（流水线/产物）+ Hydra（`conf/params.yaml`）。
 - 硬件上限：单卡 RTX 4060 / 32G，模型与数据规模据此控制。
-- **环境**：conda env `sfa`（py3.12，conda-forge）；建/复现 `conda env create -f environment.yml`；由 `tests/acceptance/test_env.py` 的 `env_ready` 门守护（环境不对当场红）。
+- **环境**：conda env `saf`（py3.12，conda-forge）；建/复现 `conda env create -f environment.yml`；由 `tests/acceptance/test_env.py` 的 `env_ready` 门守护（环境不对当场红）。
 
 ## 完成的定义（Definition of Done）
 
@@ -21,10 +21,10 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 
 ## 怎么跑
 
-- 验收门：`conda run -n sfa python tests/gate.py`（当前 RED，几何未实现）
-- 测试：`conda run -n sfa python -m pytest -q`
-- 实验：`conda run -n sfa dvc repro`（就绪后）
-- 非交互/agent 兜底：直接用 env 的 python `D:\Miniforge\Install\envs\sfa\python.exe`
+- 验收门：`conda run -n saf python tests/gate.py`（当前 RED，几何未实现）
+- 测试：`conda run -n saf python -m pytest -q`
+- 实验：`conda run -n saf dvc repro`（就绪后）
+- 非交互/agent 兜底：直接用 env 的 python `D:\Miniforge\Install\envs\saf\python.exe`
 
 ## 绝不能碰
 
@@ -34,7 +34,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 
 ## 约定
 
-- 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `charter/reference/`（退役只读）。
+- 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `docs/`（退役只读）。
 - 验收层 `tests/acceptance/` 是规格脊椎，先于 `src/` 建（建门先于建码）；门 `tests/gate.py` 做棘轮。
 - 代码按**模块**：`src/support_accessibility/{oracle,data,eval,models,viz}`，不按阶段号前缀。
 - 研发方法在 `method/`；产物进 `runs/`（DVC，按 E0–E8 + run-id，机器 emit）。

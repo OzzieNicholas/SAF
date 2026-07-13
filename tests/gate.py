@@ -21,7 +21,7 @@ for _p in (os.path.join(_ROOT, "src"), _HERE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from acceptance import PASS, test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact
+from acceptance import PASS, test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_deferred
 
 try:
     from support_accessibility import oracle
@@ -44,7 +44,7 @@ def regression_gate():
 def build_verdict():
     acceptance = []
     # test_env / test_charter 在前：它们现在就应绿，其余几何性质 PENDING
-    for mod in (test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact):
+    for mod in (test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_deferred):
         acceptance += mod.checks()
     gates = [budget_gate(), regression_gate()]
     all_pass = (all(c["status"] == PASS for c in acceptance)
@@ -58,13 +58,31 @@ def build_verdict():
     }
 
 
+_ICON = {"PASS": "✅", "FAIL": "❌", "PENDING": "⏳"}
+
+
+def render_markdown(verdict):
+    """把裁决渲染为 markdown（供 CI job summary / 本地 --format md）。状态生成、非手抄。"""
+    lines = [f"# SAF 验收裁决 — **{verdict['overall']}**", "",
+             f"`{verdict['summary']}`　oracle_implemented={verdict['oracle_implemented']}", "",
+             "| 状态 | 检查 | 详情 |", "|---|---|---|"]
+    for c in verdict["acceptance"] + verdict["gates"]:
+        lines.append(f"| {_ICON.get(c['status'], c['status'])} {c['status']} | `{c['name']}` | {c['detail']} |")
+    return "\n".join(lines)
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")   # Windows 控制台默认非 UTF-8
     except (AttributeError, ValueError):
         pass
+    argv = sys.argv[1:]
+    fmt = "json"
+    if "--format" in argv:
+        j = argv.index("--format")
+        fmt = argv[j + 1] if j + 1 < len(argv) else "json"
     verdict = build_verdict()
-    print(json.dumps(verdict, ensure_ascii=False, indent=2))
+    print(render_markdown(verdict) if fmt == "md" else json.dumps(verdict, ensure_ascii=False, indent=2))
     sys.exit(0 if verdict["overall"] == "GREEN" else 1)
 
 

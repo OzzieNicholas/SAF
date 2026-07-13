@@ -86,4 +86,4 @@ if _HAS_HYP:
         assert robust == 0, f"robust 差分不一致（非边界）：seed={seed}"
 else:
     def test_voxel_matches_bruteforce():
-        raise SkipTest("hypothesis 未安装（env sfa 内应有）")
+        raise SkipTest("hypothesis 未安装（env saf 内应有）")
