@@ -1,6 +1,6 @@
 # support_accessibility — 实现包（按模块，不按阶段号）
 
-> 唯一 Python 包，代码深度全在此。由 Superpowers 内环（brainstorm → plan → TDD）填充，
+> 唯一 Python 包，代码深度全在此。按 TDD 内环（探索 → 计划 → 测试先行）填充，
 > 测试对着 `tests/acceptance/` 写。阶段号（阶段0–10）与实验号（E0–E8）是逻辑标签，不作文件名前缀。
 
 | 模块 | 职责 |

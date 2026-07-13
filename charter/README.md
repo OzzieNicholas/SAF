@@ -1,7 +1,7 @@
 # charter — 治理地图（索引）
 
 > SAF (Support Accessibility Field) 的统一治理入口：散文（意图/决策/证据/铁律）+ 一张地图。
-> 承袭 ffm_mesh_common 的原则：一个事实一个家、指针不复制、行为终极权威=代码+测试、每个集合有索引。
+> 治理原则：一个事实一个家、指针不复制、行为终极权威=代码+测试、每个集合有索引。
 
 ## 三层强度 + 过程（弱→强）
 
@@ -10,7 +10,7 @@
 | 意图 | 问题定义 / 铁律 / 证据 | `problem.md` `constraints.md` `evidence.md` | 人和智能体读（最弱）|
 | 台账 | 决策（已决）+ 未决触发 | `decisions.md` `deferred.md` | `test_charter.py` / `test_deferred.py` 机检 |
 | 可执行 | 必须恒真的性质、门 | `../tests/acceptance/` `../tests/gate.py` `../src/support_accessibility/` | 跑起来会红（最强）|
-| 过程/规范 | 研发方法 / 动作规范（commit·分支·合并·命名）| `conventions.md` `../method/` | `conventions.yml` CI + 可选 hooks |
+| 过程/规范 | 动作规范（commit·分支·合并·命名）+ 研发方法 | `conventions.md`（研发方法在本地手管 `method/`）| `conventions.yml` CI + 可选 hooks |
 
 > 环境：conda env `saf`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n saf python ../tests/gate.py`。
 
@@ -39,7 +39,7 @@
 | D-009 网格 igl 口径 | `test_mesh_frontend`（solidify IoU；无 CSG numpy 堆叠）|
 | D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
-| D-000/004/006/012/013 结构·标注·布局·治理·规范 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| D-000/004/006/012/013/014 结构·标注·布局·治理·规范·台账策展 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 

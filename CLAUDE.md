@@ -24,7 +24,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 - 验收门：`conda run -n saf python tests/gate.py`（当前 RED，几何未实现）
 - 测试：`conda run -n saf python -m pytest -q`
 - 实验：`conda run -n saf dvc repro`（就绪后）
-- 非交互/agent 兜底：直接用 env 的 python `D:\Miniforge\Install\envs\saf\python.exe`
+- 非交互/agent 兜底：直接用 saf 环境的 python 解释器（`conda run -n saf python …`，或该 env 内 python 绝对路径）
 
 ## 绝不能碰
 
@@ -37,5 +37,5 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 - 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `docs/`（退役只读）。
 - 验收层 `tests/acceptance/` 是规格脊椎，先于 `src/` 建（建门先于建码）；门 `tests/gate.py` 做棘轮。
 - 代码按**模块**：`src/support_accessibility/{oracle,data,eval,models,viz}`，不按阶段号前缀。
-- 研发方法在 `method/`；产物进 `runs/`（DVC，按 E0–E8 + run-id，机器 emit）。
+- 研发方法在 `method/`（本地手管，gitignore）；产物进 `runs/`（DVC，按 E0–E8 + run-id，机器 emit）。
 - 阶段/实验号（阶段0–10、E0–E8）是**逻辑标签**，用于 decisions / 提交信息 / run 清单，**不作文件名前缀**。
