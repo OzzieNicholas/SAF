@@ -5,12 +5,6 @@
      机器可判的条目（如 flagship-pair 的 import-check）附注"休眠/已触发/可闭合"。
      闭合：满足义务后 append decisions.md 记录，并把此条从本册删除。命名原则见 conventions.md §3。 -->
 
-## geometry-vs-neural-mainline
-- 触发：oracle/几何验收全 PASS（尺子造好）
-- 义务：重议"几何优先 vs 神经优先"主线定位（原 parked）
-- 阻塞：无（仅到期提示，不阻断）
-- 机器可判：否（人审——需通读 gate 后判断）
-
 ## flagship-pair
 - 触发：进入 E1/H1 实验
 - 义务：实现 src/support_accessibility/data/__init__.py::flagship_pair（现 NotImplementedError）
