@@ -41,6 +41,7 @@
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
 | D-000/004/006/012/013/014 结构·标注·布局·治理·规范·台账策展 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
+| （管线自检）| `test_eval`（不可达 F1/IoU/面积误差·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 
 跑门：`python ../tests/gate.py`（`--format md` 出 markdown STATUS）→ 裁决 + 退出码。**状态一律看门、不在此手写**；棘轮：绿了不许静默退绿。

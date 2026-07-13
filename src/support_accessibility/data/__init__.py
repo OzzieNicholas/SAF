@@ -56,3 +56,98 @@ def deep_narrow_slot(width, depth):
 def flagship_pair(support_area_target, cavity_depth_a, cavity_depth_b):
     """旗舰配对：支撑面积近似相等、腔深不同的两件，保 E1/H1 存在性。"""
     raise NotImplementedError("后续批次。")
+
+
+# —— 程序化标签数据集（Phase 1）：形状条件样本，oracle 自动打标（无人工标注）——
+@dataclass
+class LabeledModel:
+    """一个程序化件的形状条件训练样本。occ=形状条件；points=下朝支撑接触点；labels=oracle 标签。"""
+    name: str
+    occ: object            # np.ndarray[bool]，True=实体（形状条件输入）
+    points: object         # np.ndarray (K,3) float，体素坐标（下朝支撑接触点，查询点）
+    labels: object         # np.ndarray (K,) bool，True=不可达（风险正类，D-004 二分类）
+    radius: float          # 工具球半径（体素）
+
+
+def _slab_blind_hole(N, opening, depth):
+    """厚板从底面挖 opening×opening 盲孔 depth 深。窄孔顶=不可达、板底开阔面=可达（一件含两类）。"""
+    import numpy as np
+    occ = np.zeros((N, N, N), dtype=bool)
+    z0, z1 = 8, N - 8
+    occ[:, :, z0:z1] = True
+    c, h = N // 2, opening // 2
+    occ[c - h:c + h + 1, c - h:c + h + 1, z0:z0 + depth] = False
+    return occ
+
+
+def _open_slab(N, thickness):
+    """开阔厚板：底面下方全自由 → 下朝面全可达（D-002）。"""
+    import numpy as np
+    occ = np.zeros((N, N, N), dtype=bool)
+    z0 = (N - thickness) // 2
+    occ[:, :, z0:z0 + thickness] = True
+    return occ
+
+
+def down_facing_points(occ, max_points=None, rng=None):
+    """下朝支撑接触点 = 自由体素且其 +z 邻为实体（构建方向 +z，D-010 底面/悬垂）。返回 (K,3) float。
+
+    **按高度 z 分层采样**：开阔底面（低 z）与受限腔顶（高 z）是几何上不同的下朝面，体素数悬殊；
+    面积均匀采样会让庞大的开阔底面淹没小小的腔顶（风险正类）。分层给每个 z-面配额，保证受限腔顶
+    被代表——与"不可达=稀有风险正类"（problem.md）一致，不靠伪造平衡。（真实网格前端将按面积泊松采样，
+    见 conf/params.yaml sampling；此处是程序化件的务实提取。）
+    """
+    import numpy as np
+    occ = np.asarray(occ, dtype=bool)
+    below_solid = np.zeros_like(occ)
+    below_solid[:, :, :-1] = occ[:, :, 1:]              # (x,y,z) 上方 (z+1) 是实体
+    cand = np.argwhere((~occ) & below_solid)            # (M,3) 自由且上方实体
+    if max_points is None or cand.shape[0] <= max_points:
+        return cand.astype(float)
+    rng = rng if rng is not None else np.random.default_rng(0)
+    levels = np.unique(cand[:, 2])
+    per = max(1, max_points // len(levels))             # 每个下朝面（z-层）配额
+    picked = []
+    for zz in levels:
+        g = cand[cand[:, 2] == zz]
+        picked.append(g[rng.choice(g.shape[0], size=min(per, g.shape[0]), replace=False)])
+    out = np.vstack(picked)
+    if out.shape[0] > max_points:
+        out = out[rng.choice(out.shape[0], size=max_points, replace=False)]
+    return out.astype(float)
+
+
+def make_dataset(n_models=12, N=28, max_points=24, radius=3.0, n_directions=32, seed=0):
+    """程序化标签数据集：n_models 个参数化件 → 提取下朝接触点 → oracle 自动打标。
+
+    形状条件训练用（按模型切分，见 split_by_model / conf/params.yaml split.by=model）。默认是小烟测集,
+    Phase-2/3 靠增大 n_models/N/max_points 扩量。半径以体素为单位（对齐 oracle 口径与已知答案件）。
+    """
+    import numpy as np
+    from support_accessibility.oracle import SupportAccessibilityOracle
+    rng = np.random.default_rng(seed)
+    models = []
+    for i in range(n_models):
+        if i % 3 == 0:
+            thickness = int(rng.integers(6, 14))
+            occ = _open_slab(N, thickness)
+            name = f"open_slab_t{thickness}_{i}"
+        else:
+            opening = int(rng.integers(2, 8))           # 窄→不可达、宽→可达（腔顶两类兼有）
+            depth = int(rng.integers(6, max(7, N - 18)))
+            occ = _slab_blind_hole(N, opening, depth)
+            name = f"blind_hole_o{opening}_d{depth}_{i}"
+        pts = down_facing_points(occ, max_points=max_points, rng=rng)
+        orc = SupportAccessibilityOracle(occ, {"n_directions": n_directions})
+        labels = np.array([orc.label(p, radius).value == "inaccessible" for p in pts], dtype=bool)
+        models.append(LabeledModel(name, occ, pts, labels, float(radius)))
+    return models
+
+
+def split_by_model(models, frac_train=0.7, seed=0):
+    """按模型切分（split.by=model；禁按点随机切分，见 conf/params.yaml）。返回 (train, test)。"""
+    import numpy as np
+    idx = np.arange(len(models))
+    np.random.default_rng(seed).shuffle(idx)
+    k = int(round(len(models) * frac_train))
+    return [models[i] for i in idx[:k]], [models[i] for i in idx[k:]]
