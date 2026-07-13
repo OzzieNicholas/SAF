@@ -1,0 +1,4 @@
+#!/bin/sh
+# 本地 commit-msg hook（可选，快失败）：校验单条提交主题合 Conventional Commits。
+# 权威同 CI = tools/check_conventions.py。装：sh hooks/install.sh
+exec python3 "$(git rev-parse --show-toplevel)/tools/check_conventions.py" --message-file "$1"

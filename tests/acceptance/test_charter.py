@@ -79,7 +79,7 @@ def check_params_keys():
 
 def check_decisions_covered():
     """完整性：每条 decisions.md 的 D-0NN 都被验收层交代（被测试引用，或在结构 allowlist）——杜绝孤儿决策。"""
-    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012"}   # 结构/标注/布局/治理：无专属性质，由 test_charter 或本身守护
+    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013"}   # 结构/标注/布局/治理/规范：无专属性质，由 test_charter 或本身守护
     try:
         dtxt = _read("charter/decisions.md")
     except OSError as e:
@@ -96,9 +96,18 @@ def check_decisions_covered():
                   f"{len(ids)} 条决策全被验收层交代" if not orphan else "孤儿决策:" + ",".join(orphan))
 
 
+def check_conventions_present():
+    """规范治理在位：charter/conventions.md + 可执行权威 tools/check_conventions.py 都存在。"""
+    need = ["charter/conventions.md", "tools/check_conventions.py"]
+    missing = [p for p in need if not os.path.exists(os.path.join(_ROOT, p))]
+    return result("conventions_present", not missing,
+                  "动作规范治理在位（conventions.md + 校验器）" if not missing else "缺:" + ",".join(missing))
+
+
 def checks():
     return [check_decisions_schema(), check_reference_docs(),
-            check_no_stale_paths(), check_params_keys(), check_decisions_covered()]
+            check_no_stale_paths(), check_params_keys(), check_decisions_covered(),
+            check_conventions_present()]
 
 
 # —— pytest 入口：真断言，现在就应绿 ——
@@ -124,4 +133,9 @@ def test_params_keys():
 
 def test_decisions_covered():
     r = check_decisions_covered()
+    assert r["status"] == "PASS", r["detail"]
+
+
+def test_conventions_present():
+    r = check_conventions_present()
     assert r["status"] == "PASS", r["detail"]

@@ -1,9 +1,9 @@
-# open — 未决触发册
+# deferred — 未决决策（触发册）
 
-<!-- 未决决策 = 前置条件(触发) → 义务。无日期，按阶段门排序（早→晚）。
-     由 tests/acceptance/test_open.py 接进 gate：每条 surfaced 为门项、指回本册 id（人肉提醒→门提醒）。
+<!-- 未决决策 = 前置条件(触发) → 义务。无日期，按阶段门排序（早→晚）。是 decisions.md 的"未决半"。
+     由 tests/acceptance/test_deferred.py 接进 gate：每条 surfaced 为门项、指回本册 id（人肉提醒→门提醒）。
      机器可判的条目（如 flagship-pair 的 import-check）附注"休眠/已触发/可闭合"。
-     闭合：满足义务后 append decisions.md 记录，并把此条从本册删除。 -->
+     闭合：满足义务后 append decisions.md 记录，并把此条从本册删除。命名原则见 conventions.md §3。 -->
 
 ## geometry-vs-neural-mainline
 - 触发：oracle/几何验收全 PASS（尺子造好）
@@ -31,6 +31,6 @@
 
 ## workflow-done-DoD
 - 触发：Tier-1 收尾前（指标/数据管线/真实数据接入就绪）
-- 义务：定"尺子造好、可开实验"的 gate 条件（除 budget/regression 外全绿？）
+- 义务：达成"尺子造好、可开实验"的 DoD（定义见 D-013）：除 budget/regression 门外 gate 全绿 + conventions CI 绿 + gate.yml CI 绿。当前未达（几何/数据/指标多项 PENDING）。
 - 阻塞：Tier-3 实验开工
-- 机器可判：否
+- 机器可判：部分（gate 内除 budget/regression 外是否全 PASS 可算；数据/指标就绪需人确认）

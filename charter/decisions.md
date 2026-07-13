@@ -100,3 +100,14 @@
   8) **record.md 退役**为非权威指针（状态跑门 / 为什么看 decisions / 地图看 charter/README / 未决看 open.md）；权威三分工不变。
 - 依据：本会话实证——① 云端 uv+pypi 数秒复现 saf 环境、gate+pytest 全跑（几何全绿、solidify IoU=1.000），验证器可移植上 CI；② record.md 手抄状态/地图/理据违反 charter 自立"一个事实一个家、指针不复制"，且实测漂移（写 test_charter GREEN 而 clean clone 为红、scale 写 GREEN 实为假绿）；③ 命名 sfa 系笔误。用户 Phase-3 全取推荐项（A 追加决策 / B conda 栈 / C docs 家 / D 去日期）。
 - 状态：接受（判定语义/oracle 口径 D-001..D-005/D-009/D-010 分毫未动；本条只碰治理·工具·CI·文档层）
+
+## D-013  动作与规范纳入治理：Conventional Commits + 分支生命周期 + 治理文件命名（有牙）
+
+- 裁决：
+  1) **Commit 规范** = Conventional Commits `<type>(<scope>): <主题>`，type∈{feat,fix,refactor,test,docs,ci,gov,data,exp,chore,revert}（用 `feat` 非 `add`）。
+  2) **分支** = `<type>/<slug>`；豁免 main/默认分支与 `claude/*`（harness agent 分支）。生命周期：一分支一事 → CI 绿 → PR（模板）→ 评审 → **squash-and-merge** → 删分支；main 保护 require-CI-green（GitHub 侧开关）。
+  3) **治理文件命名**：名直呈角色；`open.md`→`deferred.md`（decisions 的未决半）；**删退役的 `record.md`**（"record"滑向日记——状态看门、地图看 README）。原则见 conventions.md §3。
+  4) **强制有牙**：`tools/check_conventions.py`（纯 stdlib，spec 唯一之家）= CI `conventions.yml` + 可选本地 hooks；自 conventions.md 引入起强制，之前 bootstrap 提交祖父豁免（不改写历史）。`tests/gate.py` 守工作树真相、本规范守 git 历史，分工不混。
+  5) **workflow-done-DoD 定义**（闭合 deferred 该项的义务）：exit = 除 budget/regression 门外 gate 全绿 + conventions CI 绿 + gate.yml CI 绿。当前未达（几何/数据/指标多项 PENDING），deferred 该条保留、义务已明。
+- 依据：用户要求"一切动作与规范都进治理"，并指出 open.md 等命名不清；沿用治理"有牙、一个事实一个家、读者语言"原则；三个实现选择由用户委托取最推荐（Conventional Commits / squash / CI+hooks）。
+- 状态：接受（判定语义/oracle 口径未动；本条只碰治理·工具·CI·文档层。commit 规范自本条引入起强制，之前提交祖父豁免）

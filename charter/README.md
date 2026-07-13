@@ -8,9 +8,9 @@
 | 层 | 内容 | 位置 | 强制力 |
 |---|---|---|---|
 | 意图 | 问题定义 / 铁律 / 证据 | `problem.md` `constraints.md` `evidence.md` | 人和智能体读（最弱）|
-| 台账 | 决策 + 状态（只增不改）| `decisions.md` | 记录 + `test_charter.py` 机检 |
+| 台账 | 决策（已决）+ 未决触发 | `decisions.md` `deferred.md` | `test_charter.py` / `test_deferred.py` 机检 |
 | 可执行 | 必须恒真的性质、门 | `../tests/acceptance/` `../tests/gate.py` `../src/support_accessibility/` | 跑起来会红（最强）|
-| 过程 | 研发方法 / loop 约定 | `../method/` | 运行时循环门 |
+| 过程/规范 | 研发方法 / 动作规范（commit·分支·合并·命名）| `conventions.md` `../method/` | `conventions.yml` CI + 可选 hooks |
 
 > 环境：conda env `saf`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n saf python ../tests/gate.py`。
 
@@ -19,8 +19,10 @@
 1. `problem.md` — 做什么、硬约束、非目标、指标、样例
 2. `constraints.md` — 不可破的铁律
 3. `decisions.md` — 冻结的判定语义与口径（D-000..）
-4. `evidence.md` — 文献证据（来源↔问题）；富矩阵在 `docs/2_文献矩阵与相关工作.md`
-5. `docs/` — 退役的富文档（问题/文献/实验/执行路线全本），只读参考
+4. `deferred.md` — 未决决策 + 触发条件（decisions 的未决半；接进门，到期在 gate 现身）
+5. `conventions.md` — 动作与规范（commit / 分支 / 合并 / 治理文件命名）
+6. `evidence.md` — 文献证据（来源↔问题）；富矩阵在 `docs/2_文献矩阵与相关工作.md`
+7. `docs/` — 退役的富文档（问题/文献/实验/执行路线全本），只读参考
 
 ## 决策 ↔ 性质 映射（棘轮门守护）
 
@@ -37,8 +39,9 @@
 | D-009 网格 igl 口径 | `test_mesh_frontend`（solidify IoU；无 CSG numpy 堆叠）|
 | D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
-| D-000/004/006/012 结构·标注·布局·治理 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
-| （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**）+ `test_open`（未决触发册接门）|
+| D-000/004/006/012/013 结构·标注·布局·治理·规范 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
+| （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 
 跑门：`python ../tests/gate.py`（`--format md` 出 markdown STATUS）→ 裁决 + 退出码。**状态一律看门、不在此手写**；棘轮：绿了不许静默退绿。
 
