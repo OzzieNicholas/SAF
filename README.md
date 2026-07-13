@@ -17,10 +17,11 @@
 ## 布局
 
 ```
-charter/    治理散文 + 地图（problem/decisions/evidence/constraints/reference）
-method/     研发方法论（loop / 门 / 模板）
+charter/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
+docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
 src/support_accessibility/   实现包（oracle/data/eval/models/viz）
 tests/      验收层（acceptance/ = 决策↔性质）+ gate.py（棘轮门）
 conf/       Hydra 配置（params.yaml）
-data/ runs/ plans/           数据 / 产物（DVC）/ 计划
+method/     研发方法论（本地手管，gitignore）
+data/ runs/ plans/           数据 / 产物（DVC）/ 计划（就绪后生成）
 ```

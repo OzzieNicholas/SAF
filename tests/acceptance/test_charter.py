@@ -1,11 +1,11 @@
-"""文档断言机检 —— 把 ffm §9「文档断言机检」升级到"机检科学决策"。
+"""文档断言机检 —— 把朴素的"文档断言"升级到"机检科学决策"。
 
 纯文本校验，只用 stdlib，**现在就真跑、应全绿**（证明治理散文这层当场就有牙）：
   1) decisions schema：每条 D-00x 有 裁决/依据/状态（日期已去，时间归 git；见 D-011 起）
   2) reference 富参考在位：docs/ 的 5 份编号文档存在（committed 富参考家）
   3) 无残留黑话路径：当前态散文/配置（含 conf/params.yaml）不再出现
-     research/ harness/ workflow/ governance/ constitution report.py（旧名/旧路径）
-     （decisions.md 是只增不改的历史台账，合法保留旧名，故豁免）
+     research/ harness/ workflow/ governance/ constitution report.py reference/（旧名/旧路径）
+     （decisions.md 台账合法保留经 supersede 记录的历史名，故豁免；策展政策见 D-014）
   4) params 关键键存在：conf/params.yaml 含 semantic/n_directions/voxel_res/radii/overhang_angle_deg
 """
 
@@ -49,7 +49,7 @@ def check_reference_docs():
 
 
 def check_no_stale_paths():
-    stale = ("research/", "harness/", "workflow/", "governance/", "constitution", "report.py")
+    stale = ("research/", "harness/", "workflow/", "governance/", "constitution", "report.py", "reference/")
     # decisions.md 豁免（只增不改的历史台账）
     files = ["charter/problem.md", "charter/evidence.md", "charter/constraints.md",
              "charter/README.md", "CLAUDE.md", "conf/params.yaml"]
@@ -79,7 +79,7 @@ def check_params_keys():
 
 def check_decisions_covered():
     """完整性：每条 decisions.md 的 D-0NN 都被验收层交代（被测试引用，或在结构 allowlist）——杜绝孤儿决策。"""
-    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013"}   # 结构/标注/布局/治理/规范：无专属性质，由 test_charter 或本身守护
+    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014"}   # 结构/标注/布局/治理/规范/台账策展：无专属性质，由 test_charter 或本身守护
     try:
         dtxt = _read("charter/decisions.md")
     except OSError as e:

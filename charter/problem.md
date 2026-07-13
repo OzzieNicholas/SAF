@@ -1,6 +1,6 @@
 # problem — 问题定义
 
-> 治理 · 意图层（散文，薄）。富版留在 `reference/0_背景与边界.md`、`reference/1_选题与研究定位.md`（退役参考）。
+> 治理 · 意图层（散文，薄）。富版留在 `docs/0_背景与边界.md`、`docs/1_选题与研究定位.md`（退役参考）。
 > 判定语义与冻结决定见 `decisions.md`；文献关系见 `evidence.md`；铁律见 `constraints.md`。
 
 ## 问题定义
