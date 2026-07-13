@@ -12,6 +12,8 @@
   test_eval           ——          指标（不可达 F1 / 区域 IoU / 面积比例误差）已知答案锚定
   test_data           ——          程序化标签数据集（oracle 自动打标、两类俱在、按模型切分）
   test_model          H3          形状条件预测：留出(未见)模型上不可达 F1 胜基线（跨模型可行性）
+  test_baselines      H2,E4       基线对照：工具尺寸不可忽略(r=0 vs r>0) + 神经胜射线可见性/多数类
+  test_label_quality  D-008,D-004 标签质量审核门（六项趋势）：受限盲腔半径单调非减 + 批量分布合理
 
 决策↔性质映射见 charter/README.md。几何性质在 oracle 实现 + 依赖安装前保持 PENDING；
 pytest 下相应 test_* 抛 unittest.SkipTest。

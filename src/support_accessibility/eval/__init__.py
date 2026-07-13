@@ -90,3 +90,12 @@ def inaccessible_area_error(pred_region, gold_region):
     if p.size == 0:
         return 0.0
     return abs(float(np.mean(p)) - float(np.mean(g)))
+
+
+def summary(pred, gold):
+    """一个预测器 vs gold 的指标包（不可达=正类）：{f1, iou, acc, area_err}。用于 E4 基线对照。"""
+    import numpy as np
+    p, g = _pos_mask(pred), _pos_mask(gold)
+    return {"f1": f1_inaccessible(p, g), "iou": iou_inaccessible(p, g),
+            "acc": float((p == g).mean()) if p.size else 1.0,
+            "area_err": inaccessible_area_error(p, g)}

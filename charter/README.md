@@ -39,10 +39,12 @@
 | D-009 网格 igl 口径 | `test_mesh_frontend`（solidify IoU；无 CSG numpy 堆叠）|
 | D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
-| D-000/004/006/012/013/014 结构·标注·布局·治理·规范·台账策展 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| D-000/004/006/012/013/014/015 结构·标注·布局·治理·规范·台账策展·主线 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
 | （管线自检）| `test_eval`（不可达 F1/IoU/面积误差·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
 | H3 跨模型预测可行性 | `test_model`（tiny 形状条件模型在留出/未见模型上不可达 F1 胜多数类基线；Phase-1 薄纵切） |
+| H2/E4 基线对照 | `test_baselines`（射线可见性=oracle@r=0；工具尺寸不可忽略 + 神经胜纯可见性/多数类；`src/…/baselines/`） |
+| 标签质量门（六项趋势·铁律#6）| `test_label_quality`（④半径趋势受限单调=D-008 收窄闭合 + ②批量分布；①②③⑤⑥ 分见 known_answers/differential/support_contact/data）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 
 跑门：`python ../tests/gate.py`（`--format md` 出 markdown STATUS）→ 裁决 + 退出码。**状态一律看门、不在此手写**；棘轮：绿了不许静默退绿。
