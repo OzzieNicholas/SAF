@@ -113,3 +113,9 @@
 - 裁决：课题主线 = "几何 oracle 生成可达性真值 → 形状条件神经场在**未见模型**上预测"这条完整管线；几何启发式（支撑面积、无工具半径射线可见性、局部规则）居**对照基线**位而非竞争主线位。神经预测采成熟方法（非首创，DeepMill 在先）；贡献在问题定义（AM 支撑接触区可达性）+ oracle 口径 + 跨模型预测落地与基线对照。
 - 依据：闭合 deferred「geometry-vs-neural-mainline」——触发（几何验收全 PASS）已到、义务（重议主线）由用户认可推荐达成；evidence.md 定位（神经采用非首创、空白在对象层）；H1/H2 要求几何基线作对照以证问题非平凡，故基线入"对照"位。Phase-1 薄纵切给了可行性证据（程序化留出件不可达 F1≈1.0，胜多数类基线），但那是**受控干净任务**、非最终 benchmark；主线真凭据待基线对照 + 更硬几何 + 真实数据。
 - 状态：接受（判定语义/oracle 口径未动；本条定研究主线与基线角色，不改任何几何判据）
+
+## D-016  数据架构 = 原料(外部只读)→流水线→统一 processed 数据集；程序化件为首个物化源
+
+- 裁决：项目数据分三层——① 原料（程序化=种子配方；ABC/Thingi=外部只读网格，路径经本地配置不入库）；② 流水线（合格性→归一→体素化→下朝点提取→oracle 打标→装配/按模型切分）；③ 统一 processed 数据集：每模型一个 `.npz`{occ,points,labels} + `manifest.csv`（全标量元数据，单一之家）+ `dataset.json`（provenance，无时间戳，保证字节可复现）；源标签 {procedural,abc,thingi10k} + 切分 {train,val,test}（Thingi10K 恒 test）。首片只物化**程序化源**（oracle 造即知答案、可信、无矩阵乘、本地可验），落 `data/processed/`；ABC 接入、Thingi 接入、DVC 编排、路径配置作未决项（见 `deferred.md`），触发到齐再建。统一记录格式经本片冻结，ABC/Thingi 须对齐。
+- 依据：铁律#6 标签先于模型——oracle 在真实/薄/脏网格上有效性未证（`point-touch-refine`），故本片不接真实数据；实测 ABC 现仅 3 薄板样例（非真 ABC 数据集）、Thingi 为跨域测试专用且需缠绕修复，均未就绪；DVC 未装、Hydra 未接线、`params.yaml` 仅文档——首片用纯可复现 CLI + 验收门即可复现，DVC 待昂贵/真实源落地再引入才有价值；复用 `LabeledModel`/`make_dataset`/`split_by_model`/oracle，不重造。
+- 状态：接受（判定语义/oracle 口径 D-001..D-010 未动；本条定数据架构与首片边界，结构决策）

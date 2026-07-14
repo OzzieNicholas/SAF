@@ -2,6 +2,9 @@
 charter/reference/
 method/
 
+# processed datasets (materialized; regenerable from seed+code / DVC-later, D-016)
+data/processed/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
