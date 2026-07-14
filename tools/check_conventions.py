@@ -24,7 +24,9 @@ BRANCH_EXEMPT = re.compile(r"^(main|master|HEAD|claude/.+)$")   # 默认分支 +
 
 
 def _git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+    # encoding=utf-8 显式：git 输出 UTF-8，Windows 默认 locale（GBK 等）会解码中文提交崩（NoneType.stdout）
+    return subprocess.run(["git", *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace").stdout.strip()
 
 
 def _has(ref):
@@ -73,6 +75,11 @@ def _arg(a, name):
 
 
 def main():
+    for _s in (sys.stdout, sys.stderr):            # Windows 控制台默认非 UTF-8（仿 tests/gate.py）
+        try:
+            _s.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     a = sys.argv[1:]
     if "--message-file" in a:
         errs = check_message(_arg(a, "--message-file"))
