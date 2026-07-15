@@ -6,7 +6,7 @@
 
 ## 1. Commit 规范（Conventional Commits）
 
-`<type>(<scope>): <主题>` —— scope 可选 = 模块（oracle/data/eval/models/viz/charter/tests/ci…）；主题祈使句、简洁。
+`<type>(<scope>): <主题>` —— scope 可选 = 模块（oracle/data/eval/models/baselines/viz/charter/tests/ci…）；主题祈使句、简洁。
 
 | type | 用途 | type | 用途 |
 |---|---|---|---|
