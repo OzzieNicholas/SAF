@@ -12,16 +12,17 @@
 - **治理入口**：[`charter/README.md`](charter/README.md) — 治理地图、决策↔性质映射、修改触发。
 - **问题定义**：[`charter/problem.md`](charter/problem.md)
 - **冻结决策**：[`charter/decisions.md`](charter/decisions.md)（判定语义 D-001..）
-- **验收门**：`python tests/gate.py`（决策的可执行守护；当前 RED，几何未实现）
+- **验收门**：`python tests/gate.py`（决策的可执行守护；仍 RED：多项门 PENDING by design，状态跑门看）
 
 ## 布局
 
 ```
 charter/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
 docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
-src/support_accessibility/   实现包（oracle/data/eval/models/viz）
+src/support_accessibility/   实现包（oracle/data/eval/models/baselines/viz）
 tests/      验收层（acceptance/ = 决策↔性质）+ gate.py（棘轮门）
 conf/       Hydra 配置（params.yaml）
 method/     研发方法论（本地手管，gitignore）
-data/ runs/ plans/           数据 / 产物（DVC）/ 计划（就绪后生成）
+data/        数据：processed/ = 统一数据集（D-016，tools/build_dataset.py 生成，gitignore）
+runs/ plans/ 产物（DVC，E0–E8+run-id）/ 计划（就绪后生成）
 ```
