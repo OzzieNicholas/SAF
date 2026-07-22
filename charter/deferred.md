@@ -29,11 +29,12 @@
 - 阻塞：Tier-3 实验开工
 - 机器可判：部分（gate 内除 budget/regression 外是否全 PASS 可算；数据/指标就绪需人确认）
 
-## abc-subset-ingest
-- 触发：真实 ABC 子集放入并配置路径（现仅 3 薄板样例，非真数据集）
-- 义务：ABC mesh→occupancy 接入（mesh_to_occupancy）+ 合格性筛选（docs §4.8：水密-合并后/非退化厚度/有悬垂/有封闭凹腔/面数预算/可归一）+ 真实网格 oracle 有效性门（连 point-touch-refine）；产出统一 processed 记录（对齐 D-016 格式，source=abc）
-- 阻塞：ABC 作主训练/验证/测试源（H3 跨模型）
-- 机器可判：部分（ABC 路径存在性可判；标签有效性需人审 + 门）
+## fusion360-ingest
+- 触发：Fusion 360 Gallery reconstruction 数据集放入并配置路径（conf/params.yaml data.fusion360_root）
+- 义务：iter_fusion360_meshes（走目录取无 _NNNN 拉伸后缀的 final .obj）+ load_obj + normalize（最长边=1）+ 合格性筛选（docs §4.8：水密-合并后/非退化厚度/有悬垂/有封闭凹腔/面数预算/可归一）+ **真实网格 oracle 有效性门（人签收，D-018；连 point-touch-refine）**；产出统一 processed 记录（对齐 D-016 格式，source=fusion360）。骨架码已落（data/fusion360.py），未决=接真实数据 + 人签收。
+- 阻塞：Fusion360 作主训练/验证/测试源（H3 跨模型）
+- 机器可判：部分（路径存在性 + ingest round-trip 可判；标签有效性需人签收）
+- 备注：ABC 经 D-017 退为可选/背景；其接入不再是阻塞项，需要时另立未决。
 
 ## thingi-ingest
 - 触发：进入跨域鲁棒性阶段（E7）

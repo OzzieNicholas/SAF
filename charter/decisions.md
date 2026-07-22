@@ -119,3 +119,15 @@
 - 裁决：项目数据分三层——① 原料（程序化=种子配方；ABC/Thingi=外部只读网格，路径经本地配置不入库）；② 流水线（合格性→归一→体素化→下朝点提取→oracle 打标→装配/按模型切分）；③ 统一 processed 数据集：每模型一个 `.npz`{occ,points,labels} + `manifest.csv`（全标量元数据，单一之家）+ `dataset.json`（provenance，无时间戳，保证字节可复现）；源标签 {procedural,abc,thingi10k} + 切分 {train,val,test}（Thingi10K 恒 test）。首片只物化**程序化源**（oracle 造即知答案、可信、无矩阵乘、本地可验），落 `data/processed/`；ABC 接入、Thingi 接入、DVC 编排、路径配置作未决项（见 `deferred.md`），触发到齐再建。统一记录格式经本片冻结，ABC/Thingi 须对齐。
 - 依据：铁律#6 标签先于模型——oracle 在真实/薄/脏网格上有效性未证（`point-touch-refine`），故本片不接真实数据；实测 ABC 现仅 3 薄板样例（非真 ABC 数据集）、Thingi 为跨域测试专用且需缠绕修复，均未就绪；DVC 未装、Hydra 未接线、`params.yaml` 仅文档——首片用纯可复现 CLI + 验收门即可复现，DVC 待昂贵/真实源落地再引入才有价值；复用 `LabeledModel`/`make_dataset`/`split_by_model`/oracle，不重造。
 - 状态：接受（判定语义/oracle 口径 D-001..D-010 未动；本条定数据架构与首片边界，结构决策）
+
+## D-017  主数据源 = Fusion 360 Gallery reconstruction 网格（仅网格用途）；ABC 退为可选背景（extend D-016 source 枚举）
+
+- 裁决：公开 CAD 主源从 ABC[R18] 换为 **Fusion 360 Gallery reconstruction 数据集[R20] 的三角网格（.obj）**——只用其最终零件网格，**不使用** sketch/extrude 构造序列（.json）与 B-Rep（.smt/.step），故 `docs/2 §9.3`「勿沦为 CAD 序列建模」之虑不触发。D-016 的 source 枚举 {procedural, abc, thingi10k} **扩为** {procedural, fusion360, abc, thingi10k}；ABC 从「主训练源」降为「可选/背景」（其接入未决项由 fusion360-ingest 取代，见 deferred）。Thingi10K 角色不变（恒 test 跨域）。
+- 依据：ABC 下载不便（用户实测多次不成）；Fusion 360 Gallery reconstruction = 8,625 个 sketch+extrude 生成的干净 CAD 实体，含拉伸挖出的凹槽/盲孔/通孔（正是支撑接触区可达性想要的受限特征），每设计带 .obj 三角网格（面按 B-Rep face ID 标注），单位 cm、经 geometry.normalize 归一后无量纲差；CAD 派生通常水密流形，比 Thingi10K 少缠绕修复。局限：棱柱几何为主、无自由曲面（下朝面多为平面+凹槽天花板）——须写入论文数据代表性；可能多体（按 `docs/3 §4.8` 筛单体或 numpy 堆叠占据）。仅用网格不碰构造序列，故非 CAD 序列建模。
+- 状态：接受（判定语义/oracle 口径 D-001..D-010 未动；本条只碰数据源与 D-016 source 枚举，结构决策。R18/R20 角色更新见 evidence.md）
+
+## D-018  命门人签收 + 无外部评审替代（新增铁律 #7）
+
+- 裁决：把「命门门」显式化为需**人签收**的门——命门 = { 判定语义（D-001..）、真实网格上的标签质量、企业隔离/不过度声称的边界纪律 }；自动化（含 agent 循环）只在**独立可信门**（构造即知答案件、差分对拍等，其真值不依赖被测物）下迭代到绿，**不得关闭命门**（防「假绿」，D-011 教训）。因本课题**无导师/合作者**充当 oracle 定义评审，命门签收的替代 = **文档化可视化审计（viz 热图 montage）+ 机器可判的趋势门证据**，由作者本人据实签收；未签收的真实网格标签**不进训练集**（铁律 #6 的落地）。新增 constraints.md 铁律 #7。
+- 依据：工作流审查结论——SAF 治理本身即「决策→会跑的门→码→棘轮」这套动作规范，采用只需补「命门人签收」一条并明写反假绿；用户确认无外部评审，故以厚可视化 + 趋势证据替代人评审。viz 是此签收的仪器（本批补齐），故属命门前置。
+- 状态：接受（判定语义/oracle 口径未动；治理层决策，无专属性质，由 test_charter 结构 allowlist 守护）
