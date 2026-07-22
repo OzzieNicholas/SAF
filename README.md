@@ -19,6 +19,7 @@
 ```
 charter/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
 docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
+paper/      论文草稿轨道（写作实验并行，活文档；从 charter 播种）
 src/support_accessibility/   实现包（oracle/data/eval/models/baselines/viz）
 tests/      验收层（acceptance/ = 决策↔性质）+ gate.py（棘轮门）
 conf/       Hydra 配置（params.yaml）
