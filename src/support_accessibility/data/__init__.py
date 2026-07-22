@@ -144,10 +144,20 @@ def make_dataset(n_models=12, N=28, max_points=24, radius=3.0, n_directions=32, 
     return models
 
 
-def split_by_model(models, frac_train=0.7, seed=0):
-    """按模型切分（split.by=model；禁按点随机切分，见 conf/params.yaml）。返回 (train, test)。"""
+def split_by_model(models, frac_train=0.7, frac_val=None, seed=0):
+    """按模型切分（split.by=model；禁按点随机切分，见 conf/params.yaml）。
+
+    frac_val=None → 返回 (train, test)（2-way；在内存快评/薄纵切用）；
+    frac_val 给值 → 返回 (train, val, test)（物化数据集用，落地 D-016 切分 {train,val,test}；调参只用 val）。
+    """
     import numpy as np
     idx = np.arange(len(models))
     np.random.default_rng(seed).shuffle(idx)
-    k = int(round(len(models) * frac_train))
-    return [models[i] for i in idx[:k]], [models[i] for i in idx[k:]]
+    n = len(models)
+    n_tr = int(round(n * frac_train))
+    if frac_val is None:
+        return [models[i] for i in idx[:n_tr]], [models[i] for i in idx[n_tr:]]
+    n_va = int(round(n * frac_val))
+    return ([models[i] for i in idx[:n_tr]],
+            [models[i] for i in idx[n_tr:n_tr + n_va]],
+            [models[i] for i in idx[n_tr + n_va:]])

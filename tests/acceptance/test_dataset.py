@@ -54,13 +54,15 @@ def checks():
             out.append(result("ds_both_classes", both,
                               f"不可达 {int(alllab.sum())}/{alllab.size}（两类俱在→非退化）", "D-016"))
 
-            # ③ 按模型切分无泄漏
+            # ③ 按模型三切无泄漏（D-016 切分 {train,val,test}）
             tr = {n for n, s in name2split.items() if s == "train"}
+            va = {n for n, s in name2split.items() if s == "val"}
             te = {n for n, s in name2split.items() if s == "test"}
-            split_ok = (tr.isdisjoint(te) and len(te) > 0
-                        and (tr | te) == {m.name for m in models})
+            split_ok = (tr.isdisjoint(va) and tr.isdisjoint(te) and va.isdisjoint(te)
+                        and len(va) > 0 and len(te) > 0
+                        and (tr | va | te) == {m.name for m in models})
             out.append(result("ds_split_by_model", split_ok,
-                              f"train{len(tr)}/test{len(te)}：模型级无泄漏", "D-016"))
+                              f"train{len(tr)}/val{len(va)}/test{len(te)}：模型级无泄漏（三切）", "D-016"))
 
             # ④ 标签=oracle（物化未损真值）：取一含不可达件逐点复算
             m0 = next((m for m in models if m.labels.any()), models[0])
@@ -104,7 +106,7 @@ def test_dataset_roundtrip_and_nondegenerate():
 
 
 def test_dataset_split_no_leakage():
-    """按模型切分，train/test 互斥（D-016 / H3 前提）。"""
+    """按模型三切，train/val/test 两两互斥（D-016 切分 {train,val,test} / H3 前提）。"""
     try:
         _deps()
     except ImportError as e:
@@ -115,8 +117,10 @@ def test_dataset_split_no_leakage():
         DS.build_procedural(tmp, **_ARGS)
         _models, rows = DS.load_dataset(tmp)
     tr = {r["name"] for r in rows if r["split"] == "train"}
+    va = {r["name"] for r in rows if r["split"] == "val"}
     te = {r["name"] for r in rows if r["split"] == "test"}
-    assert tr.isdisjoint(te) and len(te) > 0
+    assert tr.isdisjoint(va) and tr.isdisjoint(te) and va.isdisjoint(te)
+    assert len(va) > 0 and len(te) > 0
 
 
 def test_dataset_labels_match_oracle():

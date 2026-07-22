@@ -80,13 +80,13 @@ def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg
 
 def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_world=0.05,
                       overhang_deg=45.0, n_directions=32, nudge_voxels=2.0,
-                      max_models=None, emit_audit=True, frac_train=0.7, seed=0):
-    """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360）+ viz 审计图。
+                      max_models=None, emit_audit=True, frac_train=0.6, frac_val=0.2, seed=0):
+    """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）+ viz 审计图。
 
     radius_world 在归一尺度（最长边=1）下。支撑接触点 = 下朝悬垂面质心沿外法向外移 nudge_voxels 体素到自由侧。
     D-018：dataset.json 记 human_signoff=false，须人审 audit/*.png 后方可用于训练。返回 out_dir。
     """
-    os.makedirs(os.path.join(out_dir, _MODELS), exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)                 # models/、audit/ 由 save_model / montage 各自建
     audit_dir = os.path.join(out_dir, "audit")
     records = []
     for name, V, F in meshes:
@@ -102,7 +102,7 @@ def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_
         if emit_audit:
             _try_audit(rec, os.path.join(audit_dir, name + ".png"))
         records.append(rec)
-    _write_manifest(out_dir, records, "fusion360", n_directions, seed, frac_train, human_signoff=False)
+    _write_manifest(out_dir, records, "fusion360", n_directions, seed, frac_train, frac_val, human_signoff=False)
     return out_dir
 
 
@@ -114,9 +114,6 @@ def build_from_root(out_dir, root, **kw):
 
 
 # ————— 内部 —————
-_MODELS = "models"
-
-
 def _meshes_from_root(root):
     for name, path in iter_final_designs(root):
         try:
@@ -158,14 +155,18 @@ def _try_audit(rec, path):
         pass
 
 
-def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, human_signoff):
-    """复用 D-016 格式（dataset.COLUMNS/MANIFEST/DATASET_JSON），source=fusion360 + human_signoff 标记。"""
+def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, frac_val, human_signoff):
+    """复用 D-016 格式（dataset.COLUMNS/MANIFEST/DATASET_JSON），source=fusion360 + 三切 + human_signoff 标记。"""
     import csv
     import json
     import numpy as np
     from support_accessibility.data import dataset as DS, split_by_model
-    tr, te = split_by_model(records, frac_train=frac_train, seed=seed) if records else ([], [])
+    if records:
+        tr, va, te = split_by_model(records, frac_train=frac_train, frac_val=frac_val, seed=seed)
+    else:
+        tr, va, te = [], [], []
     split_of = {m.name: "train" for m in tr}
+    split_of.update({m.name: "val" for m in va})
     split_of.update({m.name: "test" for m in te})
     rows = []
     for m in records:
@@ -183,7 +184,8 @@ def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, hu
     meta = {"schema_version": DS.RECORD_SCHEMA_VERSION, "source": source,
             "record_keys": ["occ", "points", "labels"], "units": "voxel",
             "human_signoff": bool(human_signoff),          # D-018：人审 audit/ 后方可训练
-            "build_params": {"n_directions": n_directions, "seed": seed, "frac_train": frac_train},
-            "split": {"n_train": len(tr), "n_test": len(te)}}
+            "build_params": {"n_directions": n_directions, "seed": seed,
+                             "frac_train": frac_train, "frac_val": frac_val},
+            "split": {"n_train": len(tr), "n_val": len(va), "n_test": len(te)}}
     with open(os.path.join(out_dir, DS.DATASET_JSON), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2, sort_keys=True)
