@@ -19,10 +19,11 @@
 ```
 charter/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
 docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
+paper/      论文草稿轨道（写作实验并行，活文档；从 charter 播种）
 src/support_accessibility/   实现包（oracle/data/eval/models/baselines/viz）
 tests/      验收层（acceptance/ = 决策↔性质）+ gate.py（棘轮门）
 conf/       Hydra 配置（params.yaml）
 method/     研发方法论（本地手管，gitignore）
-data/        数据：processed/ = 统一数据集（D-016，tools/build_dataset.py 生成，gitignore）
+data/        数据：processed/ = 统一数据集（D-016；tools/build_dataset.py 程序化 / build_fusion360.py 网格源，gitignore）
 runs/ plans/ 产物（DVC，E0–E8+run-id）/ 计划（就绪后生成）
 ```

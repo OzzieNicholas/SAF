@@ -34,3 +34,12 @@ labels:
 
 split:
   by: model                      # 必须按模型切分；禁止按点随机切分
+  frac_train: 0.6                # 物化数据集三切（D-016 切分 {train,val,test}）；调参只用 val
+  frac_val: 0.2                  # 余为 test（Thingi10K 接入时恒 test，见 deferred）
+
+data:
+  # 公开 CAD 主源 = Fusion 360 Gallery reconstruction 网格（D-017）；只用最终零件 .obj，不碰构造序列/B-Rep。
+  source: fusion360              # {procedural, fusion360, abc(可选/背景), thingi10k(恒 test)}
+  fusion360_root: ""             # 本地 reconstruction 目录（gitignore；路径经此配置不入库，未决 fusion360-ingest）
+  resolution: 48                 # mesh→occupancy 栅格分辨率（临时；params-freeze 前）
+  radius_world: 0.05             # 工具半径（归一尺度，最长边=1；对齐 tool.radii）

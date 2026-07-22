@@ -21,7 +21,7 @@ for _p in (os.path.join(_ROOT, "src"), _HERE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from acceptance import PASS, test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_eval, test_data, test_dataset, test_model, test_baselines, test_label_quality, test_deferred
+from acceptance import PASS, test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_eval, test_data, test_dataset, test_fusion360, test_model, test_baselines, test_label_quality, test_viz, test_deferred
 
 try:
     from support_accessibility import oracle
@@ -44,7 +44,7 @@ def regression_gate():
 def build_verdict():
     acceptance = []
     # test_env / test_charter 在前：它们现在就应绿，其余几何性质 PENDING
-    for mod in (test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_eval, test_data, test_dataset, test_model, test_baselines, test_label_quality, test_deferred):
+    for mod in (test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_eval, test_data, test_dataset, test_fusion360, test_model, test_baselines, test_label_quality, test_viz, test_deferred):
         acceptance += mod.checks()
     gates = [budget_gate(), regression_gate()]
     all_pass = (all(c["status"] == PASS for c in acceptance)

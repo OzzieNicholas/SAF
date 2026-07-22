@@ -48,14 +48,18 @@ def load_model(path, name, radius):
 
 
 def build_procedural(out_dir, n_models=16, N=28, max_points=24, radius=3.0,
-                     n_directions=32, seed=0, frac_train=0.7):
-    """程序化件 → 物化统一数据集（幂等：清 out_dir/models 旧 .npz 后重写 + manifest + dataset.json）。返回 out_dir。"""
+                     n_directions=32, seed=0, frac_train=0.6, frac_val=0.2):
+    """程序化件 → 物化统一数据集（幂等：清 out_dir/models 旧 .npz 后重写 + manifest + dataset.json）。返回 out_dir。
+
+    按模型三切 train/val/test（D-016 切分 {train,val,test}；调参只用 val）。
+    """
     import numpy as np
     from support_accessibility.data import make_dataset, split_by_model
     models = make_dataset(n_models=n_models, N=N, max_points=max_points,
                           radius=radius, n_directions=n_directions, seed=seed)
-    tr, te = split_by_model(models, frac_train=frac_train, seed=seed)
+    tr, va, te = split_by_model(models, frac_train=frac_train, frac_val=frac_val, seed=seed)
     split_of = {m.name: "train" for m in tr}
+    split_of.update({m.name: "val" for m in va})
     split_of.update({m.name: "test" for m in te})
 
     models_dir = os.path.join(out_dir, MODELS_DIR)
@@ -89,8 +93,8 @@ def build_procedural(out_dir, n_models=16, N=28, max_points=24, radius=3.0,
         "record_keys": ["occ", "points", "labels"], "units": "voxel",
         "build_params": {"n_models": n_models, "N": N, "max_points": max_points,
                          "radius": radius, "n_directions": n_directions, "seed": seed,
-                         "frac_train": frac_train},
-        "split": {"n_train": len(tr), "n_test": len(te)},
+                         "frac_train": frac_train, "frac_val": frac_val},
+        "split": {"n_train": len(tr), "n_val": len(va), "n_test": len(te)},
     }
     with open(os.path.join(out_dir, DATASET_JSON), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2, sort_keys=True)

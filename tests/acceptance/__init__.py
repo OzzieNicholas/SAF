@@ -15,6 +15,8 @@
   test_baselines      H2,E4       基线对照：工具尺寸不可忽略(r=0 vs r>0) + 神经胜射线可见性/多数类
   test_label_quality  D-008,D-004 标签质量审核门（六项趋势）：受限盲腔半径单调非减 + 批量分布合理
   test_dataset        D-016       物化数据集：build→load round-trip·两类·按模型切分·标签=oracle·manifest 良构
+  test_fusion360      D-017       Fusion360 网格 ingest：OBJ 解析/final 过滤（纯 stdlib）+ box 端到端物化（source=fusion360）
+  test_viz            D-018       viz 审计仪器：可达性 montage 出合法 PNG（尺寸符几何 + 红/绿像素在位；命门签收之图）
 
 决策↔性质映射见 charter/README.md。几何性质在 oracle 实现 + 依赖安装前保持 PENDING；
 pytest 下相应 test_* 抛 unittest.SkipTest。
