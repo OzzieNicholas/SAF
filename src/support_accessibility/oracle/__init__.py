@@ -22,6 +22,8 @@ from enum import Enum
 import numpy as np
 from scipy import ndimage
 
+from .capsule import capsule_hits_mesh
+
 
 class Label(str, Enum):
     ACCESSIBLE = "accessible"
@@ -30,6 +32,25 @@ class Label(str, Enum):
 
 
 IMPLEMENTED = True
+
+
+def decide_label(clearances, r, eps, refine=None):
+    """判定（D-003 边界带精确细化）。clearances = 每逼近方向沿射线的最小净空（体素）。
+
+    - **无网格（refine=None）**：二分——任一 clearance > r 即 ACCESSIBLE，否则 INACCESSIBLE。
+      与细化前口径逐比特一致（程序化管线用合成占据、无网格，故不受影响、不退绿）。
+    - **有网格（refine 给定）**：三态细化——任一 clearance > r+ε → 明确无碰撞逃逸 → ACCESSIBLE；
+      否则对 AMBIGUOUS 方向（clearance > r-ε）逐个交精确胶囊 refine(i)（True=无碰撞）定夺，
+      任一为真 → ACCESSIBLE；皆碰 → INACCESSIBLE。（细化给真值而非隔离，故不出 UNCERTAIN。）
+    """
+    if refine is None:
+        return Label.ACCESSIBLE if any(c > r for c in clearances) else Label.INACCESSIBLE
+    if any(c > r + eps for c in clearances):
+        return Label.ACCESSIBLE
+    for i, c in enumerate(clearances):
+        if c > r - eps and refine(i):
+            return Label.ACCESSIBLE
+    return Label.INACCESSIBLE
 
 
 def lower_hemisphere_dirs(n):
@@ -50,35 +71,54 @@ class SupportAccessibilityOracle:
     point/radius 以体素为单位；n_directions/march_step 见 params。
     """
 
-    def __init__(self, occupancy, params=None):
+    def __init__(self, occupancy, params=None, mesh=None):
         self.occ = np.ascontiguousarray(occupancy, dtype=bool)
         self.params = dict(params or {})
         # D-003：距离场一次算好，工具半径对全体点/方向摊销。free_dist[c]=中心 c 到最近实体的距离。
         self.free_dist = ndimage.distance_transform_edt(~self.occ)
         self.dirs = lower_hemisphere_dirs(int(self.params.get("n_directions", 128)))
         self.step = float(self.params.get("march_step", 0.5))
+        self.eps = float(self.params.get("epsilon_voxels", 1.5))
+        self.mesh = mesh                 # (V,F,lo,pitch) 世界坐标网格+体素变换；None=无细化（体素二分）
         self._shape = np.asarray(self.occ.shape)
 
-    # —— 主口径（D-003 体素腐蚀 + 方向 ray-march）——
+    # —— 主口径（D-003 体素腐蚀 + 方向 ray-march + 边界带精确胶囊细化）——
     def label(self, point, radius):
+        """支撑接触点可达性标签。有网格 → 边界带精确细化；无网格 → 体素二分（口径见 decide_label）。"""
         p = np.asarray(point, dtype=float)
         r = float(radius)
-        for v in self.dirs:
-            if self._clear_along(p, v, r):
-                return Label.ACCESSIBLE            # 存在一个无碰撞插入方向
-        return Label.INACCESSIBLE
+        clearances = [self._min_clearance_along(p, v, r) for v in self.dirs]
+        refine = self._make_refine(p, r) if self.mesh is not None else None
+        return decide_label(clearances, r, self.eps, refine)
 
-    def _clear_along(self, p, v, r):
-        """球心从 p+r·v 沿 v 到出界，全程 free_dist>r？（体素 ray-march）"""
-        t = r
+    def _min_clearance_along(self, p, v, r):
+        """球心从 p+r·v 沿 v 到出界，射线上到最近实体的最小净空（体素）；出界=逃逸(+inf)。
+        早退：净空 < r-ε 即明确碰撞，返回该值（省走完整条射线，不影响 >r / >r±ε 分类）。"""
+        lo_bound = r - self.eps
+        t, m = r, np.inf
         while True:
             c = p + t * v
             idx = np.floor(c + 0.5).astype(int)                 # 最近体素
             if np.any(idx < 0) or np.any(idx >= self._shape):
-                return True                                     # 到达"无穷远"(出界)仍无碰撞
-            if self.free_dist[idx[0], idx[1], idx[2]] <= r:
-                return False                                    # 球心离实体 ≤ r → 碰撞
+                return m                                        # 出界=逃逸；m 为途中最小净空
+            fd = float(self.free_dist[idx[0], idx[1], idx[2]])
+            if fd < m:
+                m = fd
+            if fd < lo_bound:
+                return fd                                       # 明确碰撞，提前退出
             t += self.step
+
+    def _make_refine(self, p, r):
+        """构造 refine(i)：方向 i 的精确胶囊-网格测试是否无碰撞（True=可逃逸）。体素→世界坐标。"""
+        V, F, lo, pitch = self.mesh
+        p_world = np.asarray(lo, float) + (p + 0.5) * float(pitch)     # world_to_voxel 的逆
+        r_world = r * float(pitch)
+
+        def refine(i):
+            v = self.dirs[i]
+            origin = p_world + r_world * v
+            return not capsule_hits_mesh(origin, v, r_world, V, F)     # 精确无碰撞
+        return refine
 
     # —— 对拍参考（暴力：直接测球∩实体体素；供 differential 门交叉验证）——
     def reference_label(self, point, radius):

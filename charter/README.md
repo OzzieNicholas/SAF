@@ -34,7 +34,7 @@
 |---|---|
 | D-001 语义C（盲腔判例）| `test_known_answers`（盲腔不可达）+ `test_mesh_frontend`（两盒窄隙）|
 | D-002 基板不建模/下半球 | `test_known_answers`（开阔下朝面可达）+ `test_mesh_frontend`（盒下朝面）|
-| D-003 体素腐蚀口径 | `test_differential`（voxel==暴力参考，ε边界带）|
+| D-003 体素腐蚀口径 + 边界带精确胶囊细化 | `test_differential`（voxel==暴力参考）+ `test_capsule`（精确 segment-tri/胶囊 + 三态判定；D-020 落地）|
 | D-005 球模型/方向灵活 | `test_properties`（旋转等变、尺度等变形性质）|
 | D-007 环境 | `test_env`（env_ready）|
 | D-008 半径单调证伪 | `test_properties::test_radius_monotonic`（skip，不作不变量）|

@@ -12,14 +12,14 @@
 - 机器可判：是（import-check：flagship_pair 是否仍 NotImplementedError）
 
 ## params-freeze
-- 触发：六项趋势审核通过（标签质量门）
-- 义务：append decisions 冻结 conf/params.yaml 临时数值（n_directions/voxel_res/radii/overhang）
+- 触发：六项趋势审核通过（标签质量门）——真实数据已跑、暴露 n_dir=32 欠收敛、经 D-020 细化解决；待按冻结参重采真实标签 + 人签收后视为通过
+- 义务：append decisions 冻结 conf/params.yaml 临时数值（n_directions/voxel_res/radii/overhang）。**值已证据钉定**（n_dir=128 / res=48或96 / radius=0.05 / overhang=45，见 D-020 收敛+细化证据）；剩正式冻结决策 append
 - 阻塞：正式神经实验（铁律 #6 标签先于模型）
 - 机器可判：否（趋势审核为人审；将来挂 labels_quality sentinel）
 
 ## point-touch-refine
-- 触发：真实网格证据到手（ABC/Thingi10K 接入后）
-- 义务：定 D-001 point-touch 是否细化（D-008 radius / D-011 scale 共同指向）
+- 触发：真实网格证据到手（Fusion360 接入后，已到）
+- 义务：定 D-001 point-touch 是否细化（D-008 radius / D-011 scale 共同指向）。**进展**：res/scale 那半（D-011 指向）已由 D-020（D-003 精确胶囊-网格细化）解决——真实 CAD 标签 res-稳定（48/96/192 一致 1.000），无需改 D-001 语义；D-008 radius / point-touch 工具模型那半仍开，但真实标签已几何正确、优先级低
 - 阻塞：无（留待证据）
 - 机器可判：否
 
@@ -31,7 +31,7 @@
 
 ## fusion360-ingest
 - 触发：Fusion 360 Gallery reconstruction 数据集放入并配置路径（conf/params.yaml data.fusion360_root）
-- 义务：iter_final_designs（走目录取有同名 .json 兄弟的 final .obj；.json 仅作存在标记、不解析——D-017）+ _meshes_from_root/load_obj + normalize（最长边=1）+ 合格性筛选（docs §4.8：水密-合并后/非退化厚度/有悬垂/有封闭凹腔/面数预算/可归一）+ **真实网格 oracle 有效性门（人签收，D-018；连 point-touch-refine）**；产出统一 processed 记录（对齐 D-016 格式，source=fusion360）。骨架码已落（data/fusion360.py），未决=接真实数据 + 人签收。
+- 义务：iter_final_designs（走目录取有同名 .json 兄弟的 final .obj；.json 仅作存在标记、不解析——D-017）+ _meshes_from_root/load_obj + normalize（最长边=1）+ 合格性筛选（docs §4.8：水密-合并后/非退化厚度/有悬垂/有封闭凹腔/面数预算/可归一）+ **真实网格 oracle 有效性门（人签收，D-018；连 point-touch-refine）**；产出统一 processed 记录（对齐 D-016 格式，source=fusion360）。骨架码已落 + 1000 件已物化（探索级 n_dir=32）；未决 = 按冻结参（n_dir=128 / 细化开，D-020）重采训练级标签 + 人签收。
 - 阻塞：Fusion360 作主训练/验证/测试源（H3 跨模型）
 - 机器可判：部分（路径存在性 + ingest round-trip 可判；标签有效性需人签收）
 - 备注：ABC 经 D-017 退为可选/背景；其接入不再是阻塞项，需要时另立未决。
@@ -49,7 +49,7 @@
 - 机器可判：是（dvc.yaml 存在性）
 
 ## local-blas-gate-crash
-- 触发：已到（本地 Windows saf 环境 numpy 2D×2D 矩阵乘崩 0xC06D007F，BLAS DLL 加载失败，与 D-009 的 trimesh 0xC06D 同类；faulthandler 定位 models/__init__.py:86 的 MLP X@W1）
-- 义务：定版/重装 numpy+openblas 使本地 gate/pytest 可全跑（现只 CI-linux 全绿，本地崩在 test_model/test_baselines）
+- 触发：已到（本地 Windows saf 环境 numpy 2D×2D 矩阵乘崩 0xC06D007F，BLAS DLL 加载失败，与 D-009 的 trimesh 0xC06D 同类；faulthandler 定位 models/__init__.py:86 的 MLP X@W1）。**注**：近期数轮全套 pytest（含 test_model/test_baselines）本地跑绿未崩——疑**间歇**（BLAS 加载竞态？），触发是否仍成立待再探
+- 义务：定版/重装 numpy+openblas 使本地 gate/pytest 可稳定全跑（若确为间歇，或降级为"偶发已知项"）
 - 阻塞：本地完整验收（几何/数据片不受影响——无矩阵乘）
 - 机器可判：部分（本地 gemm 是否崩可探；修复需环境操作）
