@@ -1,7 +1,7 @@
 """Fusion 360 reconstruction 网格 ingest 验收（D-017）。
 
 两半：
-  ① 纯 stdlib（**裸环境就跑**）：OBJ 文本解析（quad 扇形三角化）、final 过滤（去 _NNNN 拉伸后缀）。
+  ① 纯 stdlib（**裸环境就跑**）：OBJ 文本解析（quad 扇形三角化）、final 过滤（.obj 有同名 .json 兄弟）。
   ② 几何栈（缺 numpy/igl/trimesh → PENDING/skip）：box 合成网格端到端物化 → D-016 记录，
      source=fusion360、human_signoff=false（待人签收，D-018）、审计图产出。
 
@@ -28,10 +28,17 @@ def _check_final_filter():
     import tempfile
     from support_accessibility.data.fusion360 import iter_final_designs
     with tempfile.TemporaryDirectory() as d:
-        for fn in ("p_a_c.obj", "p_a_c_0000.obj", "p_a_c_0001.obj", "note.txt"):
-            open(os.path.join(d, fn), "w").close()
+        # final：<id>_<hash>_<reconIdx>，有同名 .json 兄弟（存在标记，不解析内容）
+        open(os.path.join(d, "p_a_c_0000.obj"), "w").close()
+        open(os.path.join(d, "p_a_c_0000.json"), "w").close()
+        # 中间拉伸步骤：两组 _NNNN、无 .json → 不产出
+        open(os.path.join(d, "p_a_c_0000_0001.obj"), "w").close()
+        open(os.path.join(d, "p_a_c_0000_0003.obj"), "w").close()
+        open(os.path.join(d, "note.txt"), "w").close()
+        # .json 无对应 .obj（孤儿）→ 不产出
+        open(os.path.join(d, "orphan_0001.json"), "w").close()
         got = sorted(n for n, _ in iter_final_designs(d))
-    return result("f360_final_filter", got == ["p_a_c"], f"取 final（去 _NNNN）→{got}", "D-017")
+    return result("f360_final_filter", got == ["p_a_c_0000"], f"取 final（有 .json 兄弟）→{got}", "D-017")
 
 
 def _check_ingest_box():

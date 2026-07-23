@@ -1,21 +1,19 @@
 """Fusion 360 Gallery reconstruction 网格 ingest（D-017）：真实 CAD 网格 → 统一 processed 数据集。
 
-只用**最终零件**的 .obj 三角网格（不碰 .json 构造序列 / .smt/.step B-Rep，故非 CAD 序列建模）。管线：
-  走目录取 final obj（无 _NNNN 拉伸序号后缀）→ load_obj → normalize（最长边=1，闭合体素↔归一单位桥）
+只用**最终零件**的 .obj 三角网格；.json **仅作 final 存在标记（看基名在否）、从不打开/解析其构造序列内容**，
+.smt/.step B-Rep 不碰（故非 CAD 序列建模）。管线：
+  走目录取 final obj（.obj 有同名 .json 兄弟＝final 存在标记）→ load_obj → normalize（最长边=1，闭合体素↔归一单位桥）
   → mesh_to_occupancy（igl winding number, D-009）→ 下朝悬垂面 S(P,d)（D-010）取支撑接触点
   → oracle 打标（语义 C, D-001..D-003）→ 物化 D-016 记录（source=fusion360）+ viz 审计图。
 
 铁律 #6 / D-018：真实网格 oracle 有效性**未经人签收**前，dataset.json 记 `human_signoff=false`，
 不得直接进训练集——审 audit/ 下热图后由作者据实签收。
 
-模块级只 stdlib（os/re）；numpy/igl/trimesh/oracle 在函数内 import（沿袭 data 包约定，裸 py 仍可 import）。
+模块级只 stdlib（os）；numpy/igl/trimesh/oracle 在函数内 import（沿袭 data 包约定，裸 py 仍可 import）。
 纯逻辑（_parse_obj_text / iter_final_designs）不依赖 numpy，可在无几何栈环境直接自检。
 """
 
 import os
-import re
-
-_EXTRUDE_SUFFIX = re.compile(r"_\d{4}$")     # 中间拉伸步骤后缀；final 设计无此后缀
 
 
 # ————— 纯 stdlib：OBJ 解析 + 目录遍历（裸环境可执行自检） —————
@@ -38,10 +36,17 @@ def _parse_obj_text(text):
 
 
 def iter_final_designs(root):
-    """走 reconstruction 目录，产出 (design_name, obj_path)：只取 final obj（去扩展名后无 _NNNN 后缀）。"""
+    """走 reconstruction 目录，产出 (design_name, obj_path)：只取 final 零件网格。
+
+    判据：.obj 有同名 .json 兄弟（同目录）＝final 存在标记。真实数据里 final（<id>_<hash>_<reconIdx>）
+    与中间拉伸步骤（..._<reconIdx>_<stepIdx>）都以 _NNNN 结尾、无法靠后缀区分；仅 final 有构造序列 .json 兄弟。
+    D-017：.json **只作存在标记（看基名在否），从不打开/解析其内容**（不碰构造序列）。
+    每目录内先收 .json 基名集合再判 .obj → sorted 保确定性；.json 无对应 .obj 者不产出（只遍历 .obj）。
+    """
     for dirpath, _dirs, files in os.walk(root):
+        json_bases = {fn[:-5] for fn in files if fn.endswith(".json")}   # 仅取基名（存在标记），不读内容
         for fn in sorted(files):
-            if fn.endswith(".obj") and not _EXTRUDE_SUFFIX.search(fn[:-4]):
+            if fn.endswith(".obj") and fn[:-4] in json_bases:
                 yield fn[:-4], os.path.join(dirpath, fn)
 
 

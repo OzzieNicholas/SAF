@@ -52,7 +52,7 @@ def check_no_stale_paths():
     stale = ("research/", "harness/", "workflow/", "governance/", "constitution", "report.py", "reference/")
     # decisions.md 豁免（只增不改的历史台账）
     files = ["charter/problem.md", "charter/evidence.md", "charter/constraints.md",
-             "charter/README.md", "CLAUDE.md", "conf/params.yaml"]
+             "charter/README.md", "charter/roadmap.md", "CLAUDE.md", "conf/params.yaml"]
     hits = []
     for rel in files:
         try:
@@ -104,10 +104,27 @@ def check_conventions_present():
                   "动作规范治理在位（conventions.md + 校验器）" if not missing else "缺:" + ",".join(missing))
 
 
+def check_roadmap():
+    """研发弧位置图在位，且**不手写门状态**（D-019：现状看门、防 record.md 式漂移）。
+
+    禁用集窄而精：门图标 ✅❌⏳、独立词 PASS/FAIL/PENDING/GREEN/RED、状态列头 `| 状态 |`；
+    不误伤中文"状态"/"降级"等正当散文。只扫 roadmap.md（现状仍一律跑门看）。
+    """
+    try:
+        txt = _read("charter/roadmap.md")
+    except OSError as e:
+        return result("roadmap_no_handwritten_status", False, f"读不到 roadmap.md: {e}", "D-019")
+    banned = [t for t in ("✅", "❌", "⏳", "| 状态 |") if t in txt]
+    banned += [w for w in ("PASS", "FAIL", "PENDING", "GREEN", "RED") if re.search(rf"\b{w}\b", txt)]
+    return result("roadmap_no_handwritten_status", not banned,
+                  "弧位置图在位、无手写门状态（现状看门）" if not banned
+                  else "含手写门状态 token:" + ",".join(banned), "D-019")
+
+
 def checks():
     return [check_decisions_schema(), check_reference_docs(),
             check_no_stale_paths(), check_params_keys(), check_decisions_covered(),
-            check_conventions_present()]
+            check_conventions_present(), check_roadmap()]
 
 
 # —— pytest 入口：真断言，现在就应绿 ——
@@ -138,4 +155,9 @@ def test_decisions_covered():
 
 def test_conventions_present():
     r = check_conventions_present()
+    assert r["status"] == "PASS", r["detail"]
+
+
+def test_roadmap():
+    r = check_roadmap()
     assert r["status"] == "PASS", r["detail"]

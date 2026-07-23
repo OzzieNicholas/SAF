@@ -16,6 +16,8 @@
 
 ## 阅读顺序
 
+> 定向先看 `roadmap.md`（弧位置图：现在在弧上哪 + 后续规划；现状仍跑门看），再按下序读细节。
+
 1. `problem.md` — 做什么、硬约束、非目标、指标、样例
 2. `constraints.md` — 不可破的铁律
 3. `decisions.md` — 冻结的判定语义与口径（D-000..）
@@ -40,6 +42,7 @@
 | D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
 | D-000/004/006/012/013/014/015 结构·标注·布局·治理·规范·台账策展·主线 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| D-019 roadmap 弧位置载体 | `test_charter`（`check_roadmap`：在位＋禁手写门状态）|
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
 | （管线自检）| `test_eval`（不可达 F1/IoU/面积误差·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
 | D-016 数据架构/首片=程序化物化 | `test_dataset`（物化数据集：round-trip·两类·按模型切分·标签=oracle·manifest 良构）|

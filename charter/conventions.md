@@ -40,6 +40,7 @@
 | `evidence.md` | 文献证据 |
 | `conventions.md` | 本文件：动作与规范 |
 | `README.md` | 治理地图 / 索引 |
+| `roadmap.md` | 研发弧位置指针图（阶段标签＋当前位置；状态不手写、看门） |
 
 台账成对：`decisions.md`（已决）↔ `deferred.md`（未决）。避免 `record/log/open` 这类不点明角色、易滑向日记的名字（`record.md` 已退役删除——状态看门、地图看 README、为什么看 decisions）。
 
