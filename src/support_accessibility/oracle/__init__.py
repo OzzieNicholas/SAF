@@ -53,6 +53,27 @@ def decide_label(clearances, r, eps, refine=None):
     return Label.INACCESSIBLE
 
 
+def decide_direction_labels(clearances, r, eps, refine=None):
+    """方向级可达性场（D-024，extend D-004）：每逼近方向是否可达，**不 OR 归约**。返回 bool list。
+
+    同 decide_label 的逐方向判据，只是保留每方向结果而非取 any：
+    - **无网格（refine=None）**：dir i 可达 ⟺ clearance_i > r（逐方向二分）。
+    - **有网格**：clearance_i > r+ε → 明确可达；含糊（> r-ε）→ 交精确胶囊 refine(i)；否则不可达。
+    **不变量**：any(本函数) == (decide_label(同参) == ACCESSIBLE)——二分口径是本场的 any-归约（见 D-024）。
+    """
+    out = []
+    for i, c in enumerate(clearances):
+        if refine is None:
+            out.append(c > r)
+        elif c > r + eps:
+            out.append(True)
+        elif c > r - eps:
+            out.append(bool(refine(i)))
+        else:
+            out.append(False)
+    return out
+
+
 def lower_hemisphere_dirs(n):
     """Fibonacci 球面取 v_z<0（D-002：工具从下方逼近下朝面）。返回 (m,3) 单位向量。"""
     i = np.arange(n) + 0.5
@@ -92,6 +113,15 @@ class SupportAccessibilityOracle:
         clearances = [self._min_clearance_along(p, v, r) for v in self.dirs]
         refine = self._make_refine(p, r) if self.mesh is not None else None
         return decide_label(clearances, r, self.eps, refine)
+
+    def direction_labels(self, point, radius):
+        """方向级可达性场（D-024）：对 self.dirs 每个逼近方向判可达，返回 bool ndarray (len(dirs),)。
+        OR 归约 == label（二分口径 D-004 是本场 any-归约）。方向序与 self.dirs 一致。"""
+        p = np.asarray(point, dtype=float)
+        r = float(radius)
+        clearances = [self._min_clearance_along(p, v, r) for v in self.dirs]
+        refine = self._make_refine(p, r) if self.mesh is not None else None
+        return np.asarray(decide_direction_labels(clearances, r, self.eps, refine), dtype=bool)
 
     def _min_clearance_along(self, p, v, r):
         """球心从 p+r·v 沿 v 到出界，射线上到最近实体的最小净空（体素）；出界=逃逸(+inf)。

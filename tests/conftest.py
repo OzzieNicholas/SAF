@@ -1,7 +1,14 @@
-"""让 pytest 能 import support_accessibility（src-layout；未做 editable 安装时的兜底）。"""
+"""让 pytest 能 import support_accessibility（src-layout；未做 editable 安装时的兜底）。
+
+另：torch(iomp5) 与 numpy/scipy(libomp) 同进程共存时，某些导入序下 OpenMP 重复运行时会硬崩
+（"OMP Error #15"，无 traceback）；测试混跑 torch + scipy（test_model/test_direction_field + test_capsule）
+会间歇触发。收集前置好 KMP_DUPLICATE_LIB_OK 抑制该 abort（PyTorch/Intel 既定 workaround，本负载安全）。
+"""
 
 import os
 import sys
+
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")   # torch+scipy OMP 重复运行时保护（见上）
 
 _TESTS = os.path.dirname(os.path.abspath(__file__))   # tests/
 _ROOT = os.path.dirname(_TESTS)                        # repo root

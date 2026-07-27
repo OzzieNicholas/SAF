@@ -6,7 +6,7 @@
   ③ 边界稳定   test_differential（ε 边界带容忍 vs robust 不一致）
   ④ 半径趋势   **本模块**——受限盲腔不可达随 r 单调非减（D-008 收窄口径：仅受限几何，闭合其"待复核"）
   ⑤ 方向变化   test_support_contact（S(P,d) 随 d 改变：d=+z 底面 vs d=+x 侧面）
-  ⑥ 跨数据     程序化=test_data（两类俱在、按模型切分）；真实(ABC/Thingi)=Phase-3
+  ⑥ 跨数据     程序化=test_data（两类俱在、按模型切分）；真实(Fusion360/Thingi)=Phase-3
 本模块补 ④ + 批量聚合体检（②的系统化：标签分布合理、非退化）。全绿=标签质量门就绪（解锁 params-freeze）。
 """
 

@@ -46,10 +46,12 @@
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
 | （管线自检）| `test_eval`（不可达 F1/IoU/面积误差·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
 | D-016 数据架构/首片=程序化物化 | `test_dataset`（物化数据集：round-trip·两类·按模型切分·标签=oracle·manifest 良构）|
+| E1/H1 支撑面积⊥可达（存在性）| `test_data`（`flagship_pair`：同支撑面积旗舰对可达性相反 100%/0%，`src/…/data/__init__.py`）|
 | H3 跨模型预测可行性 | `test_model`（tiny 形状条件模型在留出/未见模型上不可达 F1 胜多数类基线；Phase-1 薄纵切） |
 | H2/E4 基线对照 | `test_baselines`（射线可见性=oracle@r=0；工具尺寸不可忽略 + 神经胜纯可见性/多数类；`src/…/baselines/`） |
 | H5 跨域（Thingi10K）| `test_thingi`（STL ascii/binary 解析 + 端到端物化；下朝面用 stored 法向、split 恒 test，`src/…/data/thingi.py`）|
 | D-022 D-020 野网格实现加固 + H5 接入采样上限 | `test_capsule`（precompute_equiv 逐比特 / degenerate_skip 零面积不崩）+ `test_thingi`（`_select_points` 确定性无偏子采样）|
+| D-024 方向级可达性场（E5，extend D-004）| `test_direction_field`（逐方向判定 + `any`==二分不变量 + 盲腔/开阔已知答案 + 模型 out_dim 方向头）|
 | 标签质量门（六项趋势·铁律#6）| `test_label_quality`（④半径趋势受限单调=D-008 收窄闭合 + ②批量分布；①②③⑤⑥ 分见 known_answers/differential/support_contact/data）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 

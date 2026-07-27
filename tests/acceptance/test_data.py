@@ -47,6 +47,13 @@ def checks():
         ntr, nte = {m.name for m in tr}, {m.name for m in te}
         split_ok = ntr.isdisjoint(nte) and len(tr) + len(te) == len(ms) and len(te) > 0
         out.append(result("dataset_split_by_model", split_ok, f"train{len(tr)}/test{len(te)}：模型级无泄漏"))
+
+        fa, fb = D.flagship_pair(support_area_target=64, cavity_depth_a=4, cavity_depth_b=16)   # E1/H1 存在性
+        na, nb = fa.points.shape[0], fb.points.shape[0]
+        acc_a, acc_b = 1.0 - fa.labels.mean(), 1.0 - fb.labels.mean()
+        fp_ok = abs(na - nb) <= max(2, 0.15 * max(na, nb)) and acc_a >= 0.8 and acc_b <= 0.2
+        out.append(result("flagship_pair_area_perp_access", bool(fp_ok),
+                          f"E1/H1：面积 {na}≈{nb} 相等，可达率 a={acc_a:.2f} vs b={acc_b:.2f}（面积⊥可达）"))
     except Exception as e:
         out.append(result("dataset_shapes", False, f"异常：{e}"))
     return out
@@ -77,3 +84,20 @@ def test_split_by_model_no_leakage():
     from support_accessibility import data as D
     tr, te = D.split_by_model(D.make_dataset(**_ARGS), frac_train=0.7, seed=0)
     assert {m.name for m in tr}.isdisjoint({m.name for m in te}) and len(te) > 0
+
+
+def test_flagship_pair_equal_area_opposite_access():
+    """E1/H1 存在性旗舰对：支撑面积（下朝接触点数）近似相等，但可达性相反——证"面积⊥可达"。
+    补 H1 统计 ρ≈0 的存在性证据：a=开阔悬空 ledge（可达）vs b=深窄槽腔顶（不可达），同面积。"""
+    try:
+        _deps()
+    except ImportError as e:
+        raise SkipTest(f"依赖未就绪：{e}")
+    from support_accessibility.data import flagship_pair
+    a, b = flagship_pair(support_area_target=64, cavity_depth_a=4, cavity_depth_b=16)
+    na, nb = a.points.shape[0], b.points.shape[0]
+    assert na > 0 and nb > 0, f"接触点空：{na},{nb}"
+    assert abs(na - nb) <= max(2, 0.15 * max(na, nb)), f"支撑面积不近似相等：{na} vs {nb}"
+    acc_a, acc_b = 1.0 - a.labels.mean(), 1.0 - b.labels.mean()
+    assert acc_a >= 0.8, f"a（开阔 ledge）应多可达，实得可达率 {acc_a:.2f}"
+    assert acc_b <= 0.2, f"b（深窄腔）应多不可达，实得可达率 {acc_b:.2f}"

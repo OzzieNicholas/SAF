@@ -158,3 +158,15 @@
   (c) **H5 Thingi 接入采样上限**（测试集构建，非 oracle 口径）：`build_thingi` 每模型接触点上限 `max_points=400`（密扫描件下朝面上万，全标 × n_dir × 细化不可解；确定性无放回子采样 `_select_points` 是逐点 F1 无偏估计）+ 面数上限 `max_faces=80000`（超高面 res48 占据已降采样、跳过以控 O(面数) 剪枝成本）。Thingi **恒 split=test、绝不进训练**（D-016/docs §4.6），故上限属跨域测试集范围选择、不触 oracle/标签口径冻结（D-021）。
 - 依据：H5 要在野外 OOD 网格上评形状条件预测的跨域鲁棒性。(a)(b) 是让 D-020 精确细化在野网格上**可跑且不崩**的实现加固（性能 + 数值稳健），非语义变更——故不 supersede D-003/D-020，只加固实现，由既有性质守护逐比特/clean-CAD 不变。(c) 是测试集构建的可解性选择（单卡预算），Thingi 恒 test 故不与训练标签口径冲突。H5 结果：ConvONet-lite（训于 Fusion both-class + 程序化）域内留出 F1 0.915±0.005、跨域 Thingi（149 both-class 件 / 46.8k 点）F1 0.908±0.005（掉幅 0.006、在噪声内），远胜几何射线可见性基线 0.725——形状条件可达性代理跨域泛化。
 - 状态：接受（判定语义/口径 D-001..D-021 未动；实现加固 + 测试集采样，守护性质 `test_capsule`(precompute_equiv / degenerate_skip) + `test_thingi`(_select_points) 接门）
+
+## D-023  数据源定为三源（Fusion360 / Thingi10K / 程序化）——ABC 彻底弃用（supersede D-017「ABC 退为可选背景」）
+
+- 裁决：项目数据源**收敛为三**，ABC 从「可选/背景」进一步**彻底弃用、不再接入**：① **程序化生成**（种子配方，oracle 造即知答案的受控信号集/控制变量）；② **Fusion 360 Gallery reconstruction**（[R20]，主 CAD 网格源，仅用 .obj 三角网格，D-017）；③ **Thingi10K**（[R19]，野外打印网格，跨域鲁棒性测试，恒 split=test，D-022）。据此 D-016/D-017 的 source 枚举 **{procedural, fusion360, abc, thingi10k} → {procedural, fusion360, thingi10k}**（去 abc）。本条 **supersede D-017 内「ABC 退为可选背景 / 未决项待立」那半**（D-017 的 Fusion360=主源那半不变）；D-016 数据架构三层不变，只是原料层不含 ABC。
+- 依据：用户明示 ABC 数据源已无且不打算用（下载不便，Fusion360 已充分替代主 CAD 源角色）。ABC 在本仓从无接入代码（仅注释/证据/未决备注提及），故弃用=撤引用 + 撤未决备注，无代码删除。三源已各就位并经验证：程序化（D-016 首片物化 + 六项趋势门）、Fusion360（D-017/D-021，全量 8625 物化 + H3 F1 0.910）、Thingi10K（D-022，300 件 + H5 跨域 0.908）。铁律 #5「只在公开/程序化数据上工作」实质不变，仅枚举例从 ABC 换 Fusion360。
+- 状态：接受（判定语义/oracle 口径 D-001..D-010 未动；数据源范围结构决策，无专属性质，由 test_charter 结构 allowlist 守护；R18 ABC 角色更新见 evidence.md，per-源接入仍由 test_dataset/test_fusion360/test_thingi 守护）
+
+## D-024  方向级可达性场（E5）：oracle 输出扩为每方向可达向量，extend D-004（二分 = any-归约）
+
+- 裁决：把 oracle 输出从**点级二分**（D-004）扩为**方向级可达性场**——对固定下半球逼近方向集（`lower_hemisphere_dirs(n)`，n=128→D=64 方向），每点输出每方向是否可达的向量。**判据分毫不变**（同 D-001..D-003/D-005：clearance>r，有网格三态含糊交精确细化 D-020），只是**不 OR 归约**、保留每方向结果。`oracle.direction_labels(p,r)` + `decide_direction_labels`；模型侧 `ConvONetLite` 加 `out_dim`（=D，默认 1 向后兼容 H3/H5）。**核心不变量**：`any(direction_labels) == (label==ACCESSIBLE)`——二分口径 D-004 是本场的 any-归约，既有二分标签/模型不受影响。
+- 依据：项目命名的「Support Accessibility **Field**」本义即方向级；点级二分是其 any-归约特例。用户明示走 E5（命门=oracle 输出口径变更，铁律 #7，已据实点头）。因判据（D-001..D-003/D-005）与二分语义（D-004）皆未动、本条只**扩输出粒度**，故 **extend 而非 supersede**：既有性质（known_answers/differential/capsule）继续守护判据，新性质 `test_direction_field` 守护「逐方向判定 + OR-归约不变量 + 已知答案 + 模型方向头」。**E5 结果**（方向级 ConvONet-lite 跨模型预测，方向目标用占据口径 direction_labels，`tools/eval_e5.py`）：程序化 per-direction F1 0.999 / dir-set IoU 0.993；**真实 Fusion CAD（500 件 / 26.3k 点）per-direction F1 0.894±0.004 / dir-set IoU 0.875**。关键：per-direction **多数类基线 F1=0.000**（每方向多数皆"可达"、"被挡"是稀有类）——模型在稀有"被挡方向"上得 0.894，非靠先验。复原点级二分 F1 0.795（占据口径下"全方向皆挡"的 AND-归约，较专用二分头 H3=0.910 略噪，属预期：64 个含噪逐方向预测求 AND）。
+- 状态：接受（判据 D-001..D-003/D-005 + 二分语义 D-004 未动；本条扩输出粒度为方向场，守护性质 `test_direction_field` 接门；命门经用户点头 develop——方向级标签若作 headline 训练源，训练前作者据实签收，同 D-018）

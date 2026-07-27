@@ -53,9 +53,40 @@ def deep_narrow_slot(width, depth):
     raise NotImplementedError("后续批次（变形性质）。")
 
 
-def flagship_pair(support_area_target, cavity_depth_a, cavity_depth_b):
-    """旗舰配对：支撑面积近似相等、腔深不同的两件，保 E1/H1 存在性。"""
-    raise NotImplementedError("后续批次。")
+def flagship_pair(support_area_target=64, cavity_depth_a=4, cavity_depth_b=16,
+                  width=2, radius=3.0, margin=8, n_directions=64):
+    """E1/H1 存在性旗舰对：两件**支撑面积（下朝悬垂接触体素数）近似相等**、**可达性相反**——
+    证「支撑面积 ⊥ 可达性」，补 H1 统计 ρ≈0 的存在性证据。返回 (case_a, case_b) 两个 LabeledModel。
+
+    两件下朝悬垂面都是 width×L 条带（L=round(support_area_target/width)）→ 支撑面积≈相等：
+    - **case_a「open_ledge」**：悬空薄板，条带下朝面四周开阔（free_dist>r）→ oracle 判**可达**（D-002）。
+    - **case_b「deep_narrow_cavity」**：实体块自底面挖 width×L 窄槽（width<2r）至深 cavity_depth_b，
+      槽顶为下朝面但被窄壁夹（沿途 free_dist<r）→ oracle 判**不可达**（D-001）。
+    可达性差异源自腔几何（开阔 vs 深窄），**非面积**——即 H1 立论。需 width<2·radius。
+    """
+    import numpy as np
+    from support_accessibility.oracle import SupportAccessibilityOracle
+    L = max(1, int(round(support_area_target / width)))
+
+    # case_a：悬空薄板（width×L 底面开阔）→ 可达
+    t = 3
+    occ_a = np.zeros((L + 2 * margin, width + 2 * margin, t + 2 * margin + cavity_depth_a), dtype=bool)
+    xa, ya, za = margin, margin, margin + cavity_depth_a
+    occ_a[xa:xa + L, ya:ya + width, za:za + t] = True
+
+    # case_b：实体块自底面挖 width×L 窄槽至深 cavity_depth_b（槽顶下朝、窄壁夹）→ 不可达
+    occ_b = np.ones((L + 2 * margin, width + 2 * margin, cavity_depth_b + margin), dtype=bool)
+    xb, yb = margin, margin
+    occ_b[xb:xb + L, yb:yb + width, 0:cavity_depth_b] = False
+
+    r = float(radius)
+    parts = []
+    for name, occ in (("flagship_open_ledge", occ_a), ("flagship_deep_narrow_cavity", occ_b)):
+        pts = down_facing_points(occ)
+        orc = SupportAccessibilityOracle(occ, {"n_directions": n_directions})
+        labels = np.array([orc.label(p, r).value == "inaccessible" for p in pts], dtype=bool)
+        parts.append(LabeledModel(name, occ, pts, labels, r))
+    return parts[0], parts[1]
 
 
 # —— 程序化标签数据集（Phase 1）：形状条件样本，oracle 自动打标（无人工标注）——

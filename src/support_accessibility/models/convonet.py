@@ -23,10 +23,15 @@ def to_grid_coords(points, occ_shape):
 
 
 class ConvONetLite(nn.Module):
-    """occ [1,1,nx,ny,nz] → 3D-CNN 特征体 → 查询点采样 + 坐标 → MLP → 不可达 logit [N]。"""
+    """occ [1,1,nx,ny,nz] → 3D-CNN 特征体 → 查询点采样 + 坐标 → MLP → logit。
 
-    def __init__(self, feat=32, hidden=64):
+    out_dim=1（默认）→ 点级不可达 logit [N]（H3/H5 二分主线，D-015）；
+    out_dim=D → 方向级可达性场 logit [N,D]（E5/D-024，每点对 D 个逼近方向各一 logit）。
+    """
+
+    def __init__(self, feat=32, hidden=64, out_dim=1):
         super().__init__()
+        self.out_dim = int(out_dim)
         self.enc = nn.Sequential(
             nn.Conv3d(1, 16, 3, padding=1), nn.ReLU(inplace=True),
             nn.Conv3d(16, feat, 3, padding=1), nn.ReLU(inplace=True),
@@ -35,7 +40,7 @@ class ConvONetLite(nn.Module):
         self.dec = nn.Sequential(
             nn.Linear(feat + 3, hidden), nn.ReLU(inplace=True),
             nn.Linear(hidden, hidden), nn.ReLU(inplace=True),
-            nn.Linear(hidden, 1),
+            nn.Linear(hidden, self.out_dim),
         )
 
     def forward(self, occ, grid_coords):
@@ -44,4 +49,5 @@ class ConvONetLite(nn.Module):
         sampled = F.grid_sample(feat, grid, align_corners=True, padding_mode='border')  # [1,C,N,1,1]
         sampled = sampled.view(feat.shape[1], -1).t()              # [N,C]
         x = torch.cat([sampled, grid_coords], dim=1)               # [N,C+3]
-        return self.dec(x).view(-1)                                # [N]
+        out = self.dec(x)                                          # [N,out_dim]
+        return out.view(-1) if self.out_dim == 1 else out         # [N] 或 [N,D]
