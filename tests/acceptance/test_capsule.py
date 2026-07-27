@@ -19,7 +19,7 @@ def checks():
     """gate 集成：几何原语 + 三态判定代表性断言（D-003 边界带精确胶囊细化落地 / D-020）。"""
     try:
         import numpy as np
-        from support_accessibility.oracle.capsule import segment_triangle_sq_dist, capsule_hits_mesh
+        from support_accessibility.oracle.capsule import segment_triangle_sq_dist, capsule_hits_mesh, precompute_mesh
         from support_accessibility.oracle import decide_label, Label
     except ImportError as e:
         return [pending("capsule_refinement", f"依赖未就绪：{e}", "D-003")]
@@ -30,12 +30,19 @@ def checks():
         V = np.array([[0., 0, 0], [2, 0, 0], [0, 2, 0]]); F = np.array([[0, 1, 2]])
         O = np.array([0.5, 0.5, 2.]); D = np.array([1., 0, 0])
         ok_cap = (capsule_hits_mesh(O, D, 1.5, V, F) is False) and (capsule_hits_mesh(O, D, 2.5, V, F) is True)
+        pc = precompute_mesh(V, F)
+        ok_pre = ((capsule_hits_mesh(O, D, 1.5, V, F, precomp=pc) is False)
+                  and (capsule_hits_mesh(O, D, 2.5, V, F, precomp=pc) is True))
+        Vdg = np.array([[0., 0, 0], [0, 0, 0], [0, 1, 0]]); Fdg = np.array([[0, 1, 2]])    # 零面积（重合顶点）
+        ok_deg = capsule_hits_mesh(np.array([0.5, 0.5, 2.]), np.array([0., 0, -1.]), 0.5, Vdg, Fdg) is False
         ok_dec = (decide_label([5., 2, 1], 3., 1., refine=None) == Label.ACCESSIBLE
                   and decide_label([2.9, 1, 0.5], 3., 0.5, refine=None) == Label.INACCESSIBLE
                   and decide_label([3.2, 3.1, 0.5], 3., 0.5, refine=lambda i: i == 1) == Label.ACCESSIBLE)
         return [
             result("capsule_segment_triangle", bool(ok_cross and ok_above), "穿越=0 & 平行内部上方=垂距", "D-003"),
             result("capsule_hits_mesh", bool(ok_cap), "半径阈值 2：miss@1.5 / hit@2.5", "D-003"),
+            result("capsule_precompute_equiv", bool(ok_pre), "precompute_mesh 预算常量 == 内建重算（提速不改口径，D-022）", "D-003"),
+            result("capsule_degenerate_skip", bool(ok_deg), "零面积退化三角跳过、不崩（D-022 野网格加固）", "D-003"),
             result("decide_label_three_tier", bool(ok_dec), "无网格二分 + 有网格含糊交精确 refine（D-020）", "D-003"),
         ]
     except Exception as e:
@@ -98,7 +105,70 @@ def test_capsule_forward_only():
     assert capsule_hits_mesh(O, D, 0.5, V, F) is False           # 三角面在后方且 >r → 不触
 
 
+def test_capsule_prune_matches_bruteforce():
+    """性能剪枝版 capsule_hits_mesh 与暴力全三角参考逐例一致（剪枝 sound：绝不漏真触）。"""
+    _np()
+    import numpy as np
+    from support_accessibility.oracle.capsule import capsule_hits_mesh, segment_triangle_sq_dist
+
+    def brute(O, D, r, V, F):
+        d = np.asarray(D, float); d = d / np.linalg.norm(d)
+        O = np.asarray(O, float); V = np.asarray(V, float); F = np.asarray(F, int)
+        far = float(np.max(np.linalg.norm(V - O, axis=1))) + r + 1.0
+        B = O + d * far; r2 = r * r
+        return any(segment_triangle_sq_dist(O, B, V[f]) <= r2 for f in F)
+
+    rng = np.random.default_rng(0)
+    mism = 0
+    for _ in range(80):
+        nt = int(rng.integers(3, 20))
+        V = rng.standard_normal((nt * 3, 3))
+        F = np.arange(nt * 3).reshape(nt, 3)
+        O = rng.standard_normal(3); D = rng.standard_normal(3)
+        r = float(rng.uniform(0.1, 1.5))
+        if bool(capsule_hits_mesh(O, D, r, V, F)) != bool(brute(O, D, r, V, F)):
+            mism += 1
+    assert mism == 0, f"剪枝与暴力不一致 {mism}/80"
+
+
 # —— 三态判定逻辑（clearance vs r±ε → CLEAR/BLOCKED/AMBIGUOUS，AMBIGUOUS 交精确 refine）——
+def test_capsule_degenerate_triangle_skipped():
+    """退化（零面积：重合顶点/共线）三角不参与求交——无面可触，且喂给 Ericson 最近点原语会除零。
+    Thingi 野网格常见（重复顶点/共线）；只含退化 → 不触且不崩；真三角+退化 == 仅真三角。"""
+    _np()
+    import numpy as np
+    from support_accessibility.oracle.capsule import capsule_hits_mesh
+    O = np.array([0.5, 0.5, 2.]); D = np.array([0., 0., -1.])          # 朝 -z 射向 z=0 平面
+    Vd = np.array([[0., 0, 0], [0, 0, 0], [0, 1, 0]]); Fd = np.array([[0, 1, 2]])   # a==b 零长边→零面积
+    assert capsule_hits_mesh(O, D, 0.5, Vd, Fd) is False              # 零面积无面可触，不崩
+    Vc = np.array([[0., 0, 0], [1, 0, 0], [2, 0, 0]]); Fc = np.array([[0, 1, 2]])   # 共线→零面积
+    assert capsule_hits_mesh(O, D, 0.5, Vc, Fc) is False              # 共线无面可触，不崩
+    Vr = np.array([[0., 0, 0], [2, 0, 0], [0, 2, 0]]); Fr = np.array([[0, 1, 2]])   # 真三角，含 O 投影(0.5,0.5,0)
+    Vm = np.concatenate([Vr, Vd]); Fm = np.array([[0, 1, 2], [3, 4, 5]])
+    assert capsule_hits_mesh(O, D, 0.5, Vm, Fm) == capsule_hits_mesh(O, D, 0.5, Vr, Fr)   # 退化不改结果
+    assert capsule_hits_mesh(O, D, 0.5, Vr, Fr) is True               # 真三角确被触（正例）
+
+
+def test_capsule_precompute_matches_plain():
+    """precompute_mesh 预算网格常量（tris/质心/外接半径/包围球）后传入 == 每次内部重算：逐例一致。
+    纯提速（每模型算一次而非每调用重算），口径不变——包围球 far ≥ 精确 far（段更长只多覆盖真射线、不引伪触）。"""
+    _np()
+    import numpy as np
+    from support_accessibility.oracle.capsule import capsule_hits_mesh, precompute_mesh
+    rng = np.random.default_rng(1)
+    mism = 0
+    for _ in range(60):
+        nt = int(rng.integers(3, 25))
+        V = rng.standard_normal((nt * 3, 3))
+        F = np.arange(nt * 3).reshape(nt, 3)
+        pc = precompute_mesh(V, F)
+        O = rng.standard_normal(3); D = rng.standard_normal(3)
+        r = float(rng.uniform(0.1, 1.5))
+        if bool(capsule_hits_mesh(O, D, r, V, F, precomp=pc)) != bool(capsule_hits_mesh(O, D, r, V, F)):
+            mism += 1
+    assert mism == 0, f"precompute 与内建重算不一致 {mism}/60"
+
+
 def test_decide_clear_direction_accessible():
     """某方向净空 > r+ε → 直接 accessible，不触发 refine。"""
     _np()

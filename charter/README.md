@@ -48,6 +48,8 @@
 | D-016 数据架构/首片=程序化物化 | `test_dataset`（物化数据集：round-trip·两类·按模型切分·标签=oracle·manifest 良构）|
 | H3 跨模型预测可行性 | `test_model`（tiny 形状条件模型在留出/未见模型上不可达 F1 胜多数类基线；Phase-1 薄纵切） |
 | H2/E4 基线对照 | `test_baselines`（射线可见性=oracle@r=0；工具尺寸不可忽略 + 神经胜纯可见性/多数类；`src/…/baselines/`） |
+| H5 跨域（Thingi10K）| `test_thingi`（STL ascii/binary 解析 + 端到端物化；下朝面用 stored 法向、split 恒 test，`src/…/data/thingi.py`）|
+| D-022 D-020 野网格实现加固 + H5 接入采样上限 | `test_capsule`（precompute_equiv 逐比特 / degenerate_skip 零面积不崩）+ `test_thingi`（`_select_points` 确定性无偏子采样）|
 | 标签质量门（六项趋势·铁律#6）| `test_label_quality`（④半径趋势受限单调=D-008 收窄闭合 + ②批量分布；①②③⑤⑥ 分见 known_answers/differential/support_contact/data）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 

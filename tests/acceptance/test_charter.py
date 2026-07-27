@@ -79,7 +79,7 @@ def check_params_keys():
 
 def check_decisions_covered():
     """完整性：每条 decisions.md 的 D-0NN 都被验收层交代（被测试引用，或在结构 allowlist）——杜绝孤儿决策。"""
-    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014", "D-015", "D-018"}   # 结构/标注/布局/治理/规范/台账策展/主线/命门签收：无专属性质，由 test_charter 或本身守护
+    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014", "D-015", "D-018", "D-021"}   # 结构/标注/布局/治理/规范/台账策展/主线/命门签收/参数冻结：无专属性质，由 test_charter 或本身守护
     try:
         dtxt = _read("charter/decisions.md")
     except OSError as e:

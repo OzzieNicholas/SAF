@@ -22,7 +22,7 @@ from enum import Enum
 import numpy as np
 from scipy import ndimage
 
-from .capsule import capsule_hits_mesh
+from .capsule import capsule_hits_mesh, precompute_mesh
 
 
 class Label(str, Enum):
@@ -80,6 +80,8 @@ class SupportAccessibilityOracle:
         self.step = float(self.params.get("march_step", 0.5))
         self.eps = float(self.params.get("epsilon_voxels", 1.5))
         self.mesh = mesh                 # (V,F,lo,pitch) 世界坐标网格+体素变换；None=无细化（体素二分）
+        # D-020 细化的网格常量（tris/质心/外接半径/包围球）每模型算一次，供所有点×方向的 refine 复用
+        self._mesh_precomp = precompute_mesh(mesh[0], mesh[1]) if mesh is not None else None
         self._shape = np.asarray(self.occ.shape)
 
     # —— 主口径（D-003 体素腐蚀 + 方向 ray-march + 边界带精确胶囊细化）——
@@ -114,10 +116,11 @@ class SupportAccessibilityOracle:
         p_world = np.asarray(lo, float) + (p + 0.5) * float(pitch)     # world_to_voxel 的逆
         r_world = r * float(pitch)
 
+        pc = self._mesh_precomp                                        # 每模型预算常量，复用不重算
         def refine(i):
             v = self.dirs[i]
             origin = p_world + r_world * v
-            return not capsule_hits_mesh(origin, v, r_world, V, F)     # 精确无碰撞
+            return not capsule_hits_mesh(origin, v, r_world, V, F, precomp=pc)     # 精确无碰撞
         return refine
 
     # —— 对拍参考（暴力：直接测球∩实体体素；供 differential 门交叉验证）——

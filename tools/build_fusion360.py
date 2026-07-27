@@ -39,7 +39,7 @@ def main():
     ap.add_argument("--out", default="data/processed/fusion360_v1")
     ap.add_argument("--resolution", type=int, default=48)
     ap.add_argument("--radius-world", type=float, default=0.05)
-    ap.add_argument("--n-directions", type=int, default=32)
+    ap.add_argument("--n-directions", type=int, default=128)  # D-020 钉定值（细化默认开，见 _label_one）
     ap.add_argument("--overhang-deg", type=float, default=45.0)
     ap.add_argument("--max-models", type=int, default=None)
     ap.add_argument("--frac-train", type=float, default=0.6)

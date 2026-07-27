@@ -11,12 +11,6 @@
 - 阻塞：E1（支撑面积≈但腔深不同的旗舰配对；H1 立论存在性）
 - 机器可判：是（import-check：flagship_pair 是否仍 NotImplementedError）
 
-## params-freeze
-- 触发：六项趋势审核通过（标签质量门）——真实数据已跑、暴露 n_dir=32 欠收敛、经 D-020 细化解决；待按冻结参重采真实标签 + 人签收后视为通过
-- 义务：append decisions 冻结 conf/params.yaml 临时数值（n_directions/voxel_res/radii/overhang）。**值已证据钉定**（n_dir=128 / res=48或96 / radius=0.05 / overhang=45，见 D-020 收敛+细化证据）；剩正式冻结决策 append
-- 阻塞：正式神经实验（铁律 #6 标签先于模型）
-- 机器可判：否（趋势审核为人审；将来挂 labels_quality sentinel）
-
 ## point-touch-refine
 - 触发：真实网格证据到手（Fusion360 接入后，已到）
 - 义务：定 D-001 point-touch 是否细化（D-008 radius / D-011 scale 共同指向）。**进展**：res/scale 那半（D-011 指向）已由 D-020（D-003 精确胶囊-网格细化）解决——真实 CAD 标签 res-稳定（48/96/192 一致 1.000），无需改 D-001 语义；D-008 radius / point-touch 工具模型那半仍开，但真实标签已几何正确、优先级低
@@ -36,11 +30,11 @@
 - 机器可判：部分（路径存在性 + ingest round-trip 可判；标签有效性需人签收）
 - 备注：ABC 经 D-017 退为可选/背景；其接入不再是阻塞项，需要时另立未决。
 
-## thingi-ingest
-- 触发：进入跨域鲁棒性阶段（E7）
-- 义务：Thingi10K mesh 接入 + 缠绕/法向修复（overhang.py 现假设外向一致）+ 鲁棒性门；恒 split=test、绝不进训练（docs §4.6）；对齐 D-016 格式，source=thingi10k
-- 阻塞：ABC→Thingi 跨域鲁棒性实验（H5）
-- 机器可判：否（网格质量与标签稳定性需人审）
+## thingi-ingest（接入 + H5 完成，见 D-022；残留仅可选人审）
+- 触发：跨域鲁棒性阶段（H5）——已完成
+- 已达：`data/thingi.py` 落地（STL bin/ascii 解析 + 下朝面用 **stored 法向** + occ igl winding，稳健非流形；恒 split=test、绝不进训练 docs §4.6；D-016 source=thingi10k，`test_thingi` 接门）。**300 件物化**（149 both-class / agg 不可达 19.4%）；**H5 跨域评测完成**：域内留出 F1 0.915±0.005 vs 跨域 Thingi 0.908±0.005（掉幅 0.006、噪声内），胜几何基线 0.725（见 D-022）。野网格加固（precompute + 退化三角跳过，D-022）令 D-020 细化在 Thingi 上可跑不崩。
+- 残留（可选、非命门）：Thingi 标签质量人眼审（非水密件 winding 不稳→标签噪声）——**因 Thingi 恒 test、绝不进训练，铁律 #7 命门签收不适用**；H5 已在含噪 OOD 标签下得 0.908，噪声属跨域挑战本身。审计图仪器 `viz.audit_model` 可复用。
+- 机器可判：是（STL 解析 + ingest round-trip + H5 F1 可判；标签噪声属已知特性）
 
 ## dvc-pipeline
 - 触发：首个昂贵/真实数据源物化（ABC 子集接入）
@@ -48,8 +42,8 @@
 - 阻塞：大产物版本化与一键复现
 - 机器可判：是（dvc.yaml 存在性）
 
-## local-blas-gate-crash
-- 触发：已到（本地 Windows saf 环境 numpy 2D×2D 矩阵乘崩 0xC06D007F，BLAS DLL 加载失败，与 D-009 的 trimesh 0xC06D 同类；faulthandler 定位 models/__init__.py:86 的 MLP X@W1）。**注**：近期数轮全套 pytest（含 test_model/test_baselines）本地跑绿未崩——疑**间歇**（BLAS 加载竞态？），触发是否仍成立待再探
-- 义务：定版/重装 numpy+openblas 使本地 gate/pytest 可稳定全跑（若确为间歇，或降级为"偶发已知项"）
-- 阻塞：本地完整验收（几何/数据片不受影响——无矩阵乘）
-- 机器可判：部分（本地 gemm 是否崩可探；修复需环境操作）
+## local-blas-gate-crash（已诊断：启动/激活问题，非 numpy 缺陷 → 降级为已知跑法项）
+- 触发：已到，且**根因查明**（2026-07）：0xC06D007F（bash 退出码 127 = 低字节 &0xFF）**只在直接裸调 `python.exe` 绝对路径**（未激活 env）时发生——OpenBLAS 的 2D×2D **gemm** 延迟加载其线程 DLL，而 env 的 `Library\bin` 不在 DLL 搜索路径 → 延迟加载失败崩；gemv(2D×1D) 时好时坏故显"间歇"。**numpy 本身没坏**（壳内激活下 gemm/igl/scipy/torch 全绿）。原记"重装 numpy"系误诊。
+- 义务（已满足→降级）：用**壳内激活**稳定跑，勿裸调 python.exe，勿并发两个 `conda run`（并发会崩其插件层）：`source "D:/Miniforge/Install/etc/profile.d/conda.sh" && conda activate saf && python …`。此法下 gate/pytest 可稳定全跑（实测 50 passed / 5 skipped）。跑法备忘 memory/saf-env-launch.md。
+- 阻塞：无（有稳定跑法）；残留 gotcha = 裸调 python.exe 仍崩 gemm（launch-hygiene，非代码缺陷）
+- 机器可判：是（壳内激活下 gate 稳定全绿可验）

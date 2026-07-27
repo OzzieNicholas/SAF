@@ -1,7 +1,7 @@
 # params.yaml — Hydra 配置（几何 oracle / 采样 / 标签）
 #
-# 注意：以下**连续数值为临时值**，用于解锁 D0（10–30 程序化模型）小闭环。
-# 阶段"标签质量审核"六项趋势通过后，由 charter/decisions.md 新增条目正式冻结。
+# 标签口径连续数值经 **D-021 冻结**（n_directions / epsilon_voxels / data.resolution+细化 / radius_world / overhang）；
+# 改动须 charter/decisions.md 新增条目 supersede（同 D-003 连续数值条款）。仍标"临时"者（采样点数/多半径/uncertain_band）为未来敏感性扫、未冻。
 # 离散选择（语义C / 球模型 / 基板不建模+下半球 / 体素腐蚀口径 / 二分类）已冻结，见 D-001..D-005。
 
 oracle:
@@ -11,9 +11,9 @@ oracle:
   approach_hemisphere: lower      # D-002 工具从下半球逼近；只计零件本体遮挡（遮挡下界）
   method: voxel_erosion          # D-003 体素/距离场腐蚀 + 边界带精确胶囊细化
   direction_sampling: fibonacci_hemisphere
-  n_directions: 128              # 临时；敏感性扫 32/64/128/256
-  voxel_res: 256                 # 临时；分辨率 vs 成本/薄壁权衡
-  epsilon_voxels: 1.5            # 临时；边界不确定带宽（体素数）
+  n_directions: 128              # 冻结 D-021（真实收敛 128-vs-256=0.982；64 尚差 5%）
+  voxel_res: 256                 # 作废：被 data.resolution + 精确细化取代（D-021/D-020）
+  epsilon_voxels: 1.5            # 冻结 D-021；D-020 精确细化的边界带宽
   boundary_refine: exact_capsule # 边界带用精确胶囊-网格求交细化
 
 tool:
@@ -22,7 +22,7 @@ tool:
 
 geometry:
   normalize: longest_edge_1      # 最长包围盒边 = 1
-  overhang_angle_deg: 45         # 自支撑临界角；鲁棒性扫 40/45/50
+  overhang_angle_deg: 45         # 冻结 D-021（D-010）；鲁棒性可扫 40/50
 
 sampling:
   contact_points_per_model: 3000 # 临时；范围 2000–5000
@@ -41,5 +41,5 @@ data:
   # 公开 CAD 主源 = Fusion 360 Gallery reconstruction 网格（D-017）；只用最终零件 .obj，不碰构造序列/B-Rep。
   source: fusion360              # {procedural, fusion360, abc(可选/背景), thingi10k(恒 test)}
   fusion360_root: ""             # 本地 reconstruction 目录（gitignore；路径经此配置不入库，未决 fusion360-ingest）
-  resolution: 48                 # mesh→occupancy 栅格分辨率（临时；params-freeze 前）
-  radius_world: 0.05             # 工具半径（归一尺度，最长边=1；对齐 tool.radii）
+  resolution: 48                 # 冻结 D-021 + 精确细化开（D-020：低 res 即 res-稳定训练级）
+  radius_world: 0.05             # 冻结 D-021（主工具半径；H2 验证工具尺寸要紧）

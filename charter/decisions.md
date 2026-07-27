@@ -143,3 +143,18 @@
 - 裁决：实现 D-003 早冻结但未落地的"边界带精确胶囊-网格求交细化"。口径：体素腐蚀 ray-march 给每方向最小净空 clearance；**无网格**（程序化合成占据）→ 二分（任一 clearance>r 即可达，与细化前逐比特一致、程序化管线不退绿）；**有网格**（真实 CAD，传 V,F,lo,pitch）→ 三态——clearance>r+ε 明确可逃逸→可达；含糊方向（clearance>r-ε）交精确胶囊测试（半无穷射线到三角网格最小距离 ≤ r_world，无离散误差）定夺，任一无碰撞→可达；皆碰→不可达。细化给真值而非隔离，故不出 UNCERTAIN。ε=epsilon_voxels（conf/params.yaml）。原语 `src/…/oracle/capsule.py`（Ericson 点-三角/段-段最近点 + Möller–Trumbore 穿越），判定 `decide_label`。
 - 依据：真实 CAD 下 point-touch 语义在物理临界点（工具半径≈局部特征尺度）体素标签 res-不收敛（实测固定世界查询点、res 48↔96↔192 翻 ~10-13%，与 D-011 同族）；纯提高分辨率不收敛且单卡成本高。精确细化验证：同样本细化后 res 48/96/192 标签一致率 **1.000**（纯体素 0.865/0.899）——边界点精确、res-无关，故**低基础分辨率 + 细化即得 res-稳定训练级标签**，缓解单卡预算。语义 C（D-001）与遮挡下界（D-002）分毫未动，本条只落地 D-003 的细化机制并定其操作口径。命门相关（改 label 输出口径），须作者据实**人签收**（铁律 #7）：本批已 TDD（capsule 5 + decide 5 已知答案）+ 真实 CAD res-稳定验证；真实网格标签按冻结参重采并签收后方进训练。
 - 状态：接受（判定语义 D-001/D-002 未动；落地 D-003 并定操作口径；守护性质 `test_capsule` 接门）
+
+## D-021  params-freeze：冻结 conf/params.yaml 标签口径数值（n_dir=128 / res=48+细化 / radius=0.05 / overhang=45 / ε=1.5）
+
+- 裁决：标签质量门（六项趋势 + D-020 精确细化）通过后，冻结 oracle/标签口径连续数值（原 params.yaml "临时值"）：`oracle.n_directions=128`（真实几何收敛，128-vs-256=0.982，64 尚差 5%）；`oracle.epsilon_voxels=1.5`（D-020 边界带宽）；`data.resolution=48` + **精确细化开**（D-020 令 res 48/96/192 标签一致 1.000 → 低基础 res 即训练级、单卡省）；`data.radius_world=0.05`（H2 验证工具尺寸要紧）；`geometry.overhang_angle_deg=45`（D-010）。`oracle.voxel_res=256` 作废/被 data.resolution+细化取代；`sampling.contact_points_per_model` / `tool.radii` 多值 / `labels.emit_uncertain_band` 属未来采样/敏感性扫，非本次冻结（保留待用）。
+- 依据：闭合 deferred「params-freeze」——触发（六项趋势审核通过）已达：程序化六项趋势守门 + 真实数据 n_dir/res 收敛证据（D-020）+ 训练级标签人签收（D-018）。铁律 #6「标签先于模型」的正式落点：这些值一经冻结即为口径一部分，改动须新增 decisions supersede（同 D-003 连续数值条款）。已按冻结值重采真实标签并训出 H3（ConvONet-lite 未见真实件 F1=0.847±0.039）。
+- 状态：接受（判定语义 D-001..D-010 未动；本条冻结连续数值，结构决策，无专属性质，由 test_charter 结构 allowlist 守护）
+
+## D-022  D-020 实现加固（野网格可跑）+ H5 Thingi 接入采样上限（判定口径 D-001..D-021 未动）
+
+- 裁决：为跨域 H5（Thingi10K 野网格）落地三处**实现层**改动，判定语义/口径分毫不动：
+  (a) **精确胶囊细化预算** `precompute_mesh(V,F)`：把网格常量（三角/质心/外接半径/顶点包围球）每模型算一次、供该模型所有点×方向的 refine 复用（原每调用重算——对 Fusion ~400 面无碍，对 Thingi 上万面是主开销）。包围球定 far ≥ 精确 far（max‖V−origin‖），段更长只多覆盖同一半无穷射线、不引偏轴伪触——**逐比特等价**，非口径改。
+  (b) **退化三角跳过**：胶囊求交跳过零面积（重合/共线顶点）三角——其边长²/面积² 恒为 Ericson 最近点原语各除法的分母，退化即除零（Thingi 野网格常见重复/共线顶点，clean CAD 无此）。零面积=度量零面、无面可触，跳过即实现 D-020 的 intended 口径（本就不与零面积面求交），对 clean CAD（Fusion/程序化）标签**零改动**。
+  (c) **H5 Thingi 接入采样上限**（测试集构建，非 oracle 口径）：`build_thingi` 每模型接触点上限 `max_points=400`（密扫描件下朝面上万，全标 × n_dir × 细化不可解；确定性无放回子采样 `_select_points` 是逐点 F1 无偏估计）+ 面数上限 `max_faces=80000`（超高面 res48 占据已降采样、跳过以控 O(面数) 剪枝成本）。Thingi **恒 split=test、绝不进训练**（D-016/docs §4.6），故上限属跨域测试集范围选择、不触 oracle/标签口径冻结（D-021）。
+- 依据：H5 要在野外 OOD 网格上评形状条件预测的跨域鲁棒性。(a)(b) 是让 D-020 精确细化在野网格上**可跑且不崩**的实现加固（性能 + 数值稳健），非语义变更——故不 supersede D-003/D-020，只加固实现，由既有性质守护逐比特/clean-CAD 不变。(c) 是测试集构建的可解性选择（单卡预算），Thingi 恒 test 故不与训练标签口径冲突。H5 结果：ConvONet-lite（训于 Fusion both-class + 程序化）域内留出 F1 0.915±0.005、跨域 Thingi（149 both-class 件 / 46.8k 点）F1 0.908±0.005（掉幅 0.006、在噪声内），远胜几何射线可见性基线 0.725——形状条件可达性代理跨域泛化。
+- 状态：接受（判定语义/口径 D-001..D-021 未动；实现加固 + 测试集采样，守护性质 `test_capsule`(precompute_equiv / degenerate_skip) + `test_thingi`(_select_points) 接门）

@@ -84,7 +84,7 @@ def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg
 
 
 def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_world=0.05,
-                      overhang_deg=45.0, n_directions=32, nudge_voxels=2.0,
+                      overhang_deg=45.0, n_directions=128, nudge_voxels=2.0,
                       max_models=None, emit_audit=True, frac_train=0.6, frac_val=0.2, seed=0):
     """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）+ viz 审计图。
 
@@ -129,14 +129,17 @@ def _meshes_from_root(root):
 
 
 def _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directions, nudge_voxels):
-    """归一网格 → occupancy → 下朝接触点 → oracle 打标 → LabeledModel（无接触点则 None）。"""
+    """归一网格 → occupancy → 下朝接触点 → oracle 打标 → LabeledModel（无接触点则 None）。
+
+    传 mesh=(Vn,F,lo,pitch) 给 oracle → 启用 D-020 边界带精确胶囊-网格细化（真实 CAD 标签 res-稳定训练级）。
+    """
     import numpy as np
     from support_accessibility.data import mesh as MESH, overhang as OVH, LabeledModel
     from support_accessibility.oracle import SupportAccessibilityOracle
     occ, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=resolution)
     sc = OVH.support_contact_faces(Vn, F, d, overhang_deg)
     r = radius_world / pitch
-    o = SupportAccessibilityOracle(occ, {"n_directions": n_directions})
+    o = SupportAccessibilityOracle(occ, {"n_directions": n_directions}, mesh=(Vn, F, lo, pitch))
     pts, labs = [], []
     for c, n in zip(sc.centroids, sc.normals):
         q = MESH.world_to_voxel(c + n * (nudge_voxels * pitch), lo, pitch)

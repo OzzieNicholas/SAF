@@ -111,21 +111,63 @@ def segment_triangle_sq_dist(A, B, tri):
     return best
 
 
-def capsule_hits_mesh(origin, direction, r, V, F, margin=1.0):
+def precompute_mesh(V, F):
+    """预算 capsule_hits_mesh 所需的网格常量（每网格算一次，供该网格全部 refine 调用复用）。
+
+    返回 (tris, centroids, circumr, center, radius)：三角(n,3,3)/质心(n,3)/外接半径(n,) + 顶点包围球
+    （心 center、半径 radius）。大网格上这些原本被每调用重算——对细化上千次调用是主开销。
+    """
+    V = np.asarray(V, float)
+    F = np.asarray(F, np.int64)
+    tris = V[F]
+    centroids = tris.mean(axis=1)
+    circumr = np.linalg.norm(tris - centroids[:, None, :], axis=2).max(axis=1)
+    center = V.mean(axis=0) if V.shape[0] else np.zeros(3)
+    radius = float(np.max(np.linalg.norm(V - center, axis=1))) if V.shape[0] else 0.0
+    return tris, centroids, circumr, center, radius
+
+
+def capsule_hits_mesh(origin, direction, r, V, F, margin=1.0, precomp=None):
     """胶囊（半径 r、原点 origin、单位方向 direction 的半无穷扫掠球）是否触及三角网格 (V,F)。
 
     ⟺ 半无穷射线 {origin + t·direction, t≥0} 到网格最小距离 ≤ r。用越过最远顶点的长段近似半无穷
     射线（故段覆盖网格可能落入 r 的全部射线参数）；网格在原点后方且 >r 则不触（方向敏感）。返回 bool。
+
+    precomp：`precompute_mesh(V,F)` 的返回（可选）。给定则复用预算的 tris/质心/外接半径 + 顶点包围球
+    定 far，省每调用 O(面数) 重算（大网格提速关键）——口径不变：包围球 far ≥ 精确 far（max‖V−origin‖），
+    段更长只多覆盖同一半无穷射线、绝不引入偏轴伪触。给定 precomp 时 V/F 忽略。
     """
     origin = np.asarray(origin, float)
     d = np.asarray(direction, float)
     d = d / np.linalg.norm(d)
-    V = np.asarray(V, float)
-    F = np.asarray(F, np.int64)
-    far = float(np.max(np.linalg.norm(V - origin, axis=1))) + float(r) + float(margin)
+    r = float(r)
+    if precomp is None:
+        V = np.asarray(V, float)
+        F = np.asarray(F, np.int64)
+        tris = V[F]                                         # (n,3,3)
+        centroids = tris.mean(axis=1)                       # (n,3)
+        circumr = np.linalg.norm(tris - centroids[:, None, :], axis=2).max(axis=1)   # (n,) 外接半径
+        far_base = float(np.max(np.linalg.norm(V - origin, axis=1))) if V.shape[0] else 0.0   # 精确：最远顶点
+    else:
+        tris, centroids, circumr, center, radius = precomp
+        far_base = float(np.linalg.norm(origin - center)) + radius                    # 包围球界（≥精确）
+    # —— sound 向量化剪枝：射线到三角距离 ≥ 射线到质心距离 − 外接半径；超 r 者必不触，剪掉 ——
+    t = np.maximum((centroids - origin) @ d, 0.0)           # 质心在半无穷射线(t≥0)上的投影参数
+    cdist = np.linalg.norm(centroids - (origin + t[:, None] * d), axis=1)        # (n,) 质心到射线
+    survivors = np.nonzero(cdist - circumr <= r)[0]
+    if survivors.size == 0:
+        return False
+    # —— 幸存三角上跑精确 segment-三角求交（口径不变，只是少跑无关三角）——
+    far = far_base + r + float(margin)
     B = origin + d * far
-    r2 = float(r) * float(r)
-    for f in F:
-        if segment_triangle_sq_dist(origin, B, V[f]) <= r2:
+    r2 = r * r
+    for i in survivors:
+        t3 = tris[i]
+        # 跳过退化（零面积：重合顶点/共线）三角——无面可触，且其边长²/面积² 恒为 Ericson 最近点原语
+        # 各除法的分母，退化即除零（Thingi 野网格常见重复/共线顶点）。度量零面，跳过不改口径。
+        cr = np.cross(t3[1] - t3[0], t3[2] - t3[0])
+        if float(cr @ cr) <= 1e-18:                          # (2·面积)² ≈ 0
+            continue
+        if segment_triangle_sq_dist(origin, B, t3) <= r2:
             return True
     return False
