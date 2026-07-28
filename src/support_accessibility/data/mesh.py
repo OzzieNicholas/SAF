@@ -56,7 +56,8 @@ def mesh_to_occupancy(V, F, resolution=48, pad=0.2):
     lo = V.min(0); hi = V.max(0); ext = hi - lo
     lo = lo - ext * pad; hi = hi + ext * pad
     pitch = float((hi - lo).max()) / resolution
-    ns = [int(np.ceil((hi[i] - lo[i]) / pitch)) for i in range(3)]
+    # -1e-9：消最大轴 ceil 浮点过冲（res→res+1 跨平台，破字节可复现）；max(1,·)：零厚度轴不塌成空栅格
+    ns = [max(1, int(np.ceil((hi[i] - lo[i]) / pitch - 1e-9))) for i in range(3)]
     ax = [lo[i] + (np.arange(ns[i]) + 0.5) * pitch for i in range(3)]
     gx, gy, gz = np.meshgrid(*ax, indexing="ij")
     pts = np.ascontiguousarray(np.stack([gx.ravel(), gy.ravel(), gz.ravel()], 1))
@@ -68,6 +69,31 @@ def world_to_voxel(p, lo, pitch):
     """世界坐标 → 体素索引坐标（喂 oracle.label）。"""
     import numpy as np
     return tuple((np.asarray(p, float) - np.asarray(lo, float)) / pitch - 0.5)
+
+
+def nudge_to_free(occ, c, n, nudge_world, lo, pitch):
+    """接触点沿外法向 +n 外移 nudge_world 到自由侧的体素坐标；若因缠绕致法向翻转、+n 落在实体内，
+    则改试 −n；两侧都在实体内 → None（跳过该面，不误标）。栅格外 = 自由（pad 区，保守同原行为）。
+
+    占据用 igl 广义缠绕数（对缠绕稳健），但下朝面法向用 np.cross（缠绕敏感）——翻面时 +n 指向实体内，
+    原实现会把落在实体里的点喂 oracle 而误判不可达。本守卫仅在该 bug 情形改动，clean CAD 上逐点等价原行为。
+    """
+    import numpy as np
+    occ = np.asarray(occ, bool)
+    c = np.asarray(c, float)
+    n = np.asarray(n, float)
+
+    def _solid(q):
+        idx = tuple(int(np.floor(v + 0.5)) for v in q)          # 最近体素（同 oracle floor(c+.5) 约定）
+        if all(0 <= idx[i] < occ.shape[i] for i in range(3)):
+            return bool(occ[idx])
+        return False                                            # 栅格外 = 自由（pad 区）
+
+    q = world_to_voxel(c + n * nudge_world, lo, pitch)
+    if not _solid(q):
+        return q
+    q2 = world_to_voxel(c - n * nudge_world, lo, pitch)         # +n 在实体内（法向翻转）→ 试 −n
+    return q2 if not _solid(q2) else None
 
 
 # —— 两个真实网格已知答案件（构造即知）——

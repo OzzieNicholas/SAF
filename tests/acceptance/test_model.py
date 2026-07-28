@@ -4,7 +4,7 @@
 在**按模型切分的留出件**上评分，须显著胜过多数类基线。saf 内真跑；缺依赖 → PENDING/skip。
 
 注：tiny numpy 模型只为 derisk 管线（云端无 torch）；真实 ConvONet/PyTorch 属 Phase-3。
-留出 F1 实测稳定 ≈1.0（见提交说明），故 0.6 是带大余量的鲁棒下限，抗跨平台数值差。
+留出 F1 实测稳定 ≈1.0（见提交说明），故 0.9 是紧贴实测的下限——能抓住真回归（如崩到 0.65），仍留 ~0.1 余量抗跨平台数值差。
 """
 
 from unittest import SkipTest
@@ -13,7 +13,7 @@ from . import pending, result
 
 _ARGS = dict(n_models=24, N=28, max_points=24, radius=3.0, n_directions=32, seed=0)
 _EPOCHS = 200
-_F1_BAR = 0.6
+_F1_BAR = 0.9        # 紧贴实测 ≈1.0（原 0.6 太松：崩到 0.65 也过；见 docstring）
 
 
 def _deps():

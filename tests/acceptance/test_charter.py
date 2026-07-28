@@ -6,7 +6,8 @@
   3) 无残留黑话路径：当前态散文/配置（含 conf/params.yaml）不再出现
      research/ harness/ workflow/ governance/ constitution report.py reference/（旧名/旧路径）
      （decisions.md 台账合法保留经 supersede 记录的历史名，故豁免；策展政策见 D-014）
-  4) params 关键键存在：conf/params.yaml 含 semantic/n_directions/voxel_res/radii/overhang_angle_deg
+  4) params 关键键存在：conf/params.yaml 含 semantic/n_directions/epsilon_voxels/resolution/radius_world/overhang_angle_deg（D-021 冻结键）
+  5) 决策完整性：每条 D-0NN 被验收层作为 decisions= 标注交代（语义化，非裸提及），或在结构 allowlist
 """
 
 import os
@@ -78,7 +79,8 @@ def check_params_keys():
 
 
 def check_decisions_covered():
-    """完整性：每条 decisions.md 的 D-0NN 都被验收层交代（被测试引用，或在结构 allowlist）——杜绝孤儿决策。"""
+    """完整性：每条 decisions.md 的 D-0NN 都被验收层**作为 decisions= 标注**交代（非仅 docstring/detail 裸提及），
+    或在结构 allowlist——杜绝孤儿决策。语义化：只认 result()/na()/pending() 的决策标签字面量 "D-NNN"（可斜杠联合，如 "D-007/D-009"）。"""
     STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014", "D-015", "D-018", "D-021", "D-023", "D-025", "D-026", "D-027"}   # 结构/标注/布局/治理/规范/台账策展/主线/命门签收/参数冻结/数据源范围/标签审核机制/门激活/终态DoD：无专属性质，由 test_charter/工具或本身守护
     try:
         dtxt = _read("charter/decisions.md")
@@ -90,10 +92,11 @@ def check_decisions_covered():
     for fn in os.listdir(acc):
         if fn.endswith(".py"):
             with open(os.path.join(acc, fn), encoding="utf-8") as f:
-                referenced |= set(re.findall(r"D-\d+", f.read()))
+                for lit in re.findall(r'"(D-\d+(?:/D-\d+)*)"', f.read()):   # 仅决策标签字面量（decisions= 标注），排除裸提及
+                    referenced |= set(re.findall(r"D-\d+", lit))
     orphan = sorted(ids - (referenced | STRUCTURAL))
     return result("decisions_covered", not orphan,
-                  f"{len(ids)} 条决策全被验收层交代" if not orphan else "孤儿决策:" + ",".join(orphan))
+                  f"{len(ids)} 条决策全被验收层交代（decisions= 标注）" if not orphan else "孤儿决策:" + ",".join(orphan))
 
 
 def check_conventions_present():

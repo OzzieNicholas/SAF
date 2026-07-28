@@ -133,6 +133,9 @@ def main():
              "criterion": "D-003 robust 差分(边界带容忍) + D-020 res-稳定 + 分布；阈值 robust≤0.01/res≥0.95/inacc∈[0.01,0.9]（D-025）"}
     print("LABEL_AUDIT " + json.dumps({"data": a.data, **audit}, ensure_ascii=False))
 
+    if a.write and stab is None:            # 命门不半证签收：res-稳定腿缺失（需 --root）→ 拒写 signoff（D-025/铁律#7）
+        sys.exit("拒绝写 human_signoff：res-稳定审核缺失（需 --root 原网格跑 res48-vs-96），命门须全证据（D-025）")
+
     if a.write:
         djson = os.path.join(a.data, "dataset.json")
         d = json.load(open(djson, encoding="utf-8"))

@@ -47,12 +47,6 @@ def open_downface_case(N=40, radius=3.0):
     return VoxelCase("open_downface", "D-002", occ, point, float(radius), "accessible")
 
 
-# —— 后续批次 ——
-def deep_narrow_slot(width, depth):
-    """深窄槽；随 width/depth 与工具半径耦合，用于半径单调趋势（D-003）。"""
-    raise NotImplementedError("后续批次（变形性质）。")
-
-
 def flagship_pair(support_area_target=64, cavity_depth_a=4, cavity_depth_b=16,
                   width=2, radius=3.0, margin=8, n_directions=64):
     """E1/H1 存在性旗舰对：两件**支撑面积（下朝悬垂接触体素数）近似相等**、**可达性相反**——
@@ -179,7 +173,8 @@ def split_by_model(models, frac_train=0.7, frac_val=None, seed=0):
     """按模型切分（split.by=model；禁按点随机切分，见 conf/params.yaml）。
 
     frac_val=None → 返回 (train, test)（2-way；在内存快评/薄纵切用）；
-    frac_val 给值 → 返回 (train, val, test)（物化数据集用，落地 D-016 切分 {train,val,test}；调参只用 val）。
+    frac_val 给值 → 返回 (train, val, test)（物化数据集用，落地 D-016 切分 {train,val,test}）。
+    注：val 为**预留 held-out**——超参先验固定、当前工具（train_convonet/eval_*/regression_check）均未在 val 上调参（见各 tool 的 `_fva` 丢弃）。
     """
     import numpy as np
     idx = np.arange(len(models))

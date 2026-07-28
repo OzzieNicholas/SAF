@@ -41,9 +41,9 @@ def checks():
         return [
             result("capsule_segment_triangle", bool(ok_cross and ok_above), "穿越=0 & 平行内部上方=垂距", "D-003"),
             result("capsule_hits_mesh", bool(ok_cap), "半径阈值 2：miss@1.5 / hit@2.5", "D-003"),
-            result("capsule_precompute_equiv", bool(ok_pre), "precompute_mesh 预算常量 == 内建重算（提速不改口径，D-022）", "D-003"),
-            result("capsule_degenerate_skip", bool(ok_deg), "零面积退化三角跳过、不崩（D-022 野网格加固）", "D-003"),
-            result("decide_label_three_tier", bool(ok_dec), "无网格二分 + 有网格含糊交精确 refine（D-020）", "D-003"),
+            result("capsule_precompute_equiv", bool(ok_pre), "precompute_mesh 预算常量 == 内建重算（提速不改口径，D-022）", "D-022"),
+            result("capsule_degenerate_skip", bool(ok_deg), "零面积退化三角跳过、不崩（D-022 野网格加固）", "D-022"),
+            result("decide_label_three_tier", bool(ok_dec), "无网格二分 + 有网格含糊交精确 refine（D-020）", "D-020"),
         ]
     except Exception as e:
         return [result("capsule_refinement", False, f"异常：{e}", "D-003")]

@@ -131,7 +131,9 @@ def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=48
             cm, nm = cm[sel], nm[sel]
         pts, labs = [], []
         for ci, ni in zip(cm, nm):
-            q = MESH.world_to_voxel(ci + ni * (nudge_voxels * pitch), lo, pitch)
+            q = MESH.nudge_to_free(occ, ci, ni, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（同 fusion360）
+            if q is None:
+                continue
             pts.append(q)
             labs.append(o.label(q, r).value == "inaccessible")
         rec = LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r))

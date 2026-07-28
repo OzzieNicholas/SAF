@@ -39,6 +39,21 @@ def extrapolate_oracle_cost(per_dir_ms, n_models, points_per_model, n_directions
     return total_ms / 1000.0 / 3600.0
 
 
+def data_digest(*roots):
+    """输入数据集身份摘要（sha256 前 16 hex）：拼接各 root 的 dataset.json + manifest.csv 字节。
+    回归门用它判机器产物是否对应当前数据——不匹配 → 陈旧产物 → PENDING（防陈旧产物撑绿，D-026）。"""
+    import hashlib
+    import os
+    h = hashlib.sha256()
+    for root in roots:
+        for fn in ("dataset.json", "manifest.csv"):
+            p = os.path.join(root, fn)
+            if os.path.exists(p):
+                with open(p, "rb") as f:
+                    h.update(f.read())
+    return h.hexdigest()[:16]
+
+
 # ---- 评价指标（不可达=风险正类；problem.md 指标口径）----
 def _pos_mask(labels):
     """把标签数组归一为"不可达=正类"的 bool mask。接受 bool/int/float/str/Label。
@@ -82,11 +97,14 @@ def iou_inaccessible(pred_region, gold_region):
 
 
 def inaccessible_area_error(pred_region, gold_region):
-    """不可达面积比例误差 = |pred 不可达占比 − gold 不可达占比|（点按面积均匀采样时占比≈面积比）。"""
+    """不可达**点占比**误差 = |pred 不可达点占比 − gold 不可达点占比|。
+
+    注：这是点占比误差；仅当点集**按面积均匀采样**时才≈面积比例误差，而当前 ingest（逐三角质心 / 分层体素）
+    不满足该假设（真面积口径见 conf/params.yaml sampling 注 + eval_h1 说明）。数值本身有效（同点集 pred vs gold），
+    只是"面积"解读不成立。形状校验对齐 f1/iou（`_check_same`）。"""
     import numpy as np
     p, g = _pos_mask(pred_region), _pos_mask(gold_region)
-    if p.size != g.size:
-        raise ValueError(f"pred/gold 元素数不一致：{p.size} vs {g.size}")
+    _check_same(p, g)
     if p.size == 0:
         return 0.0
     return abs(float(np.mean(p)) - float(np.mean(g)))

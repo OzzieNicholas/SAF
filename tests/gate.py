@@ -68,6 +68,17 @@ def regression_gate():
             r = json.load(f)
     except (OSError, ValueError) as e:
         return {"name": "regression", "status": PENDING, "detail": f"回归产出读失败：{e}"}
+    stamp = r.get("data_digest")                                     # 新鲜度：产物须对应当前数据（D-026）
+    if stamp is not None:
+        try:
+            from support_accessibility.eval import data_digest
+            cur = data_digest(os.path.join(_ROOT, "data", "processed", "fusion360_full"),
+                              os.path.join(_ROOT, "data", "processed", "procedural_v1"))
+            if stamp != cur:
+                return {"name": "regression", "status": PENDING,
+                        "detail": f"回归产出陈旧（数据摘要 {stamp}≠当前 {cur}）——重跑 `tools/regression_check.py`（D-026）"}
+        except ImportError:
+            pass
     ok = bool(r.get("diff_ci_low", -1) > 0)
     return {"name": "regression", "status": PASS if ok else "FAIL",
             "detail": f"神经 F1 {r.get('neural_f1')} vs 几何基线 {r.get('baseline_f1')}，模型级配对差 95%CI "
@@ -91,11 +102,12 @@ def label_audit_gate():
     if not la:
         return {"name": "label_audit", "status": PENDING,
                 "detail": "dataset.json 无 label_audit 块——跑 `tools/audit_labels.py --write`（D-025）"}
-    ok = bool(la.get("verdict_pass")) and bool(d.get("human_signoff"))
-    diff = la.get("differential", {}); stab = la.get("res_stability", {})
+    diff = la.get("differential", {}); stab = la.get("res_stability") or {}
+    res_ok = stab.get("res48_vs_res96_agreement", 0.0) >= 0.95        # 命门须含 res-稳定腿（D-025，防半证签收）
+    ok = bool(la.get("verdict_pass")) and bool(d.get("human_signoff")) and res_ok
     return {"name": "label_audit", "status": PASS if ok else "FAIL",
             "detail": f"真实标签审核 verdict={la.get('verdict_pass')}/signoff={d.get('human_signoff')}："
-                      f"robust 差分 {diff.get('robust_mismatch_rate')} / res稳定 {(stab or {}).get('res48_vs_res96_agreement')}（D-025）"}
+                      f"robust 差分 {diff.get('robust_mismatch_rate')} / res稳定 {stab.get('res48_vs_res96_agreement')}（D-025）"}
 
 
 def build_verdict():

@@ -44,7 +44,7 @@ def iter_final_designs(root):
     D-017：.json **只作存在标记（看基名在否），从不打开/解析其内容**（不碰构造序列）。
     每目录内先收 .json 基名集合再判 .obj → sorted 保确定性；.json 无对应 .obj 者不产出（只遍历 .obj）。
     """
-    for dirpath, _dirs, files in os.walk(root):
+    for dirpath, _dirs, files in sorted(os.walk(root), key=lambda t: t[0]):   # 目录序确定（跨机字节可复现，配 sorted(files)）
         json_bases = {fn[:-5] for fn in files if fn.endswith(".json")}   # 仅取基名（存在标记），不读内容
         for fn in sorted(files):
             if fn.endswith(".obj") and fn[:-4] in json_bases:
@@ -143,7 +143,9 @@ def _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directi
     o = SupportAccessibilityOracle(occ, {"n_directions": n_directions}, mesh=(Vn, F, lo, pitch))
     pts, labs = [], []
     for c, n in zip(sc.centroids, sc.normals):
-        q = MESH.world_to_voxel(c + n * (nudge_voxels * pitch), lo, pitch)
+        q = MESH.nudge_to_free(occ, c, n, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（防翻面点落实体内误标）
+        if q is None:                       # 缠绕致两侧都在实体（罕见）→ 跳过该面
+            continue
         pts.append(q)
         labs.append(o.label(q, r).value == "inaccessible")
     if not pts:

@@ -41,15 +41,15 @@ def checks():
         from support_accessibility import oracle  # noqa: F401
     except ImportError as e:
         return [pending(n, f"依赖未就绪：{e}", d) for n, d in
-                (("mesh_solidify_box", "D-007"),
+                (("mesh_solidify_box", "D-007/D-009"),
                  ("mesh_box_downface", "D-002"),
                  ("mesh_two_box_gap", "D-001"))]
     out = []
     try:
         iou = _solidify_box_iou()
-        out.append(result("mesh_solidify_box", iou >= 0.97, f"box solidify IoU={iou:.3f}", "D-007"))
+        out.append(result("mesh_solidify_box", iou >= 0.97, f"box solidify IoU={iou:.3f}", "D-007/D-009"))
     except Exception as e:
-        out.append(result("mesh_solidify_box", False, f"异常：{e}", "D-007"))
+        out.append(result("mesh_solidify_box", False, f"异常：{e}", "D-007/D-009"))
     for case_fn, name, dec in ((M.box_downface_case, "mesh_box_downface", "D-002"),
                                (M.two_box_gap_case, "mesh_two_box_gap", "D-001")):
         try:

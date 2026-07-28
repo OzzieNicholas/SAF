@@ -29,7 +29,7 @@ from .capsule import capsule_hits_mesh, precompute_mesh
 class Label(str, Enum):
     ACCESSIBLE = "accessible"
     INACCESSIBLE = "inaccessible"
-    UNCERTAIN = "uncertain"       # 边界带（精确胶囊细化，后续批次）
+    UNCERTAIN = "uncertain"       # 预留（D-021 保留待用：未来 labels.emit_uncertain_band 敏感性扫单列不确定带）；当前判定口径不产出（D-020：细化给真值而非隔离）
 
 
 IMPLEMENTED = True

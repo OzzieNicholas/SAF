@@ -56,7 +56,7 @@ def checks():
         dm = result("direction_monotonic", False, f"异常：{e}", "D-003")
     return [
         na("scale_invariance", "整数上采样证伪（D-011）：分辨率依赖、判定为非不变量（终态，非待办）", "D-011"),
-        na("radius_monotonic", "已证伪（D-008）：point-touch 语义C 下不成立、判定为非不变量（终态）", "D-003"),
+        na("radius_monotonic", "已证伪（D-008）：point-touch 语义C 下不成立、判定为非不变量（终态）；受限盲腔的收窄单调仍由 lq_radius_monotone_confined（test_label_quality, D-008）守护", "D-003"),
         dm,
         na("rotation_equivariance", "非体素不变量（终态，引理：非轴对齐旋转必重采样占据栅格→破严格体素等变；"
            "连续几何版属 mesh 前端未来延伸、非本工程范围）", "D-005"),

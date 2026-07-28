@@ -51,7 +51,7 @@ def build_procedural(out_dir, n_models=16, N=28, max_points=24, radius=3.0,
                      n_directions=32, seed=0, frac_train=0.6, frac_val=0.2):
     """程序化件 → 物化统一数据集（幂等：清 out_dir/models 旧 .npz 后重写 + manifest + dataset.json）。返回 out_dir。
 
-    按模型三切 train/val/test（D-016 切分 {train,val,test}；调参只用 val）。
+    按模型三切 train/val/test（D-016 切分 {train,val,test}）。val 为预留 held-out：超参先验固定、当前工具未在 val 上调参。
     """
     import numpy as np
     from support_accessibility.data import make_dataset, split_by_model

@@ -35,7 +35,7 @@
 |---|---|
 | `problem.md` | 做什么 / 硬约束 / 非目标 |
 | `constraints.md` | 不可破的铁律 |
-| `decisions.md` | **已冻结**决策台账（只增不改） |
+| `decisions.md` | **已冻结**决策台账（实质不可改、修辞可策展，D-014） |
 | `deferred.md` | **未决**决策 + 触发条件（decisions 的"未决半"；接进门，到期在 gate 现身） |
 | `evidence.md` | 文献证据 |
 | `conventions.md` | 本文件：动作与规范 |

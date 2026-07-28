@@ -1,7 +1,9 @@
-# params.yaml — Hydra 配置（几何 oracle / 采样 / 标签）
+# params.yaml — 几何 oracle / 采样 / 标签 的**冻结口径文档（D-021 台账镜像）**。
 #
-# 标签口径连续数值经 **D-021 冻结**（n_directions / epsilon_voxels / data.resolution+细化 / radius_world / overhang）；
-# 改动须 charter/decisions.md 新增条目 supersede（同 D-003 连续数值条款）。仍标"临时"者（采样点数/多半径/uncertain_band）为未来敏感性扫、未冻。
+# ⚠️ 本文件当前**非加载配置**（无 Hydra/OmegaConf 接线）：代码里只有 tools/build_fusion360.py 的 _root_from_params()
+#    读 `data.fusion360_root`；其余数值均在 src/tools 里**硬编为默认值**（如 n_directions=128 / resolution=48 /
+#    radius_world=0.05）。**改此处不改 runtime**——要改冻结值须同时改代码默认，并在 charter/decisions.md 新增
+#    supersede 条目（D-021 / D-003 连续数值条款）。本文件作口径的单一登记之家（读者语言）。
 # 离散选择（语义C / 球模型 / 基板不建模+下半球 / 体素腐蚀口径 / 二分类）已冻结，见 D-001..D-005。
 
 oracle:
@@ -12,34 +14,30 @@ oracle:
   method: voxel_erosion          # D-003 体素/距离场腐蚀 + 边界带精确胶囊细化
   direction_sampling: fibonacci_hemisphere
   n_directions: 128              # 冻结 D-021（真实收敛 128-vs-256=0.982；64 尚差 5%）
-  voxel_res: 256                 # 作废：被 data.resolution + 精确细化取代（D-021/D-020）
   epsilon_voxels: 1.5            # 冻结 D-021；D-020 精确细化的边界带宽
   boundary_refine: exact_capsule # 边界带用精确胶囊-网格求交细化
-
-tool:
-  # 相对归一尺度（geometry.normalize）的工具半径；须对齐槽宽分布使 H2（工具尺寸不可忽略）可显
-  radii: [0.02, 0.05]            # 临时：主半径 + 一个变化半径
 
 geometry:
   normalize: longest_edge_1      # 最长包围盒边 = 1
   overhang_angle_deg: 45         # 冻结 D-021（D-010）；鲁棒性可扫 40/50
 
-sampling:
-  contact_points_per_model: 3000 # 临时；范围 2000–5000
-  method: poisson_disk_area      # 按面积均匀（蓝噪声）
-
 labels:
   mode: binary                   # D-004 二分类先行
-  emit_uncertain_band: true      # 边界不确定单列（可排除/降权/单独报告）
 
 split:
   by: model                      # 必须按模型切分；禁止按点随机切分
-  frac_train: 0.6                # 物化数据集三切（D-016 切分 {train,val,test}）；调参只用 val
-  frac_val: 0.2                  # 余为 test（Thingi10K 接入时恒 test，见 deferred）
+  frac_train: 0.6                # 物化数据集三切（D-016 切分 {train,val,test}）
+  frac_val: 0.2                  # val 为**预留 held-out**：超参先验固定、当前工具未在 val 上调参（见各 tool 的 _fva）；余为 test（Thingi10K 恒 test）
 
 data:
   # 公开 CAD 主源 = Fusion 360 Gallery reconstruction 网格（D-017）；只用最终零件 .obj，不碰构造序列/B-Rep。
-  source: fusion360              # {procedural, fusion360, abc(可选/背景), thingi10k(恒 test)}
-  fusion360_root: ""             # 本地 reconstruction 目录（gitignore；路径经此配置不入库，未决 fusion360-ingest）
+  source: fusion360              # {procedural, fusion360, thingi10k(恒 test)}（ABC 已弃用，D-023）
+  fusion360_root: ""             # 本地 reconstruction 目录（gitignore；仅本键被代码消费，未决 fusion360-ingest）
   resolution: 48                 # 冻结 D-021 + 精确细化开（D-020：低 res 即 res-稳定训练级）
   radius_world: 0.05             # 冻结 D-021（主工具半径；H2 验证工具尺寸要紧）
+
+# —— 计划 / 未接线（当前代码**不消费**；未冻、待未来敏感性扫接线，勿当作活配置）——
+#   tool.radii: [0.02, 0.05]                多半径敏感性扫（现只用单一 radius_world；H2 半径敏感性图属未来工作）
+#   sampling.method: poisson_disk_area      面积均匀（蓝噪声）接触点采样；现真实网格用「下朝悬垂面质心」逐三角（非面积均匀），
+#   sampling.contact_points_per_model: 3000 故 eval_h1 的「支撑面积」实为下朝面**计数**代理（见 eval_h1 / eval area_err 注）
+#   labels.emit_uncertain_band              边界不确定单列；现判定口径不产出 UNCERTAIN（D-020），Label.UNCERTAIN 保留待用
