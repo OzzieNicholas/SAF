@@ -63,13 +63,15 @@ def main():
         return occt, gc
 
     def evaluate(net, test):
-        P, G = [], []
+        P, G, SC = [], [], []
         with torch.no_grad():
             for _n, occ, pts, blk in test:
                 occt, gc = prep(occ, pts)
-                P.append((torch.sigmoid(net(occt, gc)) >= 0.5).cpu().numpy().reshape(-1, D))
+                logit = net(occt, gc)                                   # (K,D) blocked logit
+                P.append((torch.sigmoid(logit) >= 0.5).cpu().numpy().reshape(-1, D))
+                SC.append((-logit).cpu().numpy().reshape(-1, D))       # 可达性打分 = −blocked_logit（高=更可达）
                 G.append(blk.astype(bool).reshape(-1, D))
-        P, G = np.concatenate(P), np.concatenate(G)
+        P, G, SC = np.concatenate(P), np.concatenate(G), np.concatenate(SC)
         f1 = E.f1_inaccessible(P.ravel(), G.ravel())                     # per-direction（blocked=正）
         ious = []
         for p, g in zip(P, G):
@@ -78,7 +80,11 @@ def main():
             ious.append(1.0 if u == 0 else int((pv & gv).sum()) / u)
         dir_iou = float(np.mean(ious))
         bin_f1 = E.f1_inaccessible(P.all(1), G.all(1))                  # 复原点级二分（全挡→不可达）
-        return f1, dir_iou, bin_f1
+        viable = ~G                                                    # oracle 可达方向
+        top1 = E.topk_direction_hit_rate(SC, viable, 1)                # 最有把握方向真可达的点占比
+        top3 = E.topk_direction_hit_rate(SC, viable, 3)
+        prec3 = E.topk_direction_precision(SC, viable, 3)
+        return f1, dir_iou, bin_f1, top1, top3, prec3
 
     rows = []
     for seed in range(a.seeds):
@@ -93,14 +99,15 @@ def main():
                 (occt, gc), y = data[i]
                 opt.zero_grad(); lossf(net(occt, gc), y).backward(); opt.step()
         net.eval()
-        f1, dir_iou, bin_f1 = evaluate(net, te)
+        f1, dir_iou, bin_f1, top1, top3, prec3 = evaluate(net, te)
         # 对照：per-direction 多数类基线（train 每方向 blocked 先验）
         tr_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk in tr])
         maj = (tr_t.mean(0) >= 0.5)
         te_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk in te]).astype(bool)
         base_f1 = E.f1_inaccessible(np.broadcast_to(maj, te_t.shape).ravel(), te_t.ravel())
-        rows.append((f1, dir_iou, bin_f1, base_f1))
-        print(f"seed{seed} dir_f1={f1:.3f} dir_iou={dir_iou:.3f} bin_f1={bin_f1:.3f} maj_base_f1={base_f1:.3f}", flush=True)
+        rows.append((f1, dir_iou, bin_f1, base_f1, top1, top3, prec3))
+        print(f"seed{seed} dir_f1={f1:.3f} dir_iou={dir_iou:.3f} bin_f1={bin_f1:.3f} "
+              f"top1={top1:.3f} top3={top3:.3f} prec@3={prec3:.3f} maj_base_f1={base_f1:.3f}", flush=True)
 
     arr = np.array(rows)
     print("E5_RESULT " + json.dumps({
@@ -109,6 +116,9 @@ def main():
         "dir_setiou_mean": round(float(arr[:, 1].mean()), 3),
         "recovered_binary_f1_mean": round(float(arr[:, 2].mean()), 3),
         "majority_dir_baseline_f1": round(float(arr[:, 3].mean()), 3),
+        "topk_hit_top1_mean": round(float(arr[:, 4].mean()), 3),
+        "topk_hit_top3_mean": round(float(arr[:, 5].mean()), 3),
+        "topk_precision_at3_mean": round(float(arr[:, 6].mean()), 3),
     }))
 
 

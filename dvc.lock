@@ -1,0 +1,27 @@
+schema: '2.0'
+stages:
+  procedural:
+    cmd: python tools/build_dataset.py --out data/processed/procedural_v1 
+      --n-models 120 --N 28 --max-points 40 --radius 3.0 --n-directions 32 
+      --seed 0 --frac-train 0.6 --frac-val 0.2
+    deps:
+    - path: src/support_accessibility/data
+      hash: md5
+      md5: 2770b0098b7babd5d23eae2c1dfb474f.dir
+      size: 97640
+      nfiles: 13
+    - path: src/support_accessibility/oracle
+      hash: md5
+      md5: 7c16e35d29c41f945cb3e70c9d490263.dir
+      size: 48849
+      nfiles: 5
+    - path: tools/build_dataset.py
+      hash: md5
+      md5: 3ae6188b291baadce16c24131d431cf5
+      size: 2443
+    outs:
+    - path: data/processed/procedural_v1
+      hash: md5
+      md5: 8b968cf09dd2af8aa1bbf0b0a4e266a2.dir
+      size: 118544
+      nfiles: 122

@@ -6,8 +6,9 @@
   → mesh_to_occupancy（igl winding number, D-009）→ 下朝悬垂面 S(P,d)（D-010）取支撑接触点
   → oracle 打标（语义 C, D-001..D-003）→ 物化 D-016 记录（source=fusion360）+ viz 审计图。
 
-铁律 #6 / D-018：真实网格 oracle 有效性**未经人签收**前，dataset.json 记 `human_signoff=false`，
-不得直接进训练集——审 audit/ 下热图后由作者据实签收。
+铁律 #6 / D-018（发放机制经 D-025 客观化）：真实网格 oracle 有效性**未过审核**前，本 ingest 记
+`human_signoff=false`，不得直接进训练集。**验证由量化审核** `tools/audit_labels.py`（差分/res-稳定/分布，
+D-025）裁定并写 `label_audit` + 置 human_signoff——**非人工视觉审图**（视觉主观、不可复现、易造假绿）。
 
 模块级只 stdlib（os）；numpy/igl/trimesh/oracle 在函数内 import（沿袭 data 包约定，裸 py 仍可 import）。
 纯逻辑（_parse_obj_text / iter_final_designs）不依赖 numpy，可在无几何栈环境直接自检。
@@ -89,7 +90,7 @@ def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_
     """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）+ viz 审计图。
 
     radius_world 在归一尺度（最长边=1）下。支撑接触点 = 下朝悬垂面质心沿外法向外移 nudge_voxels 体素到自由侧。
-    D-018：dataset.json 记 human_signoff=false，须人审 audit/*.png 后方可用于训练。返回 out_dir。
+    D-018/D-025：本 ingest 记 human_signoff=false；有效性由量化审核 `tools/audit_labels.py` 裁定后置真。返回 out_dir。
     """
     os.makedirs(out_dir, exist_ok=True)                 # models/、audit/ 由 save_model / montage 各自建
     audit_dir = os.path.join(out_dir, "audit")

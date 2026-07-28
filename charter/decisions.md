@@ -162,7 +162,7 @@
 ## D-023  数据源定为三源（Fusion360 / Thingi10K / 程序化）——ABC 彻底弃用（supersede D-017「ABC 退为可选背景」）
 
 - 裁决：项目数据源**收敛为三**，ABC 从「可选/背景」进一步**彻底弃用、不再接入**：① **程序化生成**（种子配方，oracle 造即知答案的受控信号集/控制变量）；② **Fusion 360 Gallery reconstruction**（[R20]，主 CAD 网格源，仅用 .obj 三角网格，D-017）；③ **Thingi10K**（[R19]，野外打印网格，跨域鲁棒性测试，恒 split=test，D-022）。据此 D-016/D-017 的 source 枚举 **{procedural, fusion360, abc, thingi10k} → {procedural, fusion360, thingi10k}**（去 abc）。本条 **supersede D-017 内「ABC 退为可选背景 / 未决项待立」那半**（D-017 的 Fusion360=主源那半不变）；D-016 数据架构三层不变，只是原料层不含 ABC。
-- 依据：用户明示 ABC 数据源已无且不打算用（下载不便，Fusion360 已充分替代主 CAD 源角色）。ABC 在本仓从无接入代码（仅注释/证据/未决备注提及），故弃用=撤引用 + 撤未决备注，无代码删除。三源已各就位并经验证：程序化（D-016 首片物化 + 六项趋势门）、Fusion360（D-017/D-021，全量 8625 物化 + H3 F1 0.910）、Thingi10K（D-022，300 件 + H5 跨域 0.908）。铁律 #5「只在公开/程序化数据上工作」实质不变，仅枚举例从 ABC 换 Fusion360。
+- 依据：用户明示 ABC 数据源已无且不打算用（下载不便，Fusion360 已充分替代主 CAD 源角色）。ABC 在本仓从无接入代码（仅注释/证据/未决备注提及），故弃用=撤引用 + 撤未决备注，无代码删除。三源已各就位并经验证：程序化（D-016 首片物化 + 六项趋势门）、Fusion360（D-017/D-021，8625 设计/成功物化 8590 件 + H3 F1 0.910）、Thingi10K（D-022，300 件 + H5 跨域 0.908）。铁律 #5「只在公开/程序化数据上工作」实质不变，仅枚举例从 ABC 换 Fusion360。
 - 状态：接受（判定语义/oracle 口径 D-001..D-010 未动；数据源范围结构决策，无专属性质，由 test_charter 结构 allowlist 守护；R18 ABC 角色更新见 evidence.md，per-源接入仍由 test_dataset/test_fusion360/test_thingi 守护）
 
 ## D-024  方向级可达性场（E5）：oracle 输出扩为每方向可达向量，extend D-004（二分 = any-归约）
@@ -170,3 +170,23 @@
 - 裁决：把 oracle 输出从**点级二分**（D-004）扩为**方向级可达性场**——对固定下半球逼近方向集（`lower_hemisphere_dirs(n)`，n=128→D=64 方向），每点输出每方向是否可达的向量。**判据分毫不变**（同 D-001..D-003/D-005：clearance>r，有网格三态含糊交精确细化 D-020），只是**不 OR 归约**、保留每方向结果。`oracle.direction_labels(p,r)` + `decide_direction_labels`；模型侧 `ConvONetLite` 加 `out_dim`（=D，默认 1 向后兼容 H3/H5）。**核心不变量**：`any(direction_labels) == (label==ACCESSIBLE)`——二分口径 D-004 是本场的 any-归约，既有二分标签/模型不受影响。
 - 依据：项目命名的「Support Accessibility **Field**」本义即方向级；点级二分是其 any-归约特例。用户明示走 E5（命门=oracle 输出口径变更，铁律 #7，已据实点头）。因判据（D-001..D-003/D-005）与二分语义（D-004）皆未动、本条只**扩输出粒度**，故 **extend 而非 supersede**：既有性质（known_answers/differential/capsule）继续守护判据，新性质 `test_direction_field` 守护「逐方向判定 + OR-归约不变量 + 已知答案 + 模型方向头」。**E5 结果**（方向级 ConvONet-lite 跨模型预测，方向目标用占据口径 direction_labels，`tools/eval_e5.py`）：程序化 per-direction F1 0.999 / dir-set IoU 0.993；**真实 Fusion CAD（500 件 / 26.3k 点）per-direction F1 0.894±0.004 / dir-set IoU 0.875**。关键：per-direction **多数类基线 F1=0.000**（每方向多数皆"可达"、"被挡"是稀有类）——模型在稀有"被挡方向"上得 0.894，非靠先验。复原点级二分 F1 0.795（占据口径下"全方向皆挡"的 AND-归约，较专用二分头 H3=0.910 略噪，属预期：64 个含噪逐方向预测求 AND）。
 - 状态：接受（判据 D-001..D-003/D-005 + 二分语义 D-004 未动；本条扩输出粒度为方向场，守护性质 `test_direction_field` 接门；命门经用户点头 develop——方向级标签若作 headline 训练源，训练前作者据实签收，同 D-018）
+
+## D-025  真实标签有效性审核客观化：量化审核替代人工视觉签收（supersede D-018 发放机制）
+
+- 裁决：D-018「命门人签收」的**证据机制**从"作者视觉审 audit 图"改为**客观量化审核** `tools/audit_labels.py`。真实网格标签有效性由三条可量化性质裁定，写入 dataset.json 的 `label_audit` 块并据此置 `human_signoff`（非人工视觉）：(a) 差分 robust_mismatch_rate（纯体素 oracle vs 暴力参考，**D-003 边界带容忍**）≤ 0.01；(b) res-稳定 res48_vs_res96_agreement ≥ 0.95；(c) 分布 inacc∈[0.01,0.9] 且有两类件。细化层由 `test_capsule` 精确原语守护。人的角色从"逐集视觉审"降为**一次性认可这套阈值**（本决策即认可）。
+- 依据（含"度"的判断，锚定论文任务）：oracle 是显式几何**代理**（语义 C），物理精确是非目标；论文诉求 H1(可达⊥支撑面积)/H2(半径要紧)/H3·H5·E5(神经预测代理) 皆**对小幅标签噪声鲁棒**（H1 弱相关 \|ρ\|≤0.27 与大效应不翻；F1 0.91 远低于 res-噪声上限、非绑定约束——失败分析证误判恰集中在该边界带）。故"最佳度"= 可验证口径正确(差分 robust≈0) + res-稳定到结论鲁棒(97.7%) + **量化如实报告为局限**，比过度声称"完美标签"更可信；再拔高(res 96 重标 8625)将破 D-021 res=48 冻结、耗数小时单卡、重跑全实验，**换不来任何结论变化**——劣。视觉审主观、不可复现、易造假绿（fusion360_full 曾由一次性扩量脚本写 human_signoff=True 却无审计图=假绿；生产 ingest 本就写 false）。D-018 实质（命门须硬证据、不得假绿、无外部评审替代）**不变**，仅证据从视觉换量化+可复现。**fusion360_full 审核（400 采样点 / 25 件 res-稳定，n_dir=128）**：差分 robust 不一致 **0.25%**（边界带容忍 2.5%）｜res48-96 稳定 **97.7%**（1258 点）｜细化改动带 21%｜分布 inacc 5.6% / 两类件 19% / 单类件 81% → **verdict PASS**，label_audit 证据入 dataset.json。
+- 状态：接受（作者授权我据论文任务代为裁定；判定语义/口径 D-001..D-005 未动，仅改 D-018 证据机制；守护 `tools/audit_labels.py` + `test_differential`/`test_capsule`/`test_label_quality`）
+
+## D-026  预算门 + 回归门激活（阶段5 指标固化；两道量化门从 PENDING-by-design 落为实测/实验裁定）
+
+- 裁决：把 `tests/gate.py` 中长期 PENDING 的两道门落地为量化裁定：
+  **预算门**（D-003 体素口径）：冻结实测 **D0=0.0596ms**（40 件 fusion360_full 纯体素单点单方向）× MVP 规模（8625 件×38 点×128 方向×1 半径，D-021 冻结参）→ `eval.extrapolate_oracle_cost` 全量构建 **0.69h ≤ 上限 4h**（~6× 余量）→ PASS。**机器无关**（用冻结 D0 非 live 计时，避免 gate 依赖机速/不可复现），守护**规模膨胀**（改 `_BUDGET_SCALE` 至不可负担即红）；D0 换机/改口径重测须更新 `_D0_REF_MS` + append。
+  **回归门**（模型级配对 + bootstrap CI）：`tools/regression_check.py` 训神经二分 + 射线可见性基线（E4），留出件上每件配对 F1，bootstrap over 件（2000×）得配对差 95%CI；下界 >0 → 神经**显著不劣于最强几何基线** → PASS。产出 `runs/regression/latest.json`（机器 emit、gitignore），gate 读之裁决；裸克隆无产出 → PENDING、跑实验后棘轮（诚实活检、非假绿）。**实测（80 留出件/2000 bootstrap）**：神经 F1 **0.915** vs 基线 **0.712**，配对差均值 0.336、**95%CI [0.241, 0.432] > 0** → 显著胜 → PASS。
+- 依据：两门 D-013 早列"阶段5指标固化后启用"；现指标已固化（H1/H2/H3/H5/E5/E4/E8 全坐实），触发达。预算门用冻结 D0 而非 live 计时——gate 不应依赖机速（不可复现）；回归门读实验 emit 而非零安装重训——torch/数据不在零安装 gate 内，读机器产出是诚实活检（无产出即 PENDING、非造假绿）。二者皆不触判定口径。
+- 状态：接受（作者授权据工程判断代裁；判定语义/口径 D-001..D-005 未动；预算门 self-contained，回归门守护性质 = `tools/regression_check.py` + `runs/regression/latest.json` 产出）
+
+## D-027  引入 N/A 终态 + 工程 DoD 达成（门达 GREEN；refine D-013 §5 的 DoD 表述）
+
+- 裁决：验收门加**终态 N/A**（`acceptance/__init__.py::na`）——某性质经检验**判定为非不变量**或**已被他处覆盖**时记 N/A：可见、附理由，**非 PASS**（不声称性质成立）、**非 PENDING**（不声称尚未做）、**不阻塞 DoD**。据此重分类长期 PENDING：`scale_invariance`(D-011 证伪)、`radius_monotonic`(D-008 证伪)、`rotation_equivariance`(D-005 体素重采样伪影) → **N/A 非不变量**；`mesh_sanity` → **N/A 已覆盖**（occ 正确性 `test_mesh_frontend` + 退化面 D-022 + 标签审核 D-025 + ingest §4.8）。`tests/gate.py` 的 GREEN 判据改为**无 FAIL 且无 PENDING**（N/A 允许）。全部未决义务闭合 → `deferred.md` 空册（`test_deferred` 记 PASS）。
+- 依据：D-013 §5 定 DoD="除 budget/regression 外 gate 全绿"，但把**证伪的非不变量**与**尚未做的项**都记 PENDING，混同了两种语义——证伪的性质不是"尺子没造好"，是"这猜想经检验为假"；混同致门永远 RED、"做完"无清晰信号。加 N/A 区分二者：GREEN = 无真失败(FAIL)、无待办(PENDING)；N/A 是诚实终态（比 PENDING 更实、比 PASS 更诚，绝非把红刷绿）。现预算/回归门 PASS（D-026）、命门标签签收客观化（D-025）、全部计划实验坐实（H1/H2/H3/H5/E1/E4/E5/E8+消融），未决义务全闭合——**工程 DoD 达成、门 GREEN**。（论文=阶段9–10，归作者。）
+- 状态：接受（作者授权收尾代裁；判定语义/口径 D-001..D-005 未动，仅治理门状态词 + DoD 表述；棘轮不减——真 FAIL/新 PENDING 仍即 RED）

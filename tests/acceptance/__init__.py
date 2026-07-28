@@ -22,12 +22,19 @@
 pytest 下相应 test_* 抛 unittest.SkipTest。
 """
 
-PASS, FAIL, PENDING = "PASS", "FAIL", "PENDING"
+PASS, FAIL, PENDING, NA = "PASS", "FAIL", "PENDING", "N/A"
 
 
 def pending(name, why, decisions=""):
     tag = f"[{decisions}] " if decisions else ""
     return {"name": name, "status": PENDING, "detail": tag + why}
+
+
+def na(name, why, decisions=""):
+    """终态 N/A：经检验**判定为非不变量**或**已被他处覆盖**——非待办、不阻塞 DoD（区别于 PENDING=尚未做）。
+    仍可见、附理由；不是 PASS（不声称性质成立），不是 PENDING（不声称还没做）。见 D-027。"""
+    tag = f"[{decisions}] " if decisions else ""
+    return {"name": name, "status": NA, "detail": tag + why}
 
 
 def result(name, ok, detail, decisions=""):

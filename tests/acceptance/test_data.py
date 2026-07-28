@@ -88,7 +88,7 @@ def test_split_by_model_no_leakage():
 
 def test_flagship_pair_equal_area_opposite_access():
     """E1/H1 存在性旗舰对：支撑面积（下朝接触点数）近似相等，但可达性相反——证"面积⊥可达"。
-    补 H1 统计 ρ≈0 的存在性证据：a=开阔悬空 ledge（可达）vs b=深窄槽腔顶（不可达），同面积。"""
+    补 H1 弱相关统计（|ρ|≤0.27）的存在性证据：a=开阔悬空 ledge（可达）vs b=深窄槽腔顶（不可达），同面积。"""
     try:
         _deps()
     except ImportError as e:

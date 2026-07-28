@@ -56,7 +56,7 @@ def deep_narrow_slot(width, depth):
 def flagship_pair(support_area_target=64, cavity_depth_a=4, cavity_depth_b=16,
                   width=2, radius=3.0, margin=8, n_directions=64):
     """E1/H1 存在性旗舰对：两件**支撑面积（下朝悬垂接触体素数）近似相等**、**可达性相反**——
-    证「支撑面积 ⊥ 可达性」，补 H1 统计 ρ≈0 的存在性证据。返回 (case_a, case_b) 两个 LabeledModel。
+    证「支撑面积 ⊥ 可达性」，补 H1 统计弱相关（|ρ|≤0.27）的存在性证据。返回 (case_a, case_b) 两个 LabeledModel。
 
     两件下朝悬垂面都是 width×L 条带（L=round(support_area_target/width)）→ 支撑面积≈相等：
     - **case_a「open_ledge」**：悬空薄板，条带下朝面四周开阔（free_dist>r）→ oracle 判**可达**（D-002）。

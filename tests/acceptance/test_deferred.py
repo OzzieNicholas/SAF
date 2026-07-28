@@ -48,9 +48,11 @@ def _flagship_implemented():
 
 
 def checks():
+    if not os.path.exists(_DEFERRED):
+        return [pending("deferred_register", "charter/deferred.md 缺失", "")]
     items = _parse_deferred()
-    if not items:
-        return [pending("deferred_register", "charter/deferred.md 缺失或为空", "")]
+    if not items:                       # 空册 = 无开放未决义务（终态，非 PENDING；闭合记录在 decisions.md）
+        return [result("deferred_register", True, "无开放未决义务（历次闭合见 decisions.md）", "")]
     out = []
     for oid, trig, duty in items:
         detail = f"触发={trig} → 义务={duty}"
@@ -64,5 +66,6 @@ def checks():
 
 
 def test_deferred_register_parses():
-    """治理未决册在位且可解析（至少一条 ## 未决项）。"""
-    assert _parse_deferred(), "charter/deferred.md 应存在且含至少一条 ## 未决项"
+    """治理未决册在位且可解析（空册=无开放义务，合法终态；解析不得抛错）。"""
+    assert os.path.exists(_DEFERRED), "charter/deferred.md 应存在"
+    _parse_deferred()   # 不抛即可（空册返回 []，是合法终态）

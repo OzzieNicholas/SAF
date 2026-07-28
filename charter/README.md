@@ -2,6 +2,8 @@
 
 > SAF (Support Accessibility Field) 的统一治理入口：散文（意图/决策/证据/铁律）+ 一张地图。
 > 治理原则：一个事实一个家、指针不复制、行为终极权威=代码+测试、每个集合有索引。
+>
+> **外部读者**（合作者/审稿人/未来的你）想一篇读懂全项目、不必看代码 → 仓库根 [`../OVERVIEW.md`](../OVERVIEW.md)；本目录是**内行治理**细节。
 
 ## 三层强度 + 过程（弱→强）
 
@@ -21,6 +23,7 @@
 1. `problem.md` — 做什么、硬约束、非目标、指标、样例
 2. `constraints.md` — 不可破的铁律
 3. `decisions.md` — 冻结的判定语义与口径（D-000..）
+3b. `results.md` — **结果账本**（假设→指标→数值→样本→复现命令；权威数字之家，复现器背书）
 4. `deferred.md` — 未决决策 + 触发条件（decisions 的未决半；接进门，到期在 gate 现身）
 5. `conventions.md` — 动作与规范（commit / 分支 / 合并 / 治理文件命名）
 6. `evidence.md` — 文献证据（来源↔问题）；富矩阵在 `docs/2_文献矩阵与相关工作.md`
@@ -41,10 +44,10 @@
 | D-009 网格 igl 口径 | `test_mesh_frontend`（solidify IoU；无 CSG numpy 堆叠）|
 | D-010 支撑接触区 | `test_support_contact`（下朝悬垂 S(P,d)：提取/方向/阈值/端到端）|
 | D-011 尺度证伪 | `test_properties::test_scale_invariance`（skip，分辨率依赖）|
-| D-000/004/006/012/013/014/015 结构·标注·布局·治理·规范·台账策展·主线 | 无专属性质（由 `test_charter` 守护 / 结构性 allowlist）|
+| D-000/004/006/012/013/014/015/021/023/027 结构·标注·布局·治理·规范·台账策展·主线·参数冻结·数据源范围·终态DoD | 无专属性质（由 `test_charter` 结构 allowlist 守护，与 `check_decisions_covered` 的 STRUCTURAL 集同步）|
 | D-019 roadmap 弧位置载体 | `test_charter`（`check_roadmap`：在位＋禁手写门状态）|
 | （治理自检）| `test_charter`（schema/参考/无残留/params/**完整性**/规范在位）+ `test_deferred`（未决触发册接门）|
-| （管线自检）| `test_eval`（不可达 F1/IoU/面积误差·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
+| （管线自检）| `test_eval`（不可达 F1/IoU/面积误差 + 方向排序 Top-k 命中/precision@k·已知答案锚定）+ `test_data`（程序化标签集：oracle 打标·两类俱在·按模型切分）|
 | D-016 数据架构/首片=程序化物化 | `test_dataset`（物化数据集：round-trip·两类·按模型切分·标签=oracle·manifest 良构）|
 | E1/H1 支撑面积⊥可达（存在性）| `test_data`（`flagship_pair`：同支撑面积旗舰对可达性相反 100%/0%，`src/…/data/__init__.py`）|
 | H3 跨模型预测可行性 | `test_model`（tiny 形状条件模型在留出/未见模型上不可达 F1 胜多数类基线；Phase-1 薄纵切） |
@@ -52,6 +55,8 @@
 | H5 跨域（Thingi10K）| `test_thingi`（STL ascii/binary 解析 + 端到端物化；下朝面用 stored 法向、split 恒 test，`src/…/data/thingi.py`）|
 | D-022 D-020 野网格实现加固 + H5 接入采样上限 | `test_capsule`（precompute_equiv 逐比特 / degenerate_skip 零面积不崩）+ `test_thingi`（`_select_points` 确定性无偏子采样）|
 | D-024 方向级可达性场（E5，extend D-004）| `test_direction_field`（逐方向判定 + `any`==二分不变量 + 盲腔/开阔已知答案 + 模型 out_dim 方向头）|
+| D-025 标签有效性审核客观化（supersede D-018 机制）| `tools/audit_labels.py`（差分 robust/res-稳定/分布 → `label_audit`）+ `test_differential`/`test_capsule`/`test_label_quality` 守护各层 |
+| D-026 预算门 + 回归门激活 | `gate.py::budget_gate`（冻结 D0 外推 vs 上限）+ `gate.py::regression_gate` 读 `tools/regression_check.py` 产出（配对 bootstrap CI）|
 | 标签质量门（六项趋势·铁律#6）| `test_label_quality`（④半径趋势受限单调=D-008 收窄闭合 + ②批量分布；①②③⑤⑥ 分见 known_answers/differential/support_contact/data）|
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 

@@ -1,0 +1,16 @@
+# SAF 数据流水线（DVC；dvc-pipeline deferred）。`dvc repro` 一键复现可复现阶段 + 版本化产物。
+#
+# procedural：全可复现（种子→数据集，无外部原料；D-016 首片，字节可复现已验）。
+# Fusion360 / Thingi10K：需外部原始网格（E:\... 路径，经 tools/build_{fusion360,thingi}.py --root 传入）——
+#   属外部只读原料、**不在可复现 DAG 内**（无原料的机器无法 repro）；有数据时用对应 CLI 物化。
+#   见 charter/decisions.md D-016/D-017/D-022/D-023、charter/deferred.md fusion360-ingest/thingi-ingest。
+stages:
+  procedural:
+    cmd: python tools/build_dataset.py --out data/processed/procedural_v1 --n-models 120 --N 28
+      --max-points 40 --radius 3.0 --n-directions 32 --seed 0 --frac-train 0.6 --frac-val 0.2
+    deps:
+      - tools/build_dataset.py
+      - src/support_accessibility/data
+      - src/support_accessibility/oracle
+    outs:
+      - data/processed/procedural_v1

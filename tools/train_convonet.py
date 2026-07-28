@@ -22,7 +22,7 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="ConvONet-lite 跨模型可达性预测（H3）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_v1")
+    ap.add_argument("--fusion", default="data/processed/fusion360_full")   # headline 源（全量 8590/1621 两类）；旧 fusion360_v1=1000 件探索集
     ap.add_argument("--procedural", default="data/processed/procedural_v1")
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--epochs", type=int, default=80)

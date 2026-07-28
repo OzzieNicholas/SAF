@@ -13,8 +13,9 @@ mesh→occupancy 前端（igl generalized winding number 判内外、pitch/longe
 （真实网格接入）；本批用程序化解析占据（构造即知答案）验证核心口径，点/半径以体素为单位。
 
 注：有限方向采样使本口径**偏保守**——深窄腔即便存在连续竖直插入，若采样方向都不够竖直
-（沿途漂移撞壁）也会判不可达；方向数↑→更可达（direction_monotonic 性质，D-003）。这是几何代理
-的已知性质，给出偏保守的可达性；边界情形靠更密采样 / 边界胶囊细化缓解（后续批次）。
+（沿途漂移撞壁）也会判不可达；方向数↑**经验上**更可达——严格保证仅对**嵌套**方向集 S1⊆S2 成立
+（direction_monotonic，见 test_properties / D-003；非嵌套 Fibonacci 方向数单调不作严格不变量）。偏保守是
+几何代理的已知行为；边界情形靠更密采样 / 边界胶囊细化缓解。
 """
 
 from enum import Enum
@@ -97,7 +98,11 @@ class SupportAccessibilityOracle:
         self.params = dict(params or {})
         # D-003：距离场一次算好，工具半径对全体点/方向摊销。free_dist[c]=中心 c 到最近实体的距离。
         self.free_dist = ndimage.distance_transform_edt(~self.occ)
-        self.dirs = lower_hemisphere_dirs(int(self.params.get("n_directions", 128)))
+        if "directions" in self.params:                 # 显式方向集（D-005 方向灵活；方向单调保证性测试 / E5 用）
+            d = np.asarray(self.params["directions"], dtype=float).reshape(-1, 3)
+            self.dirs = d / np.linalg.norm(d, axis=1, keepdims=True)
+        else:
+            self.dirs = lower_hemisphere_dirs(int(self.params.get("n_directions", 128)))
         self.step = float(self.params.get("march_step", 0.5))
         self.eps = float(self.params.get("epsilon_voxels", 1.5))
         self.mesh = mesh                 # (V,F,lo,pitch) 世界坐标网格+体素变换；None=无细化（体素二分）

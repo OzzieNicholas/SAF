@@ -7,12 +7,21 @@
 并用形状条件神经场在未见模型上预测——为 DfAM 预处理提供不同于支撑体积/过悬面积的后处理几何风险维度。
 （几何/AI 题，DfAM 前端；非材料/工艺实验，非生产认证。）
 
-## 从哪读起
+> 📖 **想一篇读懂全项目、不必看代码？** → **[`OVERVIEW.md`](OVERVIEW.md)**（自足综述：需求·方法·关键决策·结果·状态·配置·局限·治理·复现）。
 
-- **治理入口**：[`charter/README.md`](charter/README.md) — 治理地图、决策↔性质映射、修改触发。
-- **问题定义**：[`charter/problem.md`](charter/problem.md)
-- **冻结决策**：[`charter/decisions.md`](charter/decisions.md)（判定语义 D-001..）
-- **验收门**：`python tests/gate.py`（决策的可执行守护；仍 RED：多项门 PENDING by design，状态跑门看）
+## 一句话现状
+
+尺子（几何 oracle）+ 三数据源（Fusion360/Thingi10K/程序化）+ 形状条件神经预测**全就位**；
+假设 **H1/H2/H3/H5 · E1/E4/E5/E8 + 消融** 全部坐实、**各有可复现器**（`tools/`）；验收门 **GREEN**（工程 DoD 达成，D-027）。
+论文写作中（`paper/`）。权威结果数字见 **[`charter/results.md`](charter/results.md)**。
+
+## 从哪读起（按你想知道的）
+
+- **做什么 / 为什么 / 硬约束 / 非目标 / 指标**（需求）→ [`charter/problem.md`](charter/problem.md) + [`charter/constraints.md`](charter/constraints.md)（不可破铁律）
+- **做到哪了 / 有哪些结果**（完成情况）→ 跑 `python tests/gate.py`（现 **GREEN**：budget/regression/label_audit PASS + 4 项 N/A）｜**[`charter/results.md`](charter/results.md)**（结果账本：假设→指标→数值±std→样本→**复现命令** + 局限）｜[`charter/roadmap.md`](charter/roadmap.md)（研发弧位置）
+- **怎么判定 / 为什么这么设计**（决策）→ [`charter/decisions.md`](charter/decisions.md)（判定语义/口径 D-001..D-027，append-only 台账）+ [`charter/README.md`](charter/README.md)（决策↔性质映射 + 修改触发）
+- **当前配置 / 冻结口径** → [`conf/params.yaml`](conf/params.yaml)（**D-021 冻结**：n_dir=128 / res=48+细化 / radius=0.05 / overhang=45° / ε=1.5）+ [`environment.yml`](environment.yml)（conda env `saf`）
+- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；验收门 `python tests/gate.py`；实验 CLI 在 `tools/`（`train_convonet` H3 · `eval_h5` H5 · `eval_e5` E5 · `eval_h1/h2/e8/ablation` · `audit_labels` 命门审核 · `regression_check` 回归门；每条**复现命令见 `results.md`**）；一键数据流水线 `dvc repro`；非交互跑法注意见 [`CLAUDE.md`](CLAUDE.md)「怎么跑」。
 
 ## 布局
 

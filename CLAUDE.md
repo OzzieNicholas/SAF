@@ -21,11 +21,12 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 
 ## 怎么跑
 
-- 验收门：`conda run -n saf python tests/gate.py`（仍 RED：deferred/budget/regression 等多项 PENDING by design；状态跑门 `--format md` 看）
+- 验收门：`conda run -n saf python tests/gate.py`（现 **GREEN**：工程 DoD 达成，D-027；4 项 **N/A**=已证伪非不变量/已覆盖，非待办；状态跑门 `--format md` 看）
 - 测试：`conda run -n saf python -m pytest -q`
 - 造数据集：`conda run -n saf python tools/build_dataset.py --out data/processed/procedural_v1`（程序化统一数据集，D-016）
-- 实验：`conda run -n saf dvc repro`（就绪后）
-- 非交互/agent 兜底：直接用 saf 环境的 python 解释器（`conda run -n saf python …`，或该 env 内 python 绝对路径）
+- 复现流水线：`conda run -n saf dvc repro`（`dvc.yaml` procedural 阶段就绪，字节可复现）
+- 实验 CLI（tools/）：`train_convonet`(H3) · `eval_h5`(H5) · `eval_e5`(E5) · `failure_cases` · `audit_labels`(标签审核 D-025) · `regression_check`(回归门 D-026)
+- **非交互/agent 兜底跑法**：壳内激活最稳——`source "D:/Miniforge/Install/etc/profile.d/conda.sh" && conda activate saf && python …`；**勿裸调 python.exe 绝对路径**（未激活 → OpenBLAS gemm 延迟加载崩 0xC06D007F），勿并发两个 `conda run`（本条即完整跑法备忘）。
 
 ## 绝不能碰
 
@@ -35,7 +36,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 
 ## 约定
 
-- 治理散文在 `charter/`（只增不改的台账 `charter/decisions.md`）；富参考在 `docs/`（退役只读）。
+- 治理散文在 `charter/`（实质不可改、修辞可策展的台账 `charter/decisions.md`，政策见 D-014）；富参考在 `docs/`（退役只读）。
 - 验收层 `tests/acceptance/` 是规格脊椎，先于 `src/` 建（建门先于建码）；门 `tests/gate.py` 做棘轮。
 - 代码按**模块**：`src/support_accessibility/{oracle,data,eval,models,baselines,viz}`，不按阶段号前缀。
 - 研发方法在 `method/`（本地手管，gitignore）；产物进 `runs/`（DVC，按 E0–E8 + run-id，机器 emit）。

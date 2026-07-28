@@ -5,6 +5,9 @@ method/
 # processed datasets (materialized; regenerable from seed+code / DVC-later, D-016)
 data/processed/
 
+# run artifacts (machine-emit：audit/failure/signoff/regression 图+json；需版本化则 DVC 追踪，见 CLAUDE.md)
+runs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
