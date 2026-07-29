@@ -23,6 +23,12 @@ _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 
 def main():
     ap = argparse.ArgumentParser(description="E5 方向级可达性场预测（D-024）")
@@ -146,7 +152,7 @@ def main():
               f"top1={top1:.3f} top3={top3:.3f} prec@3={prec3:.3f} maj_base_f1={base_f1:.3f}", flush=True)
 
     arr = np.array(rows)
-    print("E5_RESULT " + json.dumps({
+    rep = {
         "data": a.data, "seeds": a.seeds, "epochs": a.epochs, "device": dev, "D_dirs": D, "models": len(items),
         "target_mode": ("refined(D-020)" if a.root else "occupancy"),
         "refined_models": n_refined, "occupancy_fallback": n_occup,
@@ -157,7 +163,11 @@ def main():
         "topk_hit_top1_mean": round(float(arr[:, 4].mean()), 3),
         "topk_hit_top3_mean": round(float(arr[:, 5].mean()), 3),
         "topk_precision_at3_mean": round(float(arr[:, 6].mean()), 3),
-    }))
+    }
+    outdir = os.path.join(os.path.dirname(_ROOT), "runs", "e5")          # 机器落痕：签收证据之家（D-024）
+    os.makedirs(outdir, exist_ok=True)
+    json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("E5_RESULT " + json.dumps(rep))
 
 
 if __name__ == "__main__":

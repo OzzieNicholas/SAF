@@ -18,6 +18,12 @@ _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 
 def _root_from_params():
     """裸 stdlib 从 conf/params.yaml 抓 data.fusion360_root（params 无 yaml 依赖，见 D-016）。"""
