@@ -16,6 +16,12 @@ _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 
 def main():
     ap = argparse.ArgumentParser(description="E8 神经推理 vs oracle 打标 每点耗时比")
