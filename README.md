@@ -21,7 +21,7 @@
 - **做到哪了 / 有哪些结果**（完成情况）→ 跑 `python tests/gate.py`（现 **GREEN**：budget/regression/label_audit PASS + 4 项 N/A）｜**[`charter/results.md`](charter/results.md)**（结果账本：假设→指标→数值±std→样本→**复现命令** + 局限）｜[`charter/roadmap.md`](charter/roadmap.md)（研发弧位置）
 - **怎么判定 / 为什么这么设计**（决策）→ [`charter/decisions.md`](charter/decisions.md)（判定语义/口径 D-000..D-027，append-only 台账）+ [`charter/README.md`](charter/README.md)（决策↔性质映射 + 修改触发）
 - **当前配置 / 冻结口径** → [`conf/params.yaml`](conf/params.yaml)（**D-021 冻结**：n_dir=128 / res=48+细化 / radius=0.05 / overhang=45° / ε=1.5）+ [`environment.yml`](environment.yml)（conda env `saf`）
-- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；验收门 `python tests/gate.py`；实验 CLI 在 `tools/`（`train_convonet` H3 · `eval_h5` H5 · `eval_e5` E5 · `eval_h1/h2/e8/ablation` · `audit_labels` 命门审核 · `regression_check` 回归门；每条**复现命令见 `results.md`**）；一键数据流水线 `dvc repro`；非交互跑法注意见 [`CLAUDE.md`](CLAUDE.md)「怎么跑」。
+- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；验收门 `python tests/gate.py`；实验 CLI 在 `tools/`（`train_convonet` H3 · `eval_h5` H5 · `eval_e5` E5 · `eval_h1/h2/e8/ablation` · `audit_labels` 命门审核 · `regression_check` 回归门 · `eval_baselines` 表5 基线 · `eval_true_area` 真面积对照；每条**复现命令见 `results.md`**）；一键数据流水线 `dvc repro`；非交互跑法注意见 [`CLAUDE.md`](CLAUDE.md)「怎么跑」。
 
 ## 布局
 

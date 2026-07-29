@@ -25,7 +25,7 @@ SAF (Support Accessibility Field)：金属增材制造**支撑接触区**表面�
 - 测试：`conda run -n saf python -m pytest -q`
 - 造数据集：`conda run -n saf python tools/build_dataset.py --out data/processed/procedural_v1`（程序化统一数据集，D-016）
 - 复现流水线：`conda run -n saf dvc repro`（`dvc.yaml` procedural 阶段就绪，字节可复现）
-- 实验 CLI（tools/）：`train_convonet`(H3) · `eval_h5`(H5) · `eval_e5`(E5) · `failure_cases` · `audit_labels`(标签审核 D-025) · `regression_check`(回归门 D-026)
+- 实验 CLI（tools/）：`train_convonet`(H3) · `eval_h5`(H5) · `eval_e5`(E5) · `failure_cases` · `audit_labels`(标签审核 D-025) · `regression_check`(回归门 D-026) · `eval_baselines`(表5 基线汇总) · `eval_true_area`(H1 真面积对照)
 - **非交互/agent 兜底跑法**：壳内激活最稳——`source "D:/Miniforge/Install/etc/profile.d/conda.sh" && conda activate saf && python …`；**勿裸调 python.exe 绝对路径**（未激活 → OpenBLAS gemm 延迟加载崩 0xC06D007F），勿并发两个 `conda run`（本条即完整跑法备忘）。
 
 ## 绝不能碰
