@@ -2,12 +2,16 @@
 """E5 方向级可达性场预测评测 CLI（D-024；需 torch）。
 
 把 ConvONet-lite 扩为方向级输出头（out_dim=D=下半球逼近方向数），跨模型预测**每点每方向**是否被挡
-（blocked=1=风险，方向级类比点级"不可达"）。目标由 oracle `direction_labels` 生成（占据口径，无网格）。
+（blocked=1=风险，方向级类比点级"不可达"）。目标由 oracle `direction_labels` 生成——**缺省占据口径**（无网格）；
+`--root` 给定则载原网格重建 (Vn,F,lo,pitch) 传 oracle，方向目标走 **D-020 边界带精确细化口径**（指引 §6.1-B1a；
+占据逐比特校验，不符则回落占据口径并计数；细化标签作 headline 训练源须作者签收，D-024）。
 指标：per-direction F1（逐方向逐点）+ per-point 方向集 IoU（预测可达方向集 vs oracle）+ 复原点级二分 F1
 （全方向皆挡→点不可达，any-归约 = D-004）。对照 per-direction 多数类基线。self-add src。
 
 用法：
   conda run -n saf python tools/eval_e5.py --data data/processed/procedural_v1 --seeds 3
+  conda run -n saf python tools/eval_e5.py --data data/processed/fusion360_full --max-models 500 \
+    --root E:/Fusion360Gallery/reconstruction   # 细化口径方向目标（B1a 升级）
 """
 import argparse
 import os
@@ -28,6 +32,8 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--n-directions", type=int, default=128)     # D-021 冻结值；下半球得 D≈64
     ap.add_argument("--max-models", type=int, default=None)
+    ap.add_argument("--root", default=None, help="Fusion 原网格根：给定则方向目标走 D-020 细化口径（B1a）")
+    ap.add_argument("--resolution", type=int, default=48, help="须与 ingest 一致（占据逐比特校验）")
     a = ap.parse_args()
 
     import json
@@ -44,18 +50,48 @@ def main():
     if a.max_models:
         ms = ms[:a.max_models]
 
-    # 方向级目标：blocked=1（风险），(K,D)，由 oracle direction_labels（占据口径，无网格）生成
+    # 方向级目标：blocked=1（风险），(K,D)。缺省占据口径；--root → 载原网格走 D-020 细化（§6.1-B1a）
+    mesh_of = {}
+    if a.root:
+        from support_accessibility.data.fusion360 import iter_final_designs
+        mesh_of = {name: path for name, path in iter_final_designs(a.root)}   # 同名后者覆盖，镜像 ingest
+
+    def make_oracle(m):
+        """(oracle, refined?)。--root 下重建占据并逐比特校验；不符 → 回落占据口径并计数（不静默混口径）。"""
+        if a.root and m.name in mesh_of:
+            try:
+                from support_accessibility.data.fusion360 import load_obj, normalize
+                from support_accessibility.data import mesh as MESH
+                V, F = load_obj(mesh_of[m.name])
+                Vn, _s = normalize(V)
+                occ2, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=a.resolution)
+                if occ2.shape == m.occ.shape and bool((occ2 == np.asarray(m.occ, bool)).all()):
+                    return SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions},
+                                                     mesh=(Vn, F, lo, pitch)), True
+            except Exception:
+                pass
+        return SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions}), False
+
     D = None
     items = []
+    n_refined = n_occup = 0
     for m in ms:
         if m.points.shape[0] == 0:
             continue
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
+        o, refined = make_oracle(m)
+        n_refined += int(refined)
+        n_occup += int(not refined)
         if D is None:
             D = len(o.dirs)
         viable = np.stack([o.direction_labels(p, m.radius) for p in m.points])   # (K,D) True=可达
         items.append((m.name, m.occ, m.points, (~viable).astype(np.float32)))    # blocked=1
-    print(f"device={dev} D_dirs={D} models={len(items)} pts={sum(it[2].shape[0] for it in items)}", flush=True)
+    mode = "refined(D-020)" if a.root else "occupancy"
+    print(f"device={dev} D_dirs={D} models={len(items)} pts={sum(it[2].shape[0] for it in items)} "
+          f"target_labels={mode} refined={n_refined} occup_fallback={n_occup}", flush=True)
+    if a.root and n_occup:
+        print(f"警告：{n_occup} 件未匹配原网格或占据校验不符，回落占据口径（混口径——建议排查后重跑）", flush=True)
+    if a.root:
+        print("注意：细化口径方向标签作 headline 训练源属命门（D-024）——数字入账前须作者据实签收。", flush=True)
 
     def prep(occ, pts):
         occt = torch.as_tensor(np.asarray(occ, np.float32)).view(1, 1, *occ.shape).to(dev)
@@ -112,6 +148,8 @@ def main():
     arr = np.array(rows)
     print("E5_RESULT " + json.dumps({
         "data": a.data, "seeds": a.seeds, "epochs": a.epochs, "device": dev, "D_dirs": D, "models": len(items),
+        "target_mode": ("refined(D-020)" if a.root else "occupancy"),
+        "refined_models": n_refined, "occupancy_fallback": n_occup,
         "dir_f1_mean": round(float(arr[:, 0].mean()), 3), "dir_f1_std": round(float(arr[:, 0].std()), 3),
         "dir_setiou_mean": round(float(arr[:, 1].mean()), 3),
         "recovered_binary_f1_mean": round(float(arr[:, 2].mean()), 3),
