@@ -111,14 +111,19 @@ def main():
                 sc = OVH.support_contact_faces(Vn, F, d, 45.0)
                 if len(sc.centroids) == 0:
                     continue
-                labs = {}
+                res_labs, res_keep = {}, {}
                 for res in (48, 96):
                     occ, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=res)
                     r = 0.05 / pitch
                     o = SupportAccessibilityOracle(occ, {"n_directions": a.n_directions}, mesh=(Vn, F, lo, pitch))
-                    labs[res] = np.array([o.label(MESH.world_to_voxel(c + nn * (2.0 * pitch), lo, pitch), r).value
-                                          == "inaccessible" for c, nn in zip(sc.centroids, sc.normals)])
-                ag += int((labs[48] == labs[96]).sum()); tot += int(labs[48].size); done += 1
+                    ll, kk = [], []
+                    for c, nn in zip(sc.centroids, sc.normals):
+                        status, q = MESH.nudge_to_free(occ, c, nn, 2.0 * pitch, lo, pitch)   # 同 ingest 口径（D-028）
+                        ll.append((o.label(q, r).value == "inaccessible") if status != "flipped" else False)
+                        kk.append(status != "flipped")
+                    res_labs[res] = np.array(ll); res_keep[res] = np.array(kk)
+                keep = res_keep[48] & res_keep[96]                      # 两 res 都非翻转的面才可比（与 ingest 一致）
+                ag += int((res_labs[48][keep] == res_labs[96][keep]).sum()); tot += int(keep.sum()); done += 1
             except Exception as e:
                 print("skip", name, str(e)[:50], flush=True)
         stab = {"models": done, "points": tot,
@@ -127,7 +132,7 @@ def main():
     verdict = (diff["robust_mismatch_rate"] <= 0.01                              # D-003：robust 不一致≈0（边界带容忍）
                and 0.01 <= dist["inacc_frac_mean"] <= 0.9
                and dist["both_class_model_frac"] > 0.0
-               and (stab is None or stab["res48_vs_res96_agreement"] >= 0.95))
+               and stab is not None and stab["res48_vs_res96_agreement"] >= 0.95)   # 命门须含 res-稳定腿（缺 --root→verdict False，与拒写一致）
     audit = {"verdict_pass": bool(verdict), "n_directions": a.n_directions,
              "differential": diff, "res_stability": stab, "distribution": dist,
              "criterion": "D-003 robust 差分(边界带容忍) + D-020 res-稳定 + 分布；阈值 robust≤0.01/res≥0.95/inacc∈[0.01,0.9]（D-025）"}

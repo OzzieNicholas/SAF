@@ -95,20 +95,23 @@ def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_
     os.makedirs(out_dir, exist_ok=True)                 # models/、audit/ 由 save_model / montage 各自建
     audit_dir = os.path.join(out_dir, "audit")
     records = []
+    n_flip_total = 0
     for name, V, F in meshes:
         if max_models is not None and len(records) >= max_models:
             break
         Vn, _s = normalize(V)
         if not qualify(Vn, F, d=d, overhang_deg=overhang_deg)[0]:
             continue
-        rec = _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directions, nudge_voxels)
+        rec, n_flip = _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directions, nudge_voxels)
+        n_flip_total += n_flip
         if rec is None:
             continue
         _save(rec, out_dir)
         if emit_audit:
             _try_audit(rec, os.path.join(audit_dir, name + ".png"))
         records.append(rec)
-    _write_manifest(out_dir, records, "fusion360", n_directions, seed, frac_train, frac_val, human_signoff=False)
+    _write_manifest(out_dir, records, "fusion360", n_directions, seed, frac_train, frac_val,
+                    human_signoff=False, extra_meta={"nudge_discarded_flipped_normal": n_flip_total})
     return out_dir
 
 
@@ -141,16 +144,17 @@ def _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directi
     sc = OVH.support_contact_faces(Vn, F, d, overhang_deg)
     r = radius_world / pitch
     o = SupportAccessibilityOracle(occ, {"n_directions": n_directions}, mesh=(Vn, F, lo, pitch))
-    pts, labs = [], []
+    pts, labs, n_flip = [], [], 0
     for c, n in zip(sc.centroids, sc.normals):
-        q = MESH.nudge_to_free(occ, c, n, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（防翻面点落实体内误标）
-        if q is None:                       # 缠绕致两侧都在实体（罕见）→ 跳过该面
+        status, q = MESH.nudge_to_free(occ, c, n, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（D-028）
+        if status == "flipped":             # 法向翻转、非真下朝面 → 丢弃并计数
+            n_flip += 1
             continue
-        pts.append(q)
+        pts.append(q)                        # "free"/"confined"：同旧 +n 口径（confined 保留稀有不可达正类）
         labs.append(o.label(q, r).value == "inaccessible")
     if not pts:
-        return None
-    return LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r))
+        return None, n_flip
+    return LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r)), n_flip
 
 
 def _save(rec, out_dir):
@@ -166,8 +170,9 @@ def _try_audit(rec, path):
         pass
 
 
-def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, frac_val, human_signoff):
-    """复用 D-016 格式（dataset.COLUMNS/MANIFEST/DATASET_JSON），source=fusion360 + 三切 + human_signoff 标记。"""
+def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, frac_val, human_signoff, extra_meta=None):
+    """复用 D-016 格式（dataset.COLUMNS/MANIFEST/DATASET_JSON），source + 三切 + human_signoff 标记。
+    extra_meta：可选，并入 dataset.json（如 D-028 的 nudge_discarded_flipped_normal 计数，防静默丢弃）。"""
     import csv
     import json
     import numpy as np
@@ -198,5 +203,7 @@ def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, fr
             "build_params": {"n_directions": n_directions, "seed": seed,
                              "frac_train": frac_train, "frac_val": frac_val},
             "split": {"n_train": len(tr), "n_val": len(va), "n_test": len(te)}}
+    if extra_meta:
+        meta.update(extra_meta)
     with open(os.path.join(out_dir, DS.DATASET_JSON), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2, sort_keys=True)

@@ -49,7 +49,8 @@ def main():
     fte = [m for m in fte if m.points.shape[0] > 0]
     if not fte:                              # 退化数据集：无 both-class 测试件 → 干净失败，不崩 bootstrap（写 passes=false）
         rep = {"n_test_models": 0, "passes": False, "note": "no both-class test models",
-               "baseline": "ray_visibility(E4)", "data_digest": E.data_digest(a.fusion, a.procedural)}
+               "baseline": "ray_visibility(E4)", "data_roots": [a.fusion, a.procedural],
+               "data_digest": E.data_digest(a.fusion, a.procedural)}
         outdir = os.path.join(os.path.dirname(_ROOT), "runs", "regression")
         os.makedirs(outdir, exist_ok=True)
         json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
@@ -95,7 +96,8 @@ def main():
            "paired_diff_mean": round(float(diff.mean()), 4),
            "diff_ci_low": round(ci_low, 4), "diff_ci_high": round(ci_high, 4),
            "passes": bool(ci_low > 0), "baseline": "ray_visibility(E4)",
-           "data_digest": E.data_digest(a.fusion, a.procedural)}     # 新鲜度戳：门据此判产物是否对应当前数据（D-026）
+           "data_roots": [a.fusion, a.procedural],                   # 门据此重算摘要（不硬编根），配 data_digest 判新鲜度（D-026 P5）
+           "data_digest": E.data_digest(a.fusion, a.procedural)}
     outdir = os.path.join(os.path.dirname(_ROOT), "runs", "regression")
     os.makedirs(outdir, exist_ok=True)
     json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)

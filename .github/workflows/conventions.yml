@@ -15,5 +15,7 @@ jobs:
       - name: 取 main 作 base（排除 base 历史 + 合并提交）
         run: git fetch --no-tags origin main:refs/remotes/origin/main || true
       - name: 校验 commit 主题 + 分支名规范
-        # PR 用 head_ref（真源分支，非 1/merge）；push 用 ref_name。base=main 只查本分支新增（非 merge）。
-        run: python3 tools/check_conventions.py --branch "${{ github.head_ref || github.ref_name }}" --base origin/main
+        # PR 用 head_ref（真源分支，非 1/merge）；push 用 ref_name。
+        # base：push 用 github.event.before（本次 push 前一提交→查新增，含直推 main）；PR 事件无 before → 回落 origin/main。
+        # （修：原 --base origin/main 在直推 main 时 origin/main==HEAD → 待查集空、门不开火；见 check_conventions._commits_to_check）
+        run: python3 tools/check_conventions.py --branch "${{ github.head_ref || github.ref_name }}" --base "${{ github.event.before || 'origin/main' }}"

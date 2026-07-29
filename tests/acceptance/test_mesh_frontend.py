@@ -34,6 +34,29 @@ def _solidify_box_iou():
     return float((occ & ana).sum() / (occ | ana).sum())
 
 
+def _nudge_cases_ok():
+    """nudge_to_free 三态 + 栅格外（D-028）。lo=0/pitch=1 → 体素索引=floor(world)。"""
+    import numpy as np
+    from support_accessibility.data import mesh as M
+    lo = (0., 0, 0); pitch = 1.0
+    free = np.zeros((5, 5, 5), bool); free[:, :, 3] = True            # 天花板在 z=3，c 下方自由
+    s_free = M.nudge_to_free(free, (2.5, 2.5, 2.5), (0, 0, -1), 1.0, lo, pitch)[0] == "free"
+    below = np.zeros((5, 5, 5), bool); below[:, :, 1] = True          # 实体在下 → +n 落实体、−n 自由 = 翻面
+    s_flip = M.nudge_to_free(below, (2.5, 2.5, 2.5), (0, 0, -1), 1.0, lo, pitch) == ("flipped", None)
+    both = np.zeros((5, 5, 5), bool); both[:, :, 1] = True; both[:, :, 3] = True   # 上下皆实体 = 窄隙
+    s_conf = M.nudge_to_free(both, (2.5, 2.5, 2.5), (0, 0, -1), 1.0, lo, pitch)[0] == "confined"
+    s_oob = M.nudge_to_free(np.zeros((5, 5, 5), bool), (2.5, 2.5, 0.5), (0, 0, -1), 2.0, lo, pitch)[0] == "free"  # 出界=自由
+    return bool(s_free and s_flip and s_conf and s_oob)
+
+
+def _occ_ceil_shape_ok():
+    """立方体 mesh at res R → occ.shape 各轴 = R（ceil 修正防最大轴过冲 R+1；D-028 extend D-009）。"""
+    from support_accessibility.data import mesh as M
+    V, F = M.box_vf((4.0, 4.0, 4.0))
+    occ, _lo, _pitch = M.mesh_to_occupancy(V, F, resolution=_RES)
+    return occ.shape == (_RES, _RES, _RES)
+
+
 def checks():
     try:
         import numpy, igl, trimesh  # noqa: F401
@@ -43,7 +66,9 @@ def checks():
         return [pending(n, f"依赖未就绪：{e}", d) for n, d in
                 (("mesh_solidify_box", "D-007/D-009"),
                  ("mesh_box_downface", "D-002"),
-                 ("mesh_two_box_gap", "D-001"))]
+                 ("mesh_two_box_gap", "D-001"),
+                 ("mesh_nudge_to_free", "D-028"),
+                 ("mesh_occ_ceil_shape", "D-028"))]
     out = []
     try:
         iou = _solidify_box_iou()
@@ -58,6 +83,13 @@ def checks():
             out.append(result(name, got == case.expected, f"期望={case.expected} 实得={got}", dec))
         except Exception as e:
             out.append(result(name, False, f"异常：{e}", dec))
+    try:
+        out.append(result("mesh_nudge_to_free", _nudge_cases_ok(),
+                          "缠绕安全外移三态 free/flipped/confined + 栅格外=自由（D-028 extend D-010）", "D-028"))
+        out.append(result("mesh_occ_ceil_shape", _occ_ceil_shape_ok(),
+                          f"立方体 occ.shape=({_RES},{_RES},{_RES})（ceil 无过冲，D-028 extend D-009）", "D-028"))
+    except Exception as e:
+        out.append(result("mesh_nudge_to_free", False, f"异常：{e}", "D-028"))
     return out
 
 
@@ -88,3 +120,21 @@ def test_gap_inaccessible():
     except ImportError as e:
         raise SkipTest(f"依赖未就绪：{e}")
     assert got == "inaccessible", f"窄间隙应不可达，实得 {got}"
+
+
+def test_nudge_to_free_three_state():
+    """缠绕安全外移三态：free/flipped(弃)/confined(留) + 栅格外=自由（D-028 extend D-010）。"""
+    try:
+        import numpy  # noqa: F401
+    except ImportError as e:
+        raise SkipTest(str(e))
+    assert _nudge_cases_ok()
+
+
+def test_occ_ceil_shape_no_overshoot():
+    """立方体 mesh → occ.shape 无 ceil 过冲（各轴=res，D-028 extend D-009）。"""
+    try:
+        import igl  # noqa: F401
+    except ImportError as e:
+        raise SkipTest(str(e))
+    assert _occ_ceil_shape_ok()

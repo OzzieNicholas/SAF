@@ -54,7 +54,8 @@
 | H2/E4 基线对照 | `test_baselines`（射线可见性=oracle@r=0；工具尺寸不可忽略 + 神经胜纯可见性/多数类；`src/…/baselines/`） |
 | H5 跨域（Thingi10K）| `test_thingi`（STL ascii/binary 解析 + 端到端物化；下朝面用 stored 法向、split 恒 test，`src/…/data/thingi.py`）|
 | D-022 D-020 野网格实现加固 + H5 接入采样上限 | `test_capsule`（precompute_equiv 逐比特 / degenerate_skip 零面积不崩）+ `test_thingi`（`_select_points` 确定性无偏子采样）|
-| D-024 方向级可达性场（E5，extend D-004）| `test_direction_field`（逐方向判定 + `any`==二分不变量 + 盲腔/开阔已知答案 + 模型 out_dim 方向头）|
+| D-024 方向级可达性场（E5，extend D-004）| `test_direction_field`（逐方向判定 + `any`==二分不变量 + 盲腔/开阔已知答案 + 模型 out_dim 方向头，torch 头仅 pytest 覆盖）|
+| D-028 网格前端加固（extend D-009/D-010：ingest 确定性 + ceil 修正 + 缠绕安全外移三态）| `test_mesh_frontend`（`mesh_nudge_to_free` free/flipped/confined 三态 + `mesh_occ_ceil_shape` 无过冲）|
 | D-025 标签有效性审核客观化（supersede D-018 机制）| `tools/audit_labels.py`（差分 robust/res-稳定/分布 → `label_audit`）+ `test_differential`/`test_capsule`/`test_label_quality` 守护各层 |
 | D-026 预算门 + 回归门激活 | `gate.py::budget_gate`（冻结 D0 外推 vs 上限）+ `gate.py::regression_gate` 读 `tools/regression_check.py` 产出（配对 bootstrap CI）|
 | 标签质量门（六项趋势·铁律#6）| `test_label_quality`（④半径趋势受限单调=D-008 收窄闭合 + ②批量分布；①②③⑤⑥ 分见 known_answers/differential/support_contact/data）|

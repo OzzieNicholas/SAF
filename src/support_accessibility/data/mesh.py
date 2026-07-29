@@ -72,11 +72,15 @@ def world_to_voxel(p, lo, pitch):
 
 
 def nudge_to_free(occ, c, n, nudge_world, lo, pitch):
-    """接触点沿外法向 +n 外移 nudge_world 到自由侧的体素坐标；若因缠绕致法向翻转、+n 落在实体内，
-    则改试 −n；两侧都在实体内 → None（跳过该面，不误标）。栅格外 = 自由（pad 区，保守同原行为）。
+    """接触点沿外法向 +n 外移 nudge_world 得体素查询点，按落点分**三态**（缠绕/窄隙安全，D-028 extend D-010）：
 
-    占据用 igl 广义缠绕数（对缠绕稳健），但下朝面法向用 np.cross（缠绕敏感）——翻面时 +n 指向实体内，
-    原实现会把落在实体里的点喂 oracle 而误判不可达。本守卫仅在该 bug 情形改动，clean CAD 上逐点等价原行为。
+      - "free"    ：+n 落自由/栅格外 → 返回该点。**常态，与旧 +n 口径逐点一致**。
+      - "confined"：+n 落实体 且 −n 也落实体 → 深窄槽/两体窄隙里的**真下朝面**（稀有不可达正类几何）→ 返回 +n 点
+                    （同旧口径、oracle 判不可达）——**不删最硬的正类样本**。
+      - "flipped" ：+n 落实体 但 −n 落自由 → 法向翻转（该面真外法向朝上、并非下朝面，被悬垂判据误纳 S(P,d)）→ 返回 None（**丢弃**）。
+
+    返回 (status, q|None)。占据用 igl 缠绕数（对缠绕稳健），法向用 np.cross（缠绕敏感），本三态桥接二者：
+    只丢弃"翻面"这一类伪下朝面（旧口径会把它当可达点误纳），confined/free 与旧口径一致。判据语义 D-001..D-005 未动。
     """
     import numpy as np
     occ = np.asarray(occ, bool)
@@ -84,16 +88,16 @@ def nudge_to_free(occ, c, n, nudge_world, lo, pitch):
     n = np.asarray(n, float)
 
     def _solid(q):
-        idx = tuple(int(np.floor(v + 0.5)) for v in q)          # 最近体素（同 oracle floor(c+.5) 约定）
+        idx = tuple(int(np.floor(v + 0.5)) for v in q)          # 最近体素（同 oracle floor(c+.5) 约定；显式界判避 numpy 负索引回绕）
         if all(0 <= idx[i] < occ.shape[i] for i in range(3)):
             return bool(occ[idx])
         return False                                            # 栅格外 = 自由（pad 区）
 
     q = world_to_voxel(c + n * nudge_world, lo, pitch)
     if not _solid(q):
-        return q
-    q2 = world_to_voxel(c - n * nudge_world, lo, pitch)         # +n 在实体内（法向翻转）→ 试 −n
-    return q2 if not _solid(q2) else None
+        return "free", q
+    q2 = world_to_voxel(c - n * nudge_world, lo, pitch)
+    return ("flipped", None) if not _solid(q2) else ("confined", q)
 
 
 # —— 两个真实网格已知答案件（构造即知）——

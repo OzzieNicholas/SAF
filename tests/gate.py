@@ -68,17 +68,20 @@ def regression_gate():
             r = json.load(f)
     except (OSError, ValueError) as e:
         return {"name": "regression", "status": PENDING, "detail": f"回归产出读失败：{e}"}
-    stamp = r.get("data_digest")                                     # 新鲜度：产物须对应当前数据（D-026）
-    if stamp is not None:
-        try:
-            from support_accessibility.eval import data_digest
-            cur = data_digest(os.path.join(_ROOT, "data", "processed", "fusion360_full"),
-                              os.path.join(_ROOT, "data", "processed", "procedural_v1"))
-            if stamp != cur:
-                return {"name": "regression", "status": PENDING,
-                        "detail": f"回归产出陈旧（数据摘要 {stamp}≠当前 {cur}）——重跑 `tools/regression_check.py`（D-026）"}
-        except ImportError:
-            pass
+    # 新鲜度（D-026 P5）：产物须自记数据摘要（缺=旧产物→PENDING）+ 数据根，与当前 manifest 一致（不匹配=数据已变→PENDING，诚实活检）
+    stamp = r.get("data_digest")
+    if stamp is None:
+        return {"name": "regression", "status": PENDING,
+                "detail": "回归产出无 data_digest（旧产物）——重跑 `tools/regression_check.py` 补新鲜度戳（D-026）"}
+    try:
+        from support_accessibility.eval import data_digest
+        roots = r.get("data_roots") or ["data/processed/fusion360_full", "data/processed/procedural_v1"]
+        cur = data_digest(*[os.path.join(_ROOT, rt) for rt in roots])
+        if stamp != cur:
+            return {"name": "regression", "status": PENDING,
+                    "detail": f"回归产出陈旧（数据摘要 {stamp}≠当前 {cur}）——重跑 `tools/regression_check.py`（D-026）"}
+    except ImportError:
+        pass
     ok = bool(r.get("diff_ci_low", -1) > 0)
     return {"name": "regression", "status": PASS if ok else "FAIL",
             "detail": f"神经 F1 {r.get('neural_f1')} vs 几何基线 {r.get('baseline_f1')}，模型级配对差 95%CI "

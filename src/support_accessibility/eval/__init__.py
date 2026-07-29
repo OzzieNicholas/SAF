@@ -40,17 +40,17 @@ def extrapolate_oracle_cost(per_dir_ms, n_models, points_per_model, n_directions
 
 
 def data_digest(*roots):
-    """输入数据集身份摘要（sha256 前 16 hex）：拼接各 root 的 dataset.json + manifest.csv 字节。
-    回归门用它判机器产物是否对应当前数据——不匹配 → 陈旧产物 → PENDING（防陈旧产物撑绿，D-026）。"""
+    """输入数据集身份摘要（sha256 前 16 hex）：**只哈希各 root 的 manifest.csv**（每件 n_points/n_inaccessible→标签变必现）。
+    刻意**排除 dataset.json**——它含 audit_labels 会改写的 label_audit/human_signoff，避免"跑审核使回归产物假陈旧"（D-026 P5）。
+    回归门据此判机器产物是否对应当前数据——不匹配 → 陈旧 → PENDING（防陈旧产物撑绿）。"""
     import hashlib
     import os
     h = hashlib.sha256()
     for root in roots:
-        for fn in ("dataset.json", "manifest.csv"):
-            p = os.path.join(root, fn)
-            if os.path.exists(p):
-                with open(p, "rb") as f:
-                    h.update(f.read())
+        p = os.path.join(root, "manifest.csv")
+        if os.path.exists(p):
+            with open(p, "rb") as f:
+                h.update(f.read())
     return h.hexdigest()[:16]
 
 

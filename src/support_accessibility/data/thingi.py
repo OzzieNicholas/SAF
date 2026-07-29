@@ -105,6 +105,7 @@ def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=48
     d = np.asarray(d, float); d = d / np.linalg.norm(d)
     thr = -np.cos(np.radians(overhang_deg))
     records = []
+    n_flip_total = 0
     for name, path in iter_thingi_meshes(root):
         if len(records) >= max_models:
             break
@@ -131,13 +132,17 @@ def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=48
             cm, nm = cm[sel], nm[sel]
         pts, labs = [], []
         for ci, ni in zip(cm, nm):
-            q = MESH.nudge_to_free(occ, ci, ni, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（同 fusion360）
-            if q is None:
+            status, q = MESH.nudge_to_free(occ, ci, ni, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（D-028）
+            if status == "flipped":
+                n_flip_total += 1
                 continue
             pts.append(q)
             labs.append(o.label(q, r).value == "inaccessible")
+        if not pts:                          # 全部翻转/无点 → 跳过（保 (K,3) 记录契约；D-028 P1）
+            continue
         rec = LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r))
         DS.save_model(rec, os.path.join(out_dir, DS._rel_npz(name)))
         records.append(rec)
-    _write_manifest(out_dir, records, "thingi10k", n_directions, seed, 0.0, 0.0, human_signoff=False)  # split 恒 test
+    _write_manifest(out_dir, records, "thingi10k", n_directions, seed, 0.0, 0.0,
+                    human_signoff=False, extra_meta={"nudge_discarded_flipped_normal": n_flip_total})  # split 恒 test
     return out_dir
