@@ -18,7 +18,7 @@
 | **消融** 形状上下文价值 | 四变体 不可达 F1 | no_shape **0.434** ≪ local(RF3) **0.859** < lite(RF7) **0.926** > pooled **0.803**（形状必需、中等 RF 最优；**设置=400 件子集/单种子/60 轮，与 H3 全量 5 折不可并比绝对值、仅作变体相对比较**） | Fusion 400 件，1 seed，60 epoch | `tools/eval_ablation.py` |
 | **标签审核**（D-025，命门） | 差分 robust / res-稳定 / 分布 | robust 差分不一致 **0.63%** / res48-96 稳定 **97.28%** / inacc 5.1%·两类件 18.1% | Fusion 160 采样点 / 10 件 res（新口径 nudge） | `tools/audit_labels.py --write --root …`；`gate.py::label_audit_gate` |
 | **回归门**（D-026） | 神经 vs 几何基线 配对 bootstrap CI | 神经 **0.916** vs 基线 **0.676**，配对差 95%CI **[0.338,0.527]>0** 显著胜 | Fusion 80 留出件，2000 bootstrap | `tools/regression_check.py`；`runs/regression/latest.json` |
-| **失败案例**（阶段8） | 留出件误判剖面 | 误判率 **4.2%**（FP 1.4% / FN 2.9%，**漏报为主**）；按可达方向数分箱：边界档 1–2 向 **12.5%**、3–5 向 **9.3%**，clear 档 **<4%**——误判集中在可达边界、随几何难度非随机 | Fusion both-class 400 件子集三切留出，seed 0 | `tools/failure_cases.py --max-models 400` |
+| **失败案例**（阶段8） | 留出件误判剖面 | 误判率 **4.7%±0.3%**（FP 1.4% / FN 3.3%，**漏报为主 FN>FP**）；按可达方向数分箱：勉强 1–2 向 **15.7%**、边界 3–5 向 **10.7%**（均 ≫ 开阔 ≥6 向 **3.9%** 与全挡 0 向 **2.9%**）——误判集中在可达边界、随几何难度非随机 | Fusion both-class 400 件子集三切留出（80 件/6033 点），5 seed 聚合 mean±std | `tools/failure_cases.py --max-models 400 --seeds 5` |
 | **预算门**（D-026） | 全量标签构建外推 | D0=0.0596ms → **0.69h ≤ 4h** | 40 件实测 D0 | `gate.py::budget_gate`（D-026） |
 
 ## 局限（论文诚实局限，均有据）
