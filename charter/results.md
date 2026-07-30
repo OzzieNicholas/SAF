@@ -3,22 +3,22 @@
 > 唯一的"假设/实验 → 指标 → 数值 → 样本 → 复现命令"之家。**权威数字以此为准**（`tools/` 复现器实测输出）；
 > 与 roadmap 早期散文估计不符处以本表为准（早期估计来自未追踪的探索脚本，已被提交复现器取代）。
 > 定性结论不变；数值经复现器校准。跑法用壳内激活（见 CLAUDE.md「怎么跑」）。冻结口径 = D-021（n_dir=128 等）。
-> **下表为 D-028 新网格前端口径**（缠绕安全外移三态 + ceil 修正 + ingest 确定性）**重物化 + 命门重签收后**的数字（旧口径数字见 git 历史）。
+> **下表为 D-028 新网格前端口径 + procedural@128 + E5 细化口径（已签收）**重物化/复跑后的定稿数字（旧口径数字见 git 历史）。
 
 | 假设/实验 | 指标 | 数值 | 样本 | 复现命令 / 产物 |
 |---|---|---|---|---|
 | **H1** 支撑面积⊥可达 | Spearman ρ(支撑面积【=下朝面计数代理，非真面积】 vs 不可达占比) | **0.264**（全群体）/ **−0.221**（两类件）——**弱相关**，支撑面积**不预示**可达性 | 8590 件 / 1553 两类 | `tools/eval_h1.py --data data/processed/fusion360_full` |
 | **E1** 面积⊥可达 存在性 | 同支撑面积、可达性相反 | 各 64 下朝点，可达 **100% vs 0%** | 旗舰对 2 件 | `data.flagship_pair`；`test_data::flagship_pair_area_perp_access` |
 | **H2** 工具尺寸不可忽略 | 射线可见但工具够不到 占比 | 真实 **4.86%** / 程序化 **29.25%**（非零→半径改变可达性） | Fusion 600 件 / 程序化 120 件（均 128 口径） | `tools/eval_h2.py` |
-| **H3** 跨模型预测 | 未见件 不可达 F1（vs 多数类/几何基线） | **0.882±0.011**（IoU 0.789；tiny numpy 0.75【旧口径未复测，复测器 `tools/eval_baselines.py`】；> E4 基线，见 E4 行） | Fusion both-class 1553，5-split CV | `tools/train_convonet.py --fusion data/processed/fusion360_full --seeds 5` |
-| **E4** 基线对照 | 几何基线 F1 | ray-visibility ≈ **0.676**（本机 80 留出件；跨域 OOD **0.655**） | 见 H3/H5/回归 | `tools/regression_check.py`（基线半）/ `tools/eval_h5.py` |
-| **H5** 跨域鲁棒 | 域内 vs OOD F1 | 域内 **0.888±0.009** / 跨域 Thingi **0.891±0.009**（掉幅 **−0.003**，OOD≈域内）> 基线 **0.655** | Fusion 留出 vs Thingi 137 both-class/40.9k 点，3 seed | `tools/eval_h5.py` |
-| **E5** 方向级可达性场 | per-dir F1 / dir-set IoU / 方向排序 | per-dir **0.890±0.006** / IoU **0.881** / Top-1 命中 **0.967**·Top-3 0.981·prec@3 0.961；复原点级二分 0.802；多数类基线 0.000 | Fusion 500 件，3 seed，n_dir→D=64 | `tools/eval_e5.py --data data/processed/fusion360_full --max-models 500` |
+| **H3** 跨模型预测 | 未见件 不可达 F1（vs 多数类/几何基线） | **0.886±0.012**（IoU 0.795；> E4 五基线，见 E4 行） | Fusion both-class 1553，5-split CV | `tools/train_convonet.py --fusion data/processed/fusion360_full --seeds 5` |
+| **E4** 基线对照（表5） | 五基线 不可达 F1（点级总体；80 留出件同一集） | 多数类 **0.000** / 局部规则 **0.317** / 射线可见性 **0.676** / tiny 局部 **0.851** / ConvONet **0.925**（零件级均值±std 见产物）；跨域射线 0.655 | Fusion 80 留出件（single seed；含零件级 std） | `tools/eval_baselines.py`；`runs/baselines/latest.json` |
+| **H5** 跨域鲁棒 | 域内 vs OOD F1 | 域内 **0.892±0.012** / 跨域 Thingi **0.895±0.009**（掉幅 **−0.003**，OOD≈域内）> 基线 **0.655** | Fusion 留出 vs Thingi 137 both-class/40.9k 点，3 seed | `tools/eval_h5.py` |
+| **E5** 方向级可达性场（**D-020 细化口径，已签收**） | per-dir F1 / dir-set IoU / 方向排序 | per-dir **0.902±0.004** / IoU **0.864** / Top-1 命中 **0.957**·Top-3 0.976·prec@3 0.952；复原点级二分 0.814；多数类基线 0.000；细化 occupancy_fallback=0 | Fusion 500 件，3 seed，n_dir→D=64 | `tools/eval_e5.py --data data/processed/fusion360_full --max-models 500 --root …`；`runs/e5/latest.json` |
 | **E8** 神经 vs oracle 效率 | 每点耗时比 | 神经 **~112×** 快（oracle ~3.97ms/点 vs 神经 ~0.035ms/点，含 GPU；oracle 仅计逐点 label、未含 EDT 预算→ speedup 为**下界**；量级示意，收窄见 §9.6） | Fusion 30 件/1323 点 | `tools/eval_e8.py` |
-| **消融** 形状上下文价值 | 四变体 不可达 F1 | no_shape **0.434** ≪ local(RF3) **0.866** < lite(RF7) **0.931** > pooled **0.816**（形状必需、中等 RF 最优；**设置=400 件子集/单种子/60 轮，与 H3 全量 5 折不可并比绝对值、仅作变体相对比较**） | Fusion 400 件，1 seed，60 epoch | `tools/eval_ablation.py` |
+| **消融** 形状上下文价值 | 四变体 不可达 F1 | no_shape **0.434** ≪ local(RF3) **0.859** < lite(RF7) **0.926** > pooled **0.803**（形状必需、中等 RF 最优；**设置=400 件子集/单种子/60 轮，与 H3 全量 5 折不可并比绝对值、仅作变体相对比较**） | Fusion 400 件，1 seed，60 epoch | `tools/eval_ablation.py` |
 | **标签审核**（D-025，命门） | 差分 robust / res-稳定 / 分布 | robust 差分不一致 **0.63%** / res48-96 稳定 **97.28%** / inacc 5.1%·两类件 18.1% | Fusion 160 采样点 / 10 件 res（新口径 nudge） | `tools/audit_labels.py --write --root …`；`gate.py::label_audit_gate` |
-| **回归门**（D-026） | 神经 vs 几何基线 配对 bootstrap CI | 神经 **0.893** vs 基线 **0.676**，配对差 95%CI **[0.285,0.488]>0** 显著胜 | Fusion 80 留出件，2000 bootstrap | `tools/regression_check.py`；`runs/regression/latest.json` |
-| **失败案例**（阶段8） | 留出件误判剖面 | 误判率 **5.2%**（FP 1.4% / FN 3.8%，**漏报为主**）；按可达方向数分箱：边界档 1–2 向 **15%**、3–5 向 **10.8%**，clear 档 **<5%**——误判集中在可达边界、随几何难度非随机 | Fusion both-class 400 件子集三切留出，seed 0 | `tools/failure_cases.py --max-models 400` |
+| **回归门**（D-026） | 神经 vs 几何基线 配对 bootstrap CI | 神经 **0.916** vs 基线 **0.676**，配对差 95%CI **[0.338,0.527]>0** 显著胜 | Fusion 80 留出件，2000 bootstrap | `tools/regression_check.py`；`runs/regression/latest.json` |
+| **失败案例**（阶段8） | 留出件误判剖面 | 误判率 **4.2%**（FP 1.4% / FN 2.9%，**漏报为主**）；按可达方向数分箱：边界档 1–2 向 **12.5%**、3–5 向 **9.3%**，clear 档 **<4%**——误判集中在可达边界、随几何难度非随机 | Fusion both-class 400 件子集三切留出，seed 0 | `tools/failure_cases.py --max-models 400` |
 | **预算门**（D-026） | 全量标签构建外推 | D0=0.0596ms → **0.69h ≤ 4h** | 40 件实测 D0 | `gate.py::budget_gate`（D-026） |
 
 ## 局限（论文诚实局限，均有据）
@@ -26,10 +26,10 @@
 - **代理非认证**：oracle 是几何可达性代理（语义 C），非物理/工艺认证；遮挡下界（只计零件本体，D-002）。
 - **标签噪声**：真实标签差分 robust 不一致 **0.63%**、res48↔96 稳定 **97.28%**（~2.7% 点跨分辨率翻）——已量化（D-025），非零。
 - **类别不平衡**：Fusion **82% 件全可达 / 仅 18% 两类件**（1553/8590）；不可达是稀有类（占比 5.1%）。
-- **H1 面积口径**：'支撑面积'实为**下朝面计数代理**（非真三角面积；面积均匀采样未实现，见 conf/params.yaml sampling 注 / D-028）。离线真面积对照（1500 件、**旧口径**标签）：真面积 ρ=**0.16**(全)/**0.11**(两类) **< 计数代理 0.27/0.26**——**H1"面积弱预测可达"在真面积下更成立、非代理伪影**；面积加权指标属未来工作；真面积对照复现器已入库（`tools/eval_true_area.py`，复现 D-028 三态剔除对齐点序）——新口径数据复算后更新本条 ρ。
-- **D-028 口径（已切换）**：`fusion360_full` 及上表全部数字已按 **D-028 新网格前端口径**重物化 + 命门重签收——缠绕安全外移三态弃 **11,573** 翻面伪下朝面点（旧 2.42%），both-class 1621→**1553**；thingi 弃 **4,321** 点、149→**137**；procedural 不受影响。相对旧口径 headline 主变化：**H3 0.910→0.882**（弃伪易样本后的诚实值），余稳（H1/H2/E5/E8/消融/H5 定性不变）。旧口径数字见 git 历史。
+- **H1 面积口径**：'支撑面积'实为**下朝面计数代理**（非真三角面积；面积均匀采样未实现，见 conf/params.yaml sampling 注 / D-028）。真面积对照（**全量 8590 件、新口径、0 对齐失败**，`tools/eval_true_area.py`）：真面积 ρ=**0.124**(全)/**−0.126**(两类) **< 计数代理 0.264/−0.221**——**H1"面积弱预测可达"在真面积下更成立、非代理伪影**；面积加权指标属未来工作。
+- **D-028 口径（已切换）**：`fusion360_full` 及上表全部数字已按 **D-028 新网格前端口径**重物化 + 命门重签收——缠绕安全外移三态弃 **11,573** 翻面伪下朝面点（旧 2.42%），both-class 1621→**1553**；thingi 弃 **4,321** 点、149→**137**；procedural 已切 128 口径。相对旧口径 headline 主变化：**H3 0.910(旧)→0.886**（弃伪易样本后诚实值 + procedural@128），余稳（H1/H2/E5/E8/消融/H5 定性不变）。旧口径数字见 git 历史。
 - **数据代表性**：Fusion 棱柱几何为主、无自由曲面；8625 设计中成功物化 8590 件。
 - **跨域子采样**：Thingi 每件 max_points=400 + max_faces=80000（D-022）——跨域指标是子采样无偏估计。
-- **E5 口径**：方向标签用**占据口径**（无 D-020 细化）；方向级标签若作 headline 训练源，**尚待作者签收**（D-024）；细化口径升级路径已就绪（`tools/eval_e5.py --root …` 走 D-020 细化方向目标，指引 §6.1-B1a）——重跑 + 作者签收后更新数字。
-- **辅助信号口径**：程序化 procedural_v1 用 **n_dir=32**（受控已知答案辅助信号，粗口径、略偏保守），与 Fusion 训练件的冻结 128 口径不同；混入训练（ftr+proc），但**所有 headline 指标皆在 128 口径的 Fusion/Thingi 测试集评估**，故影响有界。（`dvc.yaml` 已切 128：`dvc repro` 重建 + 复跑训练类复现器后本条即除。）
+- **E5 口径**：方向标签已升级 **D-020 边界带精确细化口径并签收**（`eval_e5 --root`：occupancy_fallback=0=全 500 件占据逐比特校验通过；agent 据客观证据、作者授权，D-024）；per-dir F1 0.902（细化口径），复原点级二分 0.814。
+- **辅助信号口径（已消除）**：程序化 procedural_v1 **已切 128 口径**（`dvc repro` 重建 + 训练类复现器复跑），与 Fusion 冻结 128 口径一致，原"32 口径辅助信号差异"已除。
 - **H4 应用价值 / E8 效率**：仅覆盖推理效率（E8）+ 方向场（E5）；半径扫描 / 工具条件插值属未来工作（docs/3 §14.3），非本工程。E8 的 ~112× 按 **docs/3 §9.6 收窄**为**训练后条件扫掠摊销的量级示意**——"神经比逐点几何快"本身非本文新发现，且比值含实现因素（oracle 侧为逐点 Python 循环）。
