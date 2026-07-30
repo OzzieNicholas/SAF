@@ -38,6 +38,7 @@ def main():
     ap.add_argument("--max-models", type=int, default=400, help="截取 fusion both-class 前 N 件（可解性）")
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seeds", type=int, default=5, help="训练种子数：按种子聚合误判分箱 mean±std（减小小样本噪声，稳住 FP/FN 与分箱结论）")
     ap.add_argument("--n-directions", type=int, default=128)
     ap.add_argument("--outdir", default=None, help="审计 PNG 输出目录（默认 scratch 内）")
     ap.add_argument("--top-audit", type=int, default=4)
@@ -64,45 +65,65 @@ def main():
         occ = torch.as_tensor(np.asarray(m.occ, np.float32)).view(1, 1, *m.occ.shape).to(dev)
         return occ, to_grid_coords(m.points, m.occ.shape).to(dev)
 
-    torch.manual_seed(a.seed)
-    net = ConvONetLite().to(dev)
-    opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
-    lossf = torch.nn.BCEWithLogitsLoss()
-    data = [(prep(m), torch.as_tensor(np.asarray(m.labels, np.float32)).to(dev)) for m in (ftr + proc)]
-    for _ in range(a.epochs):
-        for i in torch.randperm(len(data)):
-            (occ, gc), y = data[i]
-            opt.zero_grad(); lossf(net(occ, gc), y).backward(); opt.step()
-    net.eval()
-
-    # 留出集逐点：pred(不可达=1) vs gold + 每点 n_viable（难度代理）
-    all_pred, all_gold, all_nv = [], [], []
-    per_model = []                                              # (name, n_err, err_mask, model)
-    with torch.no_grad():
-        for m in fte:
-            occ, gc = prep(m)
-            pred = (torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy()
-            gold = np.asarray(m.labels, bool)
-            o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
-            nv = np.array([int(o.direction_labels(p, m.radius).sum()) for p in m.points])
-            err = pred != gold
-            all_pred.append(pred); all_gold.append(gold); all_nv.append(nv)
-            per_model.append((m.name, int(err.sum()), err, m))
-    P, G, NV = np.concatenate(all_pred), np.concatenate(all_gold), np.concatenate(all_nv)
-    err = P != G
-    fp = P & ~G                                                # 判不可达、实可达
-    fn = ~P & G                                                # 判可达、实不可达（漏报风险，最糟）
-
-    def rate(mask):
-        return round(float(err[mask].mean()), 3) if mask.any() else None
+    # oracle 每点 n_viable（难度代理）——**种子无关**，只算一次（昂贵的方向 ray-march；oracle 每件构一次复用 EDT）
+    def _nviable(m):
+        o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
+        return np.array([int(o.direction_labels(p, m.radius).sum()) for p in m.points])
+    nv_by = {m.name: _nviable(m) for m in fte}
+    NV = np.concatenate([nv_by[m.name] for m in fte])
+    G = np.concatenate([np.asarray(m.labels, bool) for m in fte])
     bins = {"0": NV == 0, "1-2": (NV >= 1) & (NV <= 2), "3-5": (NV >= 3) & (NV <= 5), "6+": NV >= 6}
 
-    # 审计 PNG：误判最多的 top-K 件（掩码=误判点）
+    def train_predict(seed):
+        """按种子从头训一个点级网络，返回留出集逐件预测。cudnn 确定；grid_sample 反向 CUDA 微噪由多种子聚合吸收。"""
+        np.random.seed(seed); torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        net = ConvONetLite().to(dev)
+        opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
+        lossf = torch.nn.BCEWithLogitsLoss()
+        data = [(prep(m), torch.as_tensor(np.asarray(m.labels, np.float32)).to(dev)) for m in (ftr + proc)]
+        for _ in range(a.epochs):
+            for i in torch.randperm(len(data)):
+                (occ, gc), y = data[i]
+                opt.zero_grad(); lossf(net(occ, gc), y).backward(); opt.step()
+        net.eval()
+        preds = {}
+        with torch.no_grad():
+            for m in fte:
+                occ, gc = prep(m)
+                preds[m.name] = (torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy()
+        return preds
+
+    seeds = list(range(a.seed, a.seed + a.seeds))
+    metrics, preds0 = [], None                                 # 逐种子标量 + 分箱率；preds0=首种子（审计/图10 定位）
+    for si in seeds:
+        preds = train_predict(si)
+        P = np.concatenate([preds[m.name] for m in fte])
+        err = P != G
+        rec = {"error": float(err.mean()), "fp": float((P & ~G).mean()), "fn": float((~P & G).mean()),
+               "f1": float(E.f1_inaccessible(P, G))}
+        for k, v in bins.items():
+            rec[f"bin_{k}"] = float(err[v].mean()) if v.any() else float("nan")
+        metrics.append(rec)
+        if si == seeds[0]:
+            preds0 = preds
+        print(f"seed{si} err={rec['error']:.3f} fp={rec['fp']:.3f} fn={rec['fn']:.3f} f1={rec['f1']:.3f}", flush=True)
+
+    def ms(key):
+        arr = np.array([r[key] for r in metrics], float)
+        return round(float(np.nanmean(arr)), 3), round(float(np.nanstd(arr)), 3)
+
+    # 首种子最糟件（审计 PNG + fig10 npz）
+    per_model0 = [(m.name, int((preds0[m.name] != np.asarray(m.labels, bool)).sum()),
+                   preds0[m.name] != np.asarray(m.labels, bool), m) for m in fte]
     outdir = a.outdir or os.path.join(_ROOT, "..", "runs", "failure_audit")
     emitted = []
     try:
         os.makedirs(outdir, exist_ok=True)
-        for name, ne, emask, m in sorted(per_model, key=lambda t: -t[1])[:a.top_audit]:
+        for name, ne, emask, m in sorted(per_model0, key=lambda t: -t[1])[:a.top_audit]:
             if ne == 0:
                 continue
             p = os.path.join(outdir, f"fail_{name}_{ne}err.png")
@@ -111,16 +132,31 @@ def main():
     except Exception as e:
         emitted = [f"(PNG 跳过：{str(e)[:50]})"]
 
-    print("FAILURE_ANALYSIS " + json.dumps({
-        "test_models": len(fte), "test_points": int(G.size),
-        "f1_inaccessible": round(E.f1_inaccessible(P, G), 3),
-        "error_rate": round(float(err.mean()), 3),
-        "false_pos_rate": round(float(fp.mean()), 3), "false_neg_rate": round(float(fn.mean()), 3),
+    err_m, err_s = ms("error"); fp_m, fp_s = ms("fp"); fn_m, fn_s = ms("fn"); f1_m, f1_s = ms("f1")
+    rep = {
+        "test_models": len(fte), "test_points": int(G.size), "seeds": a.seeds,
+        "f1_inaccessible": f1_m, "f1_inaccessible_std": f1_s,
+        "error_rate": err_m, "error_rate_std": err_s,
+        "false_pos_rate": fp_m, "false_pos_rate_std": fp_s,
+        "false_neg_rate": fn_m, "false_neg_rate_std": fn_s,
         "gold_inacc_frac": round(float(G.mean()), 3),
-        "error_rate_by_nviable": {k: rate(v) for k, v in bins.items()},
+        "error_rate_by_nviable": {k: ms(f"bin_{k}")[0] for k in bins},
+        "error_rate_by_nviable_std": {k: ms(f"bin_{k}")[1] for k in bins},
         "nviable_share": {k: round(float(v.mean()), 3) for k, v in bins.items()},
         "audit_pngs": emitted, "audit_dir": os.path.normpath(outdir),
-    }))
+    }
+    print("FAILURE_ANALYSIS " + json.dumps(rep))
+
+    # —— 图件数据落盘（附加，不改判定口径）：聚合 rep + 首种子最糟件逐点 FP/FN/n_viable，供 tools/figures/fig10 ——
+    try:
+        json.dump(rep, open(os.path.join(outdir, "failure.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=1)
+        wname, _wne, _wmask, wm = max(per_model0, key=lambda t: t[1])
+        wp = preds0[wname]; wg = np.asarray(wm.labels, bool)
+        np.savez(os.path.join(outdir, "fig10_worst.npz"), name=wname, points=wm.points,
+                 fp=(wp & ~wg), fn=(~wp & wg), gold=wg, nviable=nv_by[wname])
+    except Exception as e:
+        print(f"(fig10 数据落盘跳过：{str(e)[:80]})", flush=True)
 
 
 if __name__ == "__main__":
