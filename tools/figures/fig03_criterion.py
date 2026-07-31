@@ -1,104 +1,130 @@
 #!/usr/bin/env python3
-"""图 3 可达性判据示意（写作指引 §3.2 / 图3）：2D 剖面三联。
-
-(a) 开阔下朝面——工具球沿某方向直线可达；
-(b) 盲腔（再入腔）——任意方向直线均碰撞 → 不可达；
-(c) 窄缝——同一点 r=0 射线可见、半径 r 球进不去 → 工具尺寸效应（呼应 5.2）。
-球、射线、碰撞点显式画出。纯示意（matplotlib 矢量 PDF）。用法：conda run -n saf python tools/figures/fig03_criterion.py
-"""
+"""图 3 球工具直线逼近的几何可达性判据。"""
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import style as S  # noqa: E402
-import numpy as np  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Circle, Polygon, FancyArrowPatch  # noqa: E402
-
-SOLID = "#C9CDD4"
-SOLID_E = "#8A8A8A"
+from matplotlib.patches import Circle, FancyArrowPatch, Polygon, Rectangle  # noqa: E402
 
 
-def _solid(ax, pts):
-    ax.add_patch(Polygon(pts, closed=True, fc=SOLID, ec=SOLID_E, lw=1.2, zorder=1))
+SOLID = "#D4D7DA"
+EDGE = "#687177"
+INK = "#263238"
+ACC_FILL = "#DCEAF5"
+INACC_FILL = "#F3DDD9"
 
 
-def _cut(ax, pts):
-    """白色挖去（腔/缝）——盖在实体上模拟布尔差。"""
-    ax.add_patch(Polygon(pts, closed=True, fc="white", ec=SOLID_E, lw=1.2, zorder=2))
+def _solid(ax, points):
+    ax.add_patch(Polygon(points, closed=True, fc=SOLID, ec=EDGE, lw=1.0, zorder=1))
 
 
-def _pt(ax, xy, lab="p", dx=0.18, dy=-0.16):
-    ax.scatter([xy[0]], [xy[1]], s=42, color="black", zorder=6)
-    ax.text(xy[0] + dx, xy[1] + dy, lab, fontsize=11, zorder=6, style="italic")
+def _cut(ax, points):
+    ax.add_patch(Polygon(points, closed=True, fc="white", ec=EDGE, lw=1.0, zorder=2))
 
 
-def _ray(ax, xy0, xy1, color, style="--", lw=1.5):
-    ax.add_patch(FancyArrowPatch(xy0, xy1, arrowstyle="-|>", mutation_scale=12,
-                                 lw=lw, color=color, linestyle=style, zorder=5))
+def _point(ax, p, offset=(0.14, 0.14)):
+    ax.scatter(*p, s=32, color=INK, edgecolors="white", linewidths=0.5, zorder=8)
+    ax.text(p[0] + offset[0], p[1] + offset[1], "$p$", fontsize=10.5, color=INK, zorder=9)
 
 
-def _hit(ax, xy):
-    ax.scatter([xy[0]], [xy[1]], marker="x", s=80, color=S.INACC, lw=2.4, zorder=7)
+def _arrow(ax, start, end, color, ls="-", lw=1.35, alpha=1.0):
+    ax.add_patch(FancyArrowPatch(start, end, arrowstyle="-|>", mutation_scale=10, color=color,
+                                 lw=lw, linestyle=ls, alpha=alpha, zorder=6))
 
 
-def _ball(ax, c, r, ec, fc):
-    ax.add_patch(Circle(c, r, fc=fc, ec=ec, lw=1.6, alpha=0.85, zorder=4))
-    ax.scatter([c[0]], [c[1]], s=10, color=ec, zorder=5)
+def _ball(ax, center, r, color, fill, alpha=0.82):
+    ax.add_patch(Circle(center, r, fc=fill, ec=color, lw=1.25, alpha=alpha, zorder=5))
+    ax.scatter(*center, s=8, color=color, zorder=6)
 
 
-def panel_a(ax):
-    """开阔下朝面：立柱 + 顶板悬臂，下方开阔；球自下逼近可达。"""
-    _solid(ax, [(0, 0), (1.4, 0), (1.4, 4.4), (0, 4.4)])           # 立柱
-    _solid(ax, [(0, 3.6), (6.4, 3.6), (6.4, 4.4), (0, 4.4)])       # 顶板
-    p = (4.3, 3.6)
-    r = 0.62
-    _ray(ax, (5.7, 0.3), (p[0] + 0.34, p[1] - 0.95 + r), S.ACC, lw=1.7)  # 逼近方向 v
-    _ball(ax, (p[0], p[1] - r), r, S.ACC, "#CFE0F0")
-    _pt(ax, p, "p", dx=0.14, dy=0.16)
-    ax.annotate("逼近方向 v", (5.2, 1.15), fontsize=9.5, color=S.ACC, rotation=32)
-    ax.annotate("工具球 (半径 r)", (p[0] - 0.2, p[1] - 2 * r - 0.42), fontsize=9, ha="center")
-    ax.set_title("(a) 开阔下朝面：存在方向 v 直线可达 → 可达", fontsize=10, color=S.ACC)
-    ax.set_xlim(-0.5, 7.2); ax.set_ylim(-0.4, 5.4)
+def _hit(ax, p):
+    ax.scatter(*p, marker="x", s=58, color=S.INACC, linewidths=1.8, zorder=8)
 
 
-def panel_b(ax):
-    """盲腔（L 形再入腔）：p 在水平腔右端下朝顶，任意直线均穿实体。"""
-    _solid(ax, [(0, 0), (7.2, 0), (7.2, 5.4), (0, 5.4)])
-    _cut(ax, [(1.0, 0), (2.4, 0), (2.4, 3.0), (6.2, 3.0), (6.2, 4.1), (1.0, 4.1)])  # L 腔（竖臂+横臂）
-    p = (5.6, 4.1)
-    _pt(ax, p, "p", dx=0.02, dy=0.22)
-    for tgt, hit in [((5.6, 3.0), (5.6, 3.0)), ((3.2, 0.0), (2.75, 2.55)), ((6.6, 2.2), (6.2, 3.35))]:
-        _ray(ax, p, tgt, "#B0562A", style=(0, (4, 2)), lw=1.4)
+def _badge(ax, text, color):
+    ax.text(0.04, 0.91, text, transform=ax.transAxes, fontsize=7.5, weight="bold", color=color,
+            bbox=dict(boxstyle="round,pad=0.28", fc="white", ec=color, lw=0.8))
+
+
+def panel_open(ax):
+    _solid(ax, [(0, 0), (1.25, 0), (1.25, 4.4), (0, 4.4)])
+    _solid(ax, [(0, 3.65), (6.5, 3.65), (6.5, 4.4), (0, 4.4)])
+    p = (4.4, 3.65)
+    r = 0.55
+    centers = [(p[0] + 1.2, p[1] - 2.8), (p[0] + 0.78, p[1] - 1.88), (p[0] + 0.36, p[1] - 0.95)]
+    for c, alpha in zip(centers, (0.22, 0.38, 0.62)):
+        _ball(ax, c, r, S.ACC, ACC_FILL, alpha)
+    _arrow(ax, (5.9, 0.25), (p[0] + 0.08, p[1] - 0.18), S.ACC, lw=1.7)
+    _ball(ax, (p[0], p[1] - r), r, S.ACC, ACC_FILL, 0.95)
+    _point(ax, p)
+    ax.text(4.95, 1.42, r"存在 $\mathbf{v}$", fontsize=8.5, color=S.ACC, rotation=27)
+    ax.text(4.40, 2.55, "$r$", fontsize=8, color=S.ACC, ha="center")
+    _badge(ax, "EXISTS", S.ACC)
+    ax.set_title("(a) 开阔下朝面", loc="left", fontsize=10, weight="bold", color=INK)
+    ax.text(0.03, 0.035, r"$\exists\,\mathbf{v}$：扫掠球不碰撞", transform=ax.transAxes,
+            fontsize=8.2, color=S.ACC, weight="bold")
+
+
+def panel_blind(ax):
+    _solid(ax, [(0, 0), (7.2, 0), (7.2, 5.0), (0, 5.0)])
+    _cut(ax, [(0.85, 0), (2.15, 0), (2.15, 2.75), (6.18, 2.75), (6.18, 3.85), (0.85, 3.85)])
+    p = (5.55, 3.85)
+    _point(ax, p, (0.08, 0.17))
+    paths = [((5.55, 3.85), (5.55, 2.84), (5.55, 2.75)),
+             ((5.55, 3.85), (2.55, 0.20), (2.18, 2.75)),
+             ((5.55, 3.85), (6.78, 2.00), (6.18, 2.92))]
+    for start, end, hit in paths:
+        _arrow(ax, start, end, S.INACC, ls=(0, (3, 2)), lw=1.2)
         _hit(ax, hit)
-    ax.annotate("各方向均碰撞 ×", (3.0, 1.15), fontsize=9.5, color=S.INACC)
-    ax.set_title("(b) 盲腔：任意方向直线均碰撞 → 不可达", fontsize=10, color=S.INACC)
-    ax.set_xlim(-0.5, 7.7); ax.set_ylim(-0.4, 5.9)
+    _ball(ax, (5.55, 3.15), 0.45, S.INACC, INACC_FILL, 0.72)
+    ax.text(3.0, 1.0, "所有采样逼近方向\n均与零件相交", fontsize=8.3, color=S.INACC, ha="center")
+    _badge(ax, "FOR ALL", S.INACC)
+    ax.set_title("(b) 盲腔 / 再入几何", loc="left", fontsize=10, weight="bold", color=INK)
+    ax.text(0.03, 0.035, r"$\forall\,\mathbf{v}$：扫掠球发生碰撞", transform=ax.transAxes,
+            fontsize=8.2, color=S.INACC, weight="bold")
 
 
-def panel_c(ax):
-    """窄缝：自底开的窄槽（宽<2r），p 在槽顶下朝面。r=0 射线可见，半径 r 球卡在缝口。"""
-    w = 0.62
-    _solid(ax, [(0, 0), (7.2, 0), (7.2, 5.4), (0, 5.4)])
-    _cut(ax, [(3.6 - w / 2, 0), (3.6 + w / 2, 0), (3.6 + w / 2, 3.4), (3.6 - w / 2, 3.4)])  # 窄槽
-    p = (3.6, 3.4)
-    _pt(ax, p, "p", dx=0.22, dy=0.06)
-    _ray(ax, (3.6, -0.3), (3.6, 3.15), S.ACC, style=(0, (2, 2)), lw=1.4)   # r=0 射线
-    ax.annotate("r=0 射线可见", (3.85, 1.0), fontsize=9, color=S.ACC)
+def panel_slot(ax):
+    w, cx = 0.78, 3.6
+    _solid(ax, [(0, 0), (7.2, 0), (7.2, 5.0), (0, 5.0)])
+    _cut(ax, [(cx - w / 2, 0), (cx + w / 2, 0), (cx + w / 2, 3.45), (cx - w / 2, 3.45)])
+    p = (cx, 3.45)
+    _point(ax, p, (0.18, 0.10))
+    _arrow(ax, (cx, -0.20), (cx, 3.22), S.ACC, ls=(0, (2, 2)), lw=1.3)
+    ax.text(cx + 0.20, 2.15, "$r=0$ 射线", fontsize=8.2, color=S.ACC, rotation=90, va="center")
     r = 0.62
-    _ball(ax, (3.6, -0.05 + r), r, S.INACC, "#F3D6D0")                     # 球卡缝口
-    _hit(ax, (3.6 - w / 2, 0.6)); _hit(ax, (3.6 + w / 2, 0.6))
-    ax.annotate("半径 r 球卡在缝口\n（缝宽 < 2r）", (3.6, -0.15 + 2 * r + 0.3), fontsize=9,
-                ha="center", color=S.INACC)
-    ax.set_title("(c) 窄缝：射线可见但工具进不去 → 工具尺寸效应", fontsize=10, color=S.INACC)
-    ax.set_xlim(-0.5, 7.7); ax.set_ylim(-0.5, 5.9)
+    _ball(ax, (cx, r - 0.02), r, S.INACC, INACC_FILL, 0.92)
+    _hit(ax, (cx - w / 2, 0.56))
+    _hit(ax, (cx + w / 2, 0.56))
+    ax.annotate("缝宽 < 2r", xy=(cx - w / 2, 1.38), xytext=(cx + 1.0, 1.50),
+                fontsize=8.3, color=S.INACC,
+                arrowprops=dict(arrowstyle="-[,widthB=2.0", color=S.INACC, lw=1.0))
+    _badge(ax, "FINITE SIZE", S.INACC)
+    ax.set_title("(c) 窄缝", loc="left", fontsize=10, weight="bold", color=INK)
+    ax.text(0.03, 0.035, "射线可见，但有限半径工具不可达", transform=ax.transAxes,
+            fontsize=8.2, color=S.INACC, weight="bold")
 
 
 def main():
-    fig, axes = plt.subplots(1, 3, figsize=(11.4, 3.9))
-    panel_a(axes[0]); panel_b(axes[1]); panel_c(axes[2])
-    for ax in axes:
-        ax.set_aspect("equal"); ax.axis("off")
+    fig, axes = plt.subplots(1, 3, figsize=(11.4, 4.35), gridspec_kw={"wspace": 0.08})
+    for fn, ax in zip((panel_open, panel_blind, panel_slot), axes):
+        fn(ax)
+        ax.set_xlim(-0.35, 7.45)
+        ax.set_ylim(-0.45, 5.35)
+        ax.set_aspect("equal")
+        ax.axis("off")
+
+    fig.suptitle("可达性是有限尺寸工具的无碰撞直线逼近问题", x=0.055, y=0.995,
+                 ha="left", fontsize=13, weight="bold", color=INK)
+    fig.text(0.055, 0.925,
+             r"点 $p$ 可达 $\Longleftrightarrow$ 存在下半球方向 $\mathbf{v}$，半径 $r$ 的球从外部沿直线逼近 $p$ 且不与零件相交",
+             fontsize=8.5, color=S.NEUTRAL)
+    fig.add_artist(Rectangle((0.055, 0.015), 0.89, 0.055, transform=fig.transFigure,
+                             fc="#F4F5F5", ec="none", zorder=-1))
+    fig.text(0.50, 0.042, "几何代理仅建模零件遮挡；不建模基板、刀柄、姿态连续性或工艺可实施性",
+             ha="center", va="center", fontsize=7.3, color=S.NEUTRAL)
     print("SAVED", S.save(fig, "fig03_criterion"))
 
 

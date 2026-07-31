@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""图 10 失败案例分析（写作指引 §5.6 / 图10）：双联。
+"""图 10 失败案例分析（写作指引 §5.6 / 图10）：边界证据复合图。
 
 (a) 误判率 vs 每点可达方向数分箱柱状（0 / 1–2 / 3–5 / ≥6）——误判集中在 1–5「勉强可达」边界档；
-(b) 误判最多件 3D 渲染，误判点高亮：假负 FN（漏报不可达，红，最糟）/ 假正 FP（误报，橙）。
+(a) 同时展示各难度档样本占比；(b) 误判最多件 3D 渲染，FN（漏报不可达）/ FP 高亮。
 数据源 = runs/failure_audit/{failure.json, fig10_worst.npz}（tools/failure_cases.py --max-models 400 产出，
 与 results.md 失败案例行同源）。用法：conda run -n saf python tools/figures/fig10_failure.py [--root ...]
 """
@@ -38,10 +38,11 @@ def main():
     cols = [S.INACC if k in hot else S.NEUTRAL for k, _ in order]
     seeds = rep.get("seeds", 1)
 
-    fig = plt.figure(figsize=(9.6, 3.9))
-    gs = fig.add_gridspec(1, 2, width_ratios=[1.05, 1.0], wspace=0.16, left=0.08, right=0.98, top=0.9, bottom=0.14)
+    fig = plt.figure(figsize=(10.2, 4.5))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.08, 1.0], height_ratios=[1.0, 0.32],
+                          wspace=0.16, hspace=0.08, left=0.075, right=0.98, top=0.9, bottom=0.13)
 
-    ax = fig.add_subplot(gs[0])
+    ax = fig.add_subplot(gs[0, 0])
     bars = ax.bar(labs, vals, color=cols, width=0.68, yerr=errs, capsize=3,
                   error_kw={"elinewidth": 0.9, "ecolor": "#555", "alpha": 0.8})
     for r, v, e in zip(bars, vals, errs):
@@ -53,19 +54,31 @@ def main():
     ax.set_ylim(0, max(v + e for v, e in zip(vals, errs)) * 1.3 + 1)
     fpm, fnm = 100 * rep["false_pos_rate"], 100 * rep["false_neg_rate"]
     fps, fns = 100 * rep.get("false_pos_rate_std", 0), 100 * rep.get("false_neg_rate_std", 0)
-    ax.set_title(f"(a) 误判随几何难度分布（{seeds} 种子；FP {fpm:.1f}±{fps:.1f}% / FN {fnm:.1f}±{fns:.1f}%）",
+    ax.fill_between([0.5, 2.5], 0, 1, transform=ax.get_xaxis_transform(), color="#F9E7E4", alpha=0.65, zorder=0)
+    ax.text(1.5, 0.98, "边界带", transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=8, color=S.INACC)
+    ax.set_title(f"(a) 误判边界（{seeds} 种子；FP {fpm:.1f}±{fps:.1f}% / FN {fnm:.1f}±{fns:.1f}%）",
                  fontsize=9.5)
     ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
 
-    axb = fig.add_subplot(gs[1])
+    axd = fig.add_subplot(gs[1, 0])
+    shares = [100 * rep.get("nviable_share", {}).get(k, 0) for k, _ in order]
+    axd.bar(range(4), shares, color=[S.NEUTRAL, S.INACC, S.INACC, S.NEUTRAL], alpha=0.72)
+    axd.set_xticks(range(4), labs); axd.set_ylim(0, max(shares) * 1.35)
+    axd.set_ylabel("点占比 (%)", fontsize=8); axd.set_title("难度分布：边界点虽少，贡献不成比例", fontsize=8.5)
+    for i, v in enumerate(shares): axd.text(i, v + 1, f"{v:.1f}", ha="center", fontsize=7.5)
+
+    axb = fig.add_subplot(gs[:, 1])
     npz = np.load(os.path.join(_AUD, "fig10_worst.npz"), allow_pickle=True)
     name = str(npz["name"])
     Vn, F, _o, lo, pitch = D.load_fusion_mesh(name, a.root)
     img = D.render_fp_fn_arr(Vn, F, npz["points"], npz["fp"], npz["fn"], lo, pitch, zoom=1.5)
     axb.imshow(img); axb.axis("off")
     nfp, nfn = int(npz["fp"].sum()), int(npz["fn"].sum())
-    axb.set_title(f"(b) 误判最多件（FN {nfn} · FP {nfp}）", fontsize=10)
-    axb.legend(handles=[Patch(color=S.INACC, label="假负 FN（漏报不可达）"),
+    nv = np.asarray(npz["nviable"]) if "nviable" in npz.files else np.zeros(len(npz["points"]))
+    err_nv = nv[np.asarray(npz["fp"], bool) | np.asarray(npz["fn"], bool)]
+    med_nv = float(np.median(err_nv)) if err_nv.size else 0.0
+    axb.set_title(f"(b) 误判最多件：边界点定位\nFN {nfn} · FP {nfp} · 误判点 n_viable 中位数 {med_nv:.0f}", fontsize=10)
+    axb.legend(handles=[Patch(color=S.FN, label="假负 FN（漏报不可达）"),
                         Patch(color=S.ORANGE, label="假正 FP（误报）"),
                         Patch(color=(0.62, 0.64, 0.67), label="判对")],
                loc="lower center", bbox_to_anchor=(0.5, -0.14), ncol=3, frameon=False, fontsize=8.3)

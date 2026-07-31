@@ -1,7 +1,7 @@
 # 论文图件流水线（paper/figures/）
 
-写作指引 §4.1 的 10 幅图，脚本在此目录，产物 PNG(300dpi) + PDF(矢量) 落 `paper/figures/`。
-统一样式见 `style.py`（中文 SimHei、配色语义 **不可达=红/可达=蓝/不确定=灰**、离屏 pyvista 主题）；
+写作指引 §4.1 的 10 幅图，脚本在此目录，产物 PNG(600dpi) + 字体嵌入 PDF 落 `paper/figures/`。
+统一样式见 `style.py`（中文字体、配色语义 **不可达=红/可达=蓝/不确定=灰/FN=紫/FP=橙**、正交 CAD 离屏主题）；
 数据/渲染助手见 `_data.py`。所有依赖真实数据/模型的图均可由脚本从数据集 + 缓存 checkpoint 复现。
 
 ## 依赖
@@ -47,5 +47,5 @@ done
 ## 注记
 
 - 配色红线（写作指引 §1.2）：不可达=红、可达=蓝、不确定=灰（红绿色盲友好）；图2 支撑接触区高亮用橙（避开红/蓝语义）。
-- 图7/9 的 checkpoint 为**图件专用**（子集/较短训练，出可读预测即可，非 benchmark）；主指标以 `results.md` / `runs/` 正式评测为准。
+- 图7/9 的 checkpoint 为**图件专用**（子集/较短训练，出可读预测即可，非 benchmark）；主指标以 `results.md` / `runs/` 正式评测为准。图9在提供 Fusion 原网格根且占据逐比特一致时使用 D-020 精确细化，否则会在图中明确标注占据回落。
 - 图10 的失败分箱由 `failure_cases.py` 计算（cuDNN 非确定，逐次训练略有浮动）；图与 `results.md` 失败案例行同源，数值以最近一次 emit 的 `runs/failure_audit/failure.json` 为准。

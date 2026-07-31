@@ -26,6 +26,24 @@ def voxel_surface(occ):
         return g.threshold(0.5, scalars="occ").extract_surface()
 
 
+def _finish_camera(plotter, cpos, zoom, azimuth=0.0, elevation=0.0):
+    """统一论文 CAD 相机：正交投影消除跨面板透视差，并应用固定视角变换。"""
+    plotter.camera_position = cpos
+    if azimuth:
+        plotter.camera.azimuth += azimuth
+    if elevation:
+        plotter.camera.elevation += elevation
+    plotter.enable_parallel_projection()
+    plotter.camera.zoom(zoom)
+
+
+def _add_part(plotter, surface, color, opacity, smooth=True):
+    """克制的工作室材质：浅灰主体、低高光、细轮廓，兼顾形体和数据覆盖层。"""
+    plotter.add_mesh(surface, color=color, smooth_shading=smooth, show_edges=False,
+                     opacity=opacity, ambient=0.42, diffuse=0.54, specular=0.14,
+                     specular_power=18)
+
+
 def render_voxel_arr(occ, points, labels, cpos="iso", zoom=1.3, psize=22, opacity=0.32,
                      azimuth=0.0, elevation=0.0, wsize=(900, 840)):
     """渲染程序化件（占据体素**半透明**表面 + 接触点球，红=不可达/蓝=可达）→ (H,W,3) uint8 数组。
@@ -35,20 +53,14 @@ def render_voxel_arr(occ, points, labels, cpos="iso", zoom=1.3, psize=22, opacit
     pv = S.pv_theme()
     surf = voxel_surface(occ)
     p = pv.Plotter(off_screen=True, window_size=wsize)
-    p.add_mesh(surf, color=S.PART_RGB, smooth_shading=False, show_edges=False,
-               opacity=opacity, ambient=0.4, diffuse=0.6)
+    _add_part(p, surf, S.PART_RGB, opacity, smooth=False)
     pts = np.asarray(points, float)
     lab = np.asarray(labels, bool)
     if (~lab).any():
         p.add_points(pts[~lab], color=S.ACC_RGB, render_points_as_spheres=True, point_size=psize)
     if lab.any():
         p.add_points(pts[lab], color=S.INACC_RGB, render_points_as_spheres=True, point_size=psize)
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -66,17 +78,11 @@ def render_mesh_arr(Vn, F, points_vox, colors_rgb, lo, pitch, cpos="iso", zoom=1
     surf = pv.PolyData(np.asarray(Vn, float), faces)
     pw = np.asarray(lo, float) + (np.asarray(points_vox, float) + 0.5) * float(pitch)   # 体素→世界（world_to_voxel 逆）
     p = pv.Plotter(off_screen=True, window_size=wsize)
-    p.add_mesh(surf, color=S.PART_RGB, smooth_shading=True, show_edges=False,
-               opacity=opacity, ambient=0.35, diffuse=0.65, specular=0.1)
+    _add_part(p, surf, S.PART_RGB, opacity)
     cloud = pv.PolyData(pw)
     cloud["rgb"] = (np.asarray(colors_rgb, float) * 255).astype(np.uint8)
     p.add_points(cloud, scalars="rgb", rgb=True, render_points_as_spheres=True, point_size=psize)
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -91,14 +97,8 @@ def render_mesh_plain(Vn, F, lo, pitch, cpos="iso", zoom=1.3, opacity=0.98, azim
     faces = np.hstack([np.full((len(F), 1), 3), np.asarray(F)]).astype(np.int64).ravel()
     surf = pv.PolyData(np.asarray(Vn, float), faces)
     p = pv.Plotter(off_screen=True, window_size=wsize)
-    p.add_mesh(surf, color=S.PART_RGB, smooth_shading=True, show_edges=False,
-               opacity=opacity, ambient=0.32, diffuse=0.7, specular=0.18)
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _add_part(p, surf, S.PART_RGB, opacity)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -130,12 +130,7 @@ def render_mesh_faces_arr(Vn, F, hi_idx, d=None, cpos="iso", zoom=1.3, hi_rgb=(0
         tail = c + d * 0.62 * diag
         p.add_mesh(pv.Arrow(start=tail, direction=d, scale=0.42 * diag, tip_length=0.32,
                             tip_radius=0.09, shaft_radius=0.035), color="black")
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -164,12 +159,7 @@ def render_contact_region_arr(Vn, F, pts_world, d=None, cpos="iso", zoom=1.3, hi
         tail = c + d * 0.62 * diag
         p.add_mesh(pv.Arrow(start=tail, direction=d, scale=0.42 * diag, tip_length=0.32,
                             tip_radius=0.09, shaft_radius=0.035), color="black")
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -194,13 +184,8 @@ def render_fp_fn_arr(Vn, F, points_vox, fp, fn, lo, pitch, cpos="iso", zoom=1.4,
     if fp.any():
         p.add_points(pw[fp], color=S.ORANGE, render_points_as_spheres=True, point_size=17)
     if fn.any():
-        p.add_points(pw[fn], color=S.INACC, render_points_as_spheres=True, point_size=20)
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+        p.add_points(pw[fn], color=S.FN, render_points_as_spheres=True, point_size=20)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr
@@ -225,12 +210,7 @@ def render_dir_arrow_arr(Vn, F, p_world, direction, cpos="iso", zoom=1.5, opacit
     p.add_mesh(pv.Arrow(start=tail, direction=d, scale=0.5 * diag, tip_length=0.28,
                         tip_radius=0.07, shaft_radius=0.028), color=arrow_rgb)
     p.add_points(pw.reshape(1, 3), color="black", render_points_as_spheres=True, point_size=20)
-    p.camera_position = cpos
-    if azimuth:
-        p.camera.azimuth += azimuth
-    if elevation:
-        p.camera.elevation += elevation
-    p.camera.zoom(zoom)
+    _finish_camera(p, cpos, zoom, azimuth, elevation)
     arr = p.screenshot(return_img=True)
     p.close()
     return arr

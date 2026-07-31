@@ -1,7 +1,7 @@
-"""论文图件统一样式（tools/figures/*）——中文字体 + 配色 + 300dpi + 保存助手 + pyvista 离屏主题。
+"""论文图件统一样式：出版尺寸、字体嵌入、科学配色与离屏 CAD 渲染。
 
 配色红线（写作指引 §1.2 决定点）：**不可达 = 红、可达 = 蓝、不确定 = 灰**（红绿色盲友好）。
-输出到 paper/figures/：每图存 PNG(300dpi 位图) + PDF(矢量)。中文用 SimHei（Windows）。
+输出到 paper/figures/：每图存 PNG(600 dpi) + 字体嵌入 PDF。中文优先微软雅黑。
 """
 import os
 
@@ -12,9 +12,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 
-# —— 中文字体（Windows SimHei 优先，回落 msyh）——
+# —— 中文字体：微软雅黑的小字号印刷效果优于黑体，缺失时再回落 ——
 _FONTNAME = "sans-serif"
-for _p in ("C:/Windows/Fonts/simhei.ttf", "C:/Windows/Fonts/msyh.ttc"):
+for _p in ("C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf"):
     if os.path.exists(_p):
         fm.fontManager.addfont(_p)
         _FONTNAME = fm.FontProperties(fname=_p).get_name()
@@ -23,11 +23,15 @@ for _p in ("C:/Windows/Fonts/simhei.ttf", "C:/Windows/Fonts/msyh.ttc"):
 plt.rcParams.update({
     "font.family": _FONTNAME,
     "axes.unicode_minus": False,
-    "figure.dpi": 300, "savefig.dpi": 300,
-    "font.size": 10, "axes.titlesize": 11, "axes.labelsize": 10,
-    "xtick.labelsize": 9, "ytick.labelsize": 9, "legend.fontsize": 9,
+    "figure.dpi": 180, "savefig.dpi": 600,
+    "pdf.fonttype": 42, "ps.fonttype": 42,
+    "font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
+    "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
     "axes.spines.top": False, "axes.spines.right": False,
-    "axes.linewidth": 0.8, "lines.linewidth": 1.6,
+    "axes.linewidth": 0.75, "lines.linewidth": 1.4,
+    "axes.titleweight": "bold",
+    "axes.facecolor": "#FCFCFB", "figure.facecolor": "white",
+    "grid.color": "#D9D9D6", "grid.linewidth": 0.55, "grid.alpha": 0.55,
 })
 
 # —— 配色（语义固定）——
@@ -37,6 +41,9 @@ UNC = "#8A8A8A"      # 不确定 / 边界 = 灰
 NEUTRAL = "#6E6E6E"
 GREEN = "#4E9A63"
 ORANGE = "#DD8452"
+FN = "#7A3E9D"       # 漏报不可达：与“真实不可达”红分离，避免一色多义
+INK = "#20252B"
+PAPER = "#FCFCFB"
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTDIR = os.path.join(_ROOT, "paper", "figures")
@@ -44,10 +51,12 @@ os.makedirs(OUTDIR, exist_ok=True)
 
 
 def save(fig, name):
-    """保存 PNG(300dpi) + PDF(矢量) 到 paper/figures/；返回 PNG 路径。"""
+    """保存出版级 PNG 与字体嵌入 PDF；写入稳定元数据。"""
     png = os.path.join(OUTDIR, name + ".png")
-    fig.savefig(png, bbox_inches="tight")
-    fig.savefig(os.path.join(OUTDIR, name + ".pdf"), bbox_inches="tight")
+    metadata = {"Creator": "SAF reproducible figure pipeline", "Title": name}
+    fig.savefig(png, bbox_inches="tight", facecolor="white")
+    fig.savefig(os.path.join(OUTDIR, name + ".pdf"), bbox_inches="tight",
+                facecolor="white", metadata=metadata)
     plt.close(fig)
     return png
 
@@ -60,6 +69,7 @@ def pv_theme():
     pv.global_theme.anti_aliasing = "ssaa"
     pv.global_theme.font.color = "black"
     pv.global_theme.font.family = "arial"
+    pv.global_theme.lighting = True
     return pv
 
 

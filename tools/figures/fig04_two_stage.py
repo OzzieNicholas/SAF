@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""图 4 两级几何判定器（写作指引 §4.2 / 图4）：2D 剖面双联。
-
-(a) 第一级——自由空间**欧氏距离场**着色（真 scipy EDT）+ 球心沿方向 v 步进射线，标 free_dist>r 判据；
-(b) 第二级——净空落在 r±ε 边界带的方向进放大镜：精确「胶囊–三角网格」求交示意（无离散误差）。
-纯示意（matplotlib，(a) 距离场为真值计算）。用法：conda run -n saf python tools/figures/fig04_two_stage.py
-"""
+"""图 4 距离场筛选与边界带精确胶囊细化的两级判定器。"""
 import os
 import sys
 
@@ -12,93 +7,139 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import style as S  # noqa: E402
 import numpy as np  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Circle, Polygon, FancyArrowPatch  # noqa: E402
-
-SOLID_E = "#6E6E6E"
+from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle  # noqa: E402
 
 
-def panel_a(ax, fig):
-    from scipy.ndimage import distance_transform_edt
-    nx, ny = 200, 150
-    ext = [0.0, 8.0, 0.0, 6.0]
-    px = (ext[1] - ext[0]) / nx
-    xs = (np.arange(nx) + 0.5) * px
-    ys = (np.arange(ny) + 0.5) * px
-    X, Y = np.meshgrid(xs, ys)
-    solid = ((X <= 1.4) & (Y <= 4.4)) | ((X <= 6.4) & (Y >= 3.6) & (Y <= 4.4))   # 立柱 + 顶板悬臂
-    free = ~solid
-    dist = distance_transform_edt(free) * px
-    dshow = np.where(free, dist, np.nan)
-    im = ax.imshow(dshow, origin="lower", extent=ext, cmap="YlGnBu", alpha=0.92, zorder=1)
-    ax.imshow(np.where(solid, 1.0, np.nan), origin="lower", extent=ext,
-              cmap=plt.matplotlib.colors.ListedColormap([SOLID_E]), zorder=2)
-    cb = fig.colorbar(im, ax=ax, fraction=0.045, pad=0.02)
-    cb.set_label("自由空间距离场 free_dist", fontsize=8.5); cb.ax.tick_params(labelsize=7.5)
-
-    p = np.array([4.3, 3.6]); v = np.array([0.0, -1.0]); r = 0.55
-    ax.add_patch(FancyArrowPatch(p, p + v * 3.1, arrowstyle="-|>", mutation_scale=13,
-                                 lw=1.7, color="#B02318", linestyle=(0, (5, 3)), zorder=5))
-    for k in range(4):
-        c = p + v * (r + k * 0.72)
-        ax.scatter(*c, s=16, color="#B02318", zorder=6)
-        if k == 1:
-            ax.add_patch(Circle(c, r, fc="none", ec="#B02318", lw=1.6, zorder=6))
-            ax.annotate("球心", (c[0] + 0.15, c[1] + 0.05), fontsize=8.5, color="#B02318")
-    ax.scatter(*p, s=44, color="black", zorder=7); ax.text(p[0] + 0.15, p[1] + 0.12, "p", fontsize=11, style="italic")
-    ax.annotate("沿 v 步进：全程 free_dist > r\n→ 该方向无碰撞", (0.3, 0.75), fontsize=9.2,
-                color="#B02318", zorder=6)
-    ax.annotate("方向 v", (4.6, 2.05), fontsize=9.5, color="#B02318")
-    ax.set_title("(a) 第一级：距离场腐蚀（半径一次摊销）", fontsize=10)
-    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal")
+INK = "#263238"
+SOLID = "#AEB4B8"
+EDGE = "#515A60"
 
 
-def _capsule(ax, a, b, r, fc, ec):
-    a = np.asarray(a, float); b = np.asarray(b, float)
-    d = b - a; L = np.linalg.norm(d); u = d / L
+def _capsule(ax, a, b, r, fc=S.ORANGE, ec="#A9562D", alpha=0.34):
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    u = (b - a) / np.linalg.norm(b - a)
     n = np.array([-u[1], u[0]]) * r
-    ax.add_patch(Polygon([a + n, b + n, b - n, a - n], closed=True, fc=fc, ec="none", alpha=0.5, zorder=3))
-    for c in (a, b):
-        ax.add_patch(Circle(c, r, fc=fc, ec="none", alpha=0.5, zorder=3))
-    ax.plot([a[0], b[0]], [a[1], b[1]], color=ec, lw=1.3, zorder=4)
+    ax.add_patch(Polygon([a + n, b + n, b - n, a - n], closed=True, fc=fc, ec="none",
+                         alpha=alpha, zorder=4))
+    ax.add_patch(Circle(a, r, fc=fc, ec="none", alpha=alpha, zorder=4))
+    ax.add_patch(Circle(b, r, fc=fc, ec="none", alpha=alpha, zorder=4))
+    ax.plot([a[0], b[0]], [a[1], b[1]], color=ec, lw=1.2, zorder=5)
 
 
-def panel_b(ax):
-    # 背景体素网格（示离散）
-    for gx in np.arange(0, 8.1, 1.0):
-        ax.plot([gx, gx], [0, 6], color="#E2E2E2", lw=0.7, zorder=0)
-    for gy in np.arange(0, 6.1, 1.0):
-        ax.plot([0, 8], [gy, gy], color="#E2E2E2", lw=0.7, zorder=0)
-    # 真实表面（几段三角网格边）——一条斜面
-    surf = np.array([(0.6, 4.6), (3.2, 3.1), (5.4, 3.5), (7.4, 2.2)])
-    ax.add_patch(Polygon(np.vstack([surf, [7.4, 0.2], [0.6, 0.2]]), closed=True,
-                         fc="#C9CDD4", ec=SOLID_E, lw=1.4, zorder=1))
-    for i in range(len(surf) - 1):
-        ax.plot(surf[[i, i + 1], 0], surf[[i, i + 1], 1], color=SOLID_E, lw=1.8, zorder=2)
-    ax.scatter(surf[:, 0], surf[:, 1], s=18, color=SOLID_E, zorder=3)
+def _field_panel(ax, fig):
+    from scipy.ndimage import distance_transform_edt
 
-    p = np.array([3.2, 3.1]); v = np.array([0.55, 1.0]); v = v / np.linalg.norm(v); r = 0.6
-    a = p + v * 0.15; b = p + v * 2.35
-    _capsule(ax, a, b, r, "#DD8452", "#B0562A")
-    ax.add_patch(FancyArrowPatch(p, b + v * 0.25, arrowstyle="-|>", mutation_scale=12,
-                                 lw=1.4, color="#B0562A", zorder=5))
-    # 最近点（胶囊轴到相邻三角边）——净空≈r
-    q = np.array([5.4, 3.5]); foot = np.array([4.55, 4.02])
-    ax.plot([q[0], foot[0]], [q[1], foot[1]], color=S.INACC, lw=1.6, zorder=6)
-    ax.scatter(*q, s=40, color=S.INACC, zorder=7)
-    ax.annotate("精确最近距离 ≈ r", ((q[0] + foot[0]) / 2 + 0.15, (q[1] + foot[1]) / 2), fontsize=9,
-                color=S.INACC, zorder=7)
-    ax.scatter(*p, s=44, color="black", zorder=7); ax.text(p[0] - 0.32, p[1] - 0.02, "p", fontsize=11, style="italic")
-    ax.annotate("净空落在 r ± ε 边界带：\n体素判定含糊 → 改用精确\n胶囊–三角网格求交（无离散误差）",
-                (0.3, 0.55), fontsize=9.2, color="#B0562A", zorder=6)
-    ax.set_title("(b) 第二级：边界带精确细化", fontsize=10)
-    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal")
+    nx, ny = 240, 180
+    ext = (0.0, 8.0, 0.0, 6.0)
+    pitch = 8.0 / nx
+    xs = (np.arange(nx) + 0.5) * pitch
+    ys = (np.arange(ny) + 0.5) * pitch
+    X, Y = np.meshgrid(xs, ys)
+    solid = ((X <= 1.35) & (Y <= 4.45)) | ((X <= 6.45) & (Y >= 3.62) & (Y <= 4.45))
+    dist = distance_transform_edt(~solid) * pitch
+    im = ax.imshow(np.where(~solid, dist, np.nan), origin="lower", extent=ext, cmap="Blues",
+                   vmin=0, vmax=2.4, zorder=1)
+    ax.imshow(np.where(solid, 1.0, np.nan), origin="lower", extent=ext,
+              cmap=plt.matplotlib.colors.ListedColormap([SOLID]), zorder=2)
+    levels = ax.contour(X, Y, np.where(~solid, dist, np.nan), levels=[0.55, 1.10, 1.65],
+                        colors="white", linewidths=0.55, alpha=0.75, zorder=3)
+    ax.clabel(levels, fmt="%.2f", fontsize=6, inline=True)
+
+    p = np.array([4.35, 3.62])
+    v = np.array([0.10, -1.0]); v /= np.linalg.norm(v)
+    r = 0.55
+    centers = [p + v * (r + i * 0.63) for i in range(5)]
+    ax.add_patch(FancyArrowPatch(p, p + v * 3.45, arrowstyle="-|>", mutation_scale=11,
+                                 color=S.ACC, lw=1.5, ls=(0, (4, 2)), zorder=7))
+    for i, c in enumerate(centers):
+        ax.scatter(*c, s=14, fc="white", ec=S.ACC, lw=0.8, zorder=8)
+        if i == 1:
+            ax.add_patch(Circle(c, r, fc="none", ec=S.ACC, lw=1.25, zorder=8))
+    ax.scatter(*p, s=35, color=INK, edgecolors="white", linewidths=0.5, zorder=9)
+    ax.text(p[0] + 0.13, p[1] + 0.12, "$p$", fontsize=10, zorder=9)
+    ax.text(5.08, 1.75, r"ray-march along $\mathbf{v}$", color=S.ACC, fontsize=7.6, rotation=-78)
+    ax.text(0.28, 0.42, r"明确可达： $\min_t\;\mathrm{free\_dist}(p+t\mathbf{v}) > r+\varepsilon$",
+            fontsize=8.2, color=S.ACC, bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.88))
+    ax.set_title("(a) 第一级 · 距离场快速筛选", loc="left", fontsize=10.5, weight="bold", color=INK)
+    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
+    cax = ax.inset_axes([0.08, 0.91, 0.38, 0.027])
+    cb = fig.colorbar(im, cax=cax, orientation="horizontal")
+    cb.set_ticks([0, 1.2, 2.4]); cb.ax.tick_params(labelsize=6, length=2, pad=1)
+    cb.outline.set_visible(False)
+    ax.text(0.08, 0.955, "自由空间欧氏距离", transform=ax.transAxes, fontsize=6.5, color=INK)
+
+
+def _refine_panel(ax):
+    for x in np.arange(0, 8.1, 0.5):
+        ax.plot([x, x], [0, 6], color="#EAEBEC", lw=0.42, zorder=0)
+    for y in np.arange(0, 6.1, 0.5):
+        ax.plot([0, 8], [y, y], color="#EAEBEC", lw=0.42, zorder=0)
+
+    surf = np.array([(0.45, 4.65), (2.30, 3.55), (3.45, 3.10), (5.35, 3.52), (7.55, 2.12)])
+    ax.add_patch(Polygon(np.vstack([surf, (7.55, 0.15), (0.45, 0.15)]), closed=True,
+                         fc="#D1D4D6", ec=EDGE, lw=1.0, zorder=2))
+    ax.plot(surf[:, 0], surf[:, 1], color=EDGE, lw=1.5, zorder=3)
+    ax.scatter(surf[:, 0], surf[:, 1], s=14, color=EDGE, zorder=4)
+    for i in range(1, len(surf) - 1):
+        ax.plot([surf[i, 0], 4.6], [surf[i, 1], 0.18], color="#A4A9AC", lw=0.55, zorder=3)
+
+    p = np.array([3.45, 3.10])
+    v = np.array([0.56, 1.0]); v /= np.linalg.norm(v)
+    a, b, r = p + 0.10 * v, p + 2.55 * v, 0.56
+    _capsule(ax, a, b, r)
+    ax.add_patch(FancyArrowPatch(p, b + v * 0.25, arrowstyle="-|>", mutation_scale=10,
+                                 color="#A9562D", lw=1.2, zorder=6))
+    ax.scatter(*p, s=35, color=INK, edgecolors="white", linewidths=0.5, zorder=8)
+    ax.text(p[0] - 0.28, p[1] + 0.08, "$p$", fontsize=10, zorder=8)
+
+    q = np.array([5.35, 3.52])
+    foot = np.array([4.55, 4.10])
+    ax.plot([q[0], foot[0]], [q[1], foot[1]], color=S.INACC, lw=1.55, zorder=8)
+    ax.scatter(*q, s=34, color=S.INACC, edgecolors="white", linewidths=0.5, zorder=9)
+    ax.annotate("精确最近距离", xy=((q[0] + foot[0]) / 2, (q[1] + foot[1]) / 2),
+                xytext=(5.45, 4.55), fontsize=7.8, color=S.INACC,
+                arrowprops=dict(arrowstyle="->", color=S.INACC, lw=0.8))
+    ax.text(0.28, 0.42, r"含糊方向： $r-\varepsilon < c_i \leq r+\varepsilon$  →  胶囊–三角网格求交",
+            fontsize=8.0, color="#A9562D",
+            bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.88))
+    ax.set_title("(b) 第二级 · 边界带精确细化", loc="left", fontsize=10.5, weight="bold", color=INK)
+    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
+
+
+def _decision_strip(fig):
+    ax = fig.add_axes([0.07, 0.035, 0.86, 0.17])
+    ax.set_xlim(0, 12); ax.set_ylim(0, 2.3); ax.axis("off")
+    ax.text(0.0, 2.04, r"每方向最小净空 $c_i$", fontsize=8.4, weight="bold", color=INK)
+    items = [
+        (0.0, 3.35, "明确碰撞", r"$c_i\leq r-\varepsilon$", "距离场判定", "#F6E4E1", S.INACC),
+        (4.3, 3.35, "边界带", r"$r-\varepsilon<c_i\leq r+\varepsilon$", "精确胶囊测试", "#FAEDE3", S.ORANGE),
+        (8.6, 3.35, "明确无碰撞", r"$c_i>r+\varepsilon$", "距离场判定", "#E6EFF7", S.ACC),
+    ]
+    for x, w, title, rule, action, fc, ec in items:
+        ax.add_patch(FancyBboxPatch((x, 0.34), w, 1.40, boxstyle="round,pad=0.02,rounding_size=0.10",
+                                    fc=fc, ec=ec, lw=0.9))
+        ax.text(x + w / 2, 1.40, title, ha="center", fontsize=8.0, weight="bold", color=ec)
+        ax.text(x + w / 2, 0.98, rule, ha="center", fontsize=7.6, color=INK)
+        ax.text(x + w / 2, 0.57, action, ha="center", fontsize=6.7, color=S.NEUTRAL)
+    ax.text(11.98, 2.04, r"点级：任一方向可达 $\Rightarrow p$ 可达", ha="right", fontsize=8.2, color=INK)
 
 
 def main():
-    fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.2))
-    panel_a(axes[0], fig); panel_b(axes[1])
-    for ax in axes:
-        ax.axis("off")
+    fig, axes = plt.subplots(1, 2, figsize=(11.2, 5.6), gridspec_kw={"wspace": 0.06})
+    _field_panel(axes[0], fig)
+    _refine_panel(axes[1])
+    fig.subplots_adjust(left=0.04, right=0.98, top=0.82, bottom=0.22)
+    fig.suptitle("两级几何判定器：快速筛选绝大多数方向，仅细化离散边界带", x=0.05, y=0.975,
+                 ha="left", fontsize=13, weight="bold", color=INK)
+    fig.text(0.05, 0.914,
+             "占据栅格距离场对一个工具半径一次摊销；有原网格时，临界方向回到连续表面作精确无碰撞判定",
+             fontsize=8.4, color=S.NEUTRAL)
+    fig.text(0.50, 0.855, "fast voxel screen", ha="center", fontsize=7.1, color=S.ACC)
+    fig.add_artist(FancyArrowPatch((0.47, 0.852), (0.55, 0.852), transform=fig.transFigure,
+                                   arrowstyle="-|>", mutation_scale=10, color=S.ORANGE, lw=1.2))
+    fig.text(0.58, 0.855, "exact continuous refinement", ha="left", fontsize=7.1, color=S.ORANGE)
+    _decision_strip(fig)
     print("SAVED", S.save(fig, "fig04_two_stage"))
 
 
