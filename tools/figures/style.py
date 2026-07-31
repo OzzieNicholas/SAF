@@ -1,69 +1,134 @@
-"""论文图件统一样式：出版尺寸、字体嵌入、科学配色与离屏 CAD 渲染。
+"""Shared publication style and export helpers for the SAF figure set.
 
-配色红线（写作指引 §1.2 决定点）：**不可达 = 红、可达 = 蓝、不确定 = 灰**（红绿色盲友好）。
-输出到 paper/figures/：每图存 PNG(600 dpi) + 字体嵌入 PDF。中文优先微软雅黑。
+The paper figures are composed at their final physical size.  Vector marks and
+text stay in PDF; PyVista renderings are embedded as 600 dpi raster evidence.
 """
+import json
 import os
 
-os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")   # torch(libiomp5)+vtk(libomp) 同进程共存（图7/9 用）
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+# VTK and the MKL-backed scientific stack load separate OpenMP runtimes on the
+# Windows workstation used for off-screen CAD rendering.  Sequential MKL keeps
+# the figure process deterministic and prevents native runtime termination.
+os.environ.setdefault("MKL_THREADING_LAYER", "SEQUENTIAL")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 
-# —— 中文字体：微软雅黑的小字号印刷效果优于黑体，缺失时再回落 ——
+
+MM_PER_INCH = 25.4
+DOUBLE_COLUMN_MM = 175.0
+SINGLE_COLUMN_MM = 85.0
+MIN_FONT_PT = 7.5
+
 _FONTNAME = "sans-serif"
-for _p in ("C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf"):
-    if os.path.exists(_p):
-        fm.fontManager.addfont(_p)
-        _FONTNAME = fm.FontProperties(fname=_p).get_name()
+for _path in ("C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf"):
+    if os.path.exists(_path):
+        fm.fontManager.addfont(_path)
+        _FONTNAME = fm.FontProperties(fname=_path).get_name()
         break
 
 plt.rcParams.update({
     "font.family": _FONTNAME,
     "axes.unicode_minus": False,
-    "figure.dpi": 180, "savefig.dpi": 600,
-    "pdf.fonttype": 42, "ps.fonttype": 42,
-    "font.size": 9, "axes.titlesize": 10, "axes.labelsize": 9,
-    "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
-    "axes.spines.top": False, "axes.spines.right": False,
-    "axes.linewidth": 0.75, "lines.linewidth": 1.4,
-    "axes.titleweight": "bold",
-    "axes.facecolor": "#FCFCFB", "figure.facecolor": "white",
-    "grid.color": "#D9D9D6", "grid.linewidth": 0.55, "grid.alpha": 0.55,
+    "figure.dpi": 180,
+    "savefig.dpi": 600,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "font.size": 8.2,
+    "axes.titlesize": 8.8,
+    "axes.labelsize": 8.2,
+    "xtick.labelsize": 7.5,
+    "ytick.labelsize": 7.5,
+    "legend.fontsize": 7.5,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.linewidth": 0.7,
+    "lines.linewidth": 1.15,
+    "axes.titleweight": "normal",
+    "axes.facecolor": "white",
+    "figure.facecolor": "white",
+    "grid.color": "#D6D9DB",
+    "grid.linewidth": 0.5,
+    "grid.alpha": 0.6,
 })
 
-# —— 配色（语义固定）——
-INACC = "#C0392B"    # 不可达 = 红
-ACC = "#2C6FB2"      # 可达 = 蓝
-UNC = "#8A8A8A"      # 不确定 / 边界 = 灰
-NEUTRAL = "#6E6E6E"
-GREEN = "#4E9A63"
-ORANGE = "#DD8452"
-FN = "#7A3E9D"       # 漏报不可达：与“真实不可达”红分离，避免一色多义
-INK = "#20252B"
-PAPER = "#FCFCFB"
+# Semantic colours.  These are the only categorical meanings used in result figures.
+ACC = "#2C6FB2"          # accessible
+INACC = "#C0392B"        # inaccessible / blocked
+FN = "#7A3E9D"           # false negative (missed inaccessible point)
+ORANGE = "#D7833F"       # support-contact region / false positive
+UNC = "#8A8F93"          # neutral / uncertain
+NEUTRAL = "#626A70"
+INK = "#1F2930"
+PAPER = "#FFFFFF"
+PART = "#C9CDD0"
+PART_DARK = "#9DA4A8"
+PALE_BLUE = "#E8F0F7"
+PALE_RED = "#F7E8E5"
+PALE_ORANGE = "#FAEEE3"
+PALE_GREY = "#F2F4F5"
+
+# Legacy aliases retained while all figure scripts are migrated.
+GREEN = "#547F68"
+INACC_RGB = (0.753, 0.224, 0.169)
+ACC_RGB = (0.173, 0.435, 0.698)
+PART_RGB = (0.788, 0.804, 0.816)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTDIR = os.path.join(_ROOT, "paper", "figures")
+QA_DIR = os.path.join(_ROOT, "runs", "figure_qa")
 os.makedirs(OUTDIR, exist_ok=True)
+os.makedirs(QA_DIR, exist_ok=True)
+
+
+def mm(value):
+    """Convert a physical paper dimension to inches for matplotlib."""
+    return value / MM_PER_INCH
+
+
+def double_column(height_mm):
+    """Return a final-size double-column matplotlib figure size in inches."""
+    return mm(DOUBLE_COLUMN_MM), mm(height_mm)
+
+
+def single_column(height_mm):
+    """Return a final-size single-column matplotlib figure size in inches."""
+    return mm(SINGLE_COLUMN_MM), mm(height_mm)
+
+
+def panel_label(ax, text, x=0.0, y=1.01):
+    """Place a compact, consistently aligned panel label."""
+    ax.text(x, y, text, transform=ax.transAxes, ha="left", va="bottom",
+            fontsize=8.4, fontweight="bold", color=INK, clip_on=False)
 
 
 def save(fig, name):
-    """保存出版级 PNG 与字体嵌入 PDF；写入稳定元数据。"""
+    """Export fixed-size PNG/PDF and write non-destructive layout diagnostics."""
+    from qa_figures import inspect_figure
+
+    fig.canvas.draw()
+    report = inspect_figure(fig, name)
+    with open(os.path.join(QA_DIR, name + ".json"), "w", encoding="utf-8") as handle:
+        json.dump(report, handle, ensure_ascii=False, indent=2)
+
     png = os.path.join(OUTDIR, name + ".png")
+    pdf = os.path.join(OUTDIR, name + ".pdf")
     metadata = {"Creator": "SAF reproducible figure pipeline", "Title": name}
-    fig.savefig(png, bbox_inches="tight", facecolor="white")
-    fig.savefig(os.path.join(OUTDIR, name + ".pdf"), bbox_inches="tight",
-                facecolor="white", metadata=metadata)
+    fig.savefig(png, facecolor="white", metadata=metadata)
+    fig.savefig(pdf, facecolor="white", metadata=metadata)
     plt.close(fig)
     return png
 
 
 def pv_theme():
-    """pyvista 论文主题：离屏、白底、SSAA 抗锯齿、黑字。返回 pyvista 模块。"""
+    """Configure an off-screen CAD render with a neutral publication material."""
     import pyvista as pv
+
     pv.OFF_SCREEN = True
     pv.global_theme.background = "white"
     pv.global_theme.anti_aliasing = "ssaa"
@@ -71,9 +136,3 @@ def pv_theme():
     pv.global_theme.font.family = "arial"
     pv.global_theme.lighting = True
     return pv
-
-
-# 离屏渲染对应的 RGB（0–1），pyvista 按点/面着色用
-INACC_RGB = (0.753, 0.224, 0.169)
-ACC_RGB = (0.173, 0.435, 0.698)
-PART_RGB = (0.80, 0.80, 0.82)     # 零件本体（浅灰）

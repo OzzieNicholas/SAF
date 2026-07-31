@@ -44,8 +44,8 @@ def _hit(ax, p):
 
 
 def _badge(ax, text, color):
-    ax.text(0.04, 0.91, text, transform=ax.transAxes, fontsize=7.5, weight="bold", color=color,
-            bbox=dict(boxstyle="round,pad=0.28", fc="white", ec=color, lw=0.8))
+    ax.text(0.04, 0.94, text, transform=ax.transAxes, fontsize=7.5, weight="bold", color=color,
+            ha="left", va="top")
 
 
 def panel_open(ax):
@@ -108,7 +108,7 @@ def panel_slot(ax):
 
 
 def main():
-    fig, axes = plt.subplots(1, 3, figsize=(11.4, 4.35), gridspec_kw={"wspace": 0.08})
+    fig, axes = plt.subplots(1, 3, figsize=S.double_column(68), gridspec_kw={"wspace": 0.06})
     for fn, ax in zip((panel_open, panel_blind, panel_slot), axes):
         fn(ax)
         ax.set_xlim(-0.35, 7.45)
@@ -116,15 +116,9 @@ def main():
         ax.set_aspect("equal")
         ax.axis("off")
 
-    fig.suptitle("可达性是有限尺寸工具的无碰撞直线逼近问题", x=0.055, y=0.995,
-                 ha="left", fontsize=13, weight="bold", color=INK)
-    fig.text(0.055, 0.925,
-             r"点 $p$ 可达 $\Longleftrightarrow$ 存在下半球方向 $\mathbf{v}$，半径 $r$ 的球从外部沿直线逼近 $p$ 且不与零件相交",
-             fontsize=8.5, color=S.NEUTRAL)
-    fig.add_artist(Rectangle((0.055, 0.015), 0.89, 0.055, transform=fig.transFigure,
-                             fc="#F4F5F5", ec="none", zorder=-1))
-    fig.text(0.50, 0.042, "几何代理仅建模零件遮挡；不建模基板、刀柄、姿态连续性或工艺可实施性",
-             ha="center", va="center", fontsize=7.3, color=S.NEUTRAL)
+    fig.text(.025, .975, r"存在无碰撞直线逼近方向 $\Longleftrightarrow$ 可达", ha="left", va="top",
+             fontsize=8.4, color=INK, fontweight="bold")
+    fig.subplots_adjust(left=.02, right=.99, bottom=.04, top=.90)
     print("SAVED", S.save(fig, "fig03_criterion"))
 
 

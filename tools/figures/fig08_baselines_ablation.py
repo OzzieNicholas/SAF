@@ -27,23 +27,23 @@ def main():
     std = [base[k]["f1_model_std"] for k, _ in order]
     overall = [base[k]["f1_overall"] for k, _ in order]
     labs = [z for _, z in order]
-    cols_a = [S.UNC, S.NEUTRAL, S.ACC, S.GREEN, S.INACC]
+    cols_a = [S.UNC, S.NEUTRAL, S.ACC, S.ORANGE, S.INK]
 
     # (b) 消融（results.md 消融行，procedural@128）
     abl_labs = ["无形状", "局部(RF3)", "本文(RF7)", "过度池化"]
     abl_f1 = [0.434, 0.859, 0.926, 0.803]
-    cols_b = [S.UNC, S.GREEN, S.INACC, S.NEUTRAL]
+    cols_b = [S.UNC, S.ACC, S.INK, S.NEUTRAL]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.6, 3.8), gridspec_kw={"width_ratios": [1.15, 1]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=S.double_column(66), gridspec_kw={"width_ratios": [1.15, 1]})
     x = range(len(labs))
     ax1.errorbar(x, f1, yerr=std, fmt="o", ms=7, color="#222", ecolor="#999", capsize=3, lw=1.1)
     ax1.scatter(x, overall, s=42, marker="D", c=cols_a, edgecolors="white", zorder=3)
     for i, (v, ov) in enumerate(zip(f1, overall)):
         ax1.text(i, min(v + std[i] + 0.035, 1.13), f"{v:.3f}", ha="center", fontsize=7.5)
-        ax1.text(i + 0.08, ov - 0.025, f"{ov:.3f}", ha="left", va="top", fontsize=7, color=cols_a[i])
+        ax1.text(i + 0.08, ov - 0.025, f"{ov:.3f}", ha="left", va="top", fontsize=7.5, color=cols_a[i])
         ax1.plot([i, i], [ov, v], color="#C8C8C8", lw=0.8, zorder=0)
     ax1.set_xticks(list(x), labs)
-    ax1.set_ylabel("不可达类 F1"); ax1.set_ylim(0, 1.18); ax1.set_title("(a) 基线：零件级分布")
+    ax1.set_ylabel("不可达类 F1"); ax1.set_ylim(0, 1.18); ax1.set_title("(a) 基线：零件级分布", loc="left", fontsize=8.4)
     ax1.legend([plt.Line2D([], [], marker="o", color="#222", ls="none"),
                 plt.Line2D([], [], marker="D", color=S.INACC, ls="none")],
                ["模型 F1 均值 ± std", "点级总体 F1"], frameon=False, fontsize=8, loc="lower right")
@@ -52,11 +52,13 @@ def main():
     ax2.plot(range(len(abl_labs)), abl_f1, color="#444", lw=1.2, zorder=1)
     ax2.scatter(range(len(abl_labs)), abl_f1, s=80, c=cols_b, edgecolors="white", linewidths=1, zorder=2)
     ax2.set_xticks(range(len(abl_labs)), abl_labs)
-    ax2.set_ylabel("不可达类 F1"); ax2.set_ylim(0, 1.08); ax2.set_title("(b) 消融：形状上下文")
+    ax2.set_ylabel("不可达类 F1"); ax2.set_ylim(0, 1.08); ax2.set_title("(b) 消融：形状上下文", loc="left", fontsize=8.4)
     for i, v in enumerate(abl_f1):
         ax2.text(i, v + 0.035, f"{v:.3f}", ha="center", fontsize=8)
-    ax2.text(0.02, 0.02, "单种子；仅比较变体相对趋势", transform=ax2.transAxes, fontsize=7.5, color="#666")
+    ax2.text(0.02, 0.02, "受控子集、单种子；仅比较相对趋势", transform=ax2.transAxes, fontsize=7.5, color=S.NEUTRAL)
     plt.setp(ax2.get_xticklabels(), rotation=18, ha="right")
+
+    fig.subplots_adjust(left=.07, right=.985, bottom=.25, top=.90, wspace=.28)
 
     print("SAVED", S.save(fig, "fig08_baselines_ablation"))
 

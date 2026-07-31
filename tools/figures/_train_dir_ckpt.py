@@ -1,93 +1,122 @@
 #!/usr/bin/env python3
-"""训练 + 缓存图件用 ConvONet **方向级**模型（out_dim=D）→ runs/figures/ckpt_dir.pt。
+"""Train the Figure 9 directional model using the final D-020 label semantics.
 
-镜像 tools/eval_e5.py 训练配方（占据口径方向目标，图件用故不走 --root 细化，省时）。
-保存：state_dict, D, dirs(D,3), n_directions, test_names, 展示候选点（name, idx, viable_frac）供 fig09 选件。
-用法：python tools/figures/_train_dir_ckpt.py [--max-models 250] [--epochs 120]
+The emitted checkpoint records its held-out set and one deterministic showcase
+point.  Figure 9 refuses legacy occupancy-only checkpoints.
 """
 import argparse
 import os
 import sys
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_ROOT, "src"))
-for _s in (sys.stdout, sys.stderr):
-    try:
-        _s.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError):
-        pass
+os.environ.setdefault("MKL_THREADING_LAYER", "SEQUENTIAL")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def both_class(ms):
+def both_class(models):
     import numpy as np
-    return [m for m in ms if np.asarray(m.labels).size and np.asarray(m.labels).any() and (~np.asarray(m.labels)).any()]
+    return [model for model in models if np.asarray(model.labels).size
+            and np.asarray(model.labels).any() and (~np.asarray(model.labels)).any()]
 
 
 def main():
     import numpy as np
     import torch
+    import _data as D
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.oracle import SupportAccessibilityOracle
     from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--max-models", type=int, default=250)
-    ap.add_argument("--epochs", type=int, default=120)
-    ap.add_argument("--n-directions", type=int, default=128)
-    a = ap.parse_args()
-    dev = "cuda" if torch.cuda.is_available() else "cpu"
-    fus, _ = load_dataset(os.path.join(_ROOT, "data", "processed", "fusion360_full"))
-    proc, _ = load_dataset(os.path.join(_ROOT, "data", "processed", "procedural_v1"))
-    ms = both_class(fus)[:a.max_models]
-    tr_names, _va, te = split_by_model(ms, frac_train=0.6, frac_val=0.2, seed=0)
 
-    D = None
-    dirs = None
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-models", type=int, default=250)
+    parser.add_argument("--epochs", type=int, default=120)
+    parser.add_argument("--n-directions", type=int, default=128)
+    parser.add_argument("--root", default="E:/Fusion360Gallery/reconstruction")
+    args = parser.parse_args()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    fusion, _ = load_dataset(os.path.join(ROOT, "data", "processed", "fusion360_full"))
+    models = both_class(fusion)[:args.max_models]
+    train_models, _valid_models, test_models = split_by_model(models, frac_train=.6, frac_val=.2, seed=0)
+    target_cache = {}
+    direction_set = None
 
-    def targets(m):
-        nonlocal D, dirs
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
-        if D is None:
-            D = len(o.dirs); dirs = np.asarray(o.dirs, np.float32)
-        viable = np.stack([o.direction_labels(p, m.radius) for p in m.points])   # (K,D) True=可达
-        return (~viable).astype(np.float32)                                       # blocked=1
+    def refined_targets(model):
+        nonlocal direction_set
+        if model.name in target_cache:
+            return target_cache[model.name]
+        mesh = D.load_fusion_mesh(model.name, args.root)
+        if mesh is None:
+            raise FileNotFoundError(f"Missing Fusion mesh required for refined Figure 9 labels: {model.name}")
+        Vn, F, occ, lo, pitch = mesh
+        if occ.shape != model.occ.shape or not np.array_equal(occ, np.asarray(model.occ, bool)):
+            raise RuntimeError(f"Mesh occupancy mismatch for {model.name}; refusing to fall back to occupancy labels")
+        oracle = SupportAccessibilityOracle(model.occ, {"n_directions": args.n_directions},
+                                            mesh=(Vn, F, lo, pitch))
+        viable = np.stack([oracle.direction_labels(point, model.radius) for point in model.points])
+        if direction_set is None:
+            direction_set = np.asarray(oracle.dirs, np.float32)
+        target_cache[model.name] = (~viable).astype(np.float32)
+        return target_cache[model.name]
 
-    print(f"device={dev} 生成方向目标：train={len(tr_names)}+proc{len(proc)} test={len(te)} ...", flush=True)
-    train_set = [(m.occ, m.points, targets(m)) for m in (tr_names + proc)]
-    print(f"D_dirs={D} 训练开始 epochs={a.epochs}", flush=True)
-
+    print(f"device={device}; D-020 refined targets: train={len(train_models)} test={len(test_models)}", flush=True)
+    training_data = []
+    for position, model in enumerate(train_models, start=1):
+        blocked = refined_targets(model)
+        occ = torch.as_tensor(np.asarray(model.occ, np.float32)).view(1, 1, *model.occ.shape).to(device)
+        coords = to_grid_coords(model.points, model.occ.shape).to(device)
+        training_data.append((occ, coords, torch.as_tensor(blocked).to(device)))
+        if position % 10 == 0 or position == len(train_models):
+            print(f"refined training labels {position}/{len(train_models)}", flush=True)
+    output_dim = int(direction_set.shape[0])
     torch.manual_seed(0)
-    net = ConvONetLite(out_dim=D).to(dev)
-    opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
-    lossf = torch.nn.BCEWithLogitsLoss()
-    data = []
-    for occ, pts, blk in train_set:
-        occt = torch.as_tensor(np.asarray(occ, np.float32)).view(1, 1, *occ.shape).to(dev)
-        gc = to_grid_coords(pts, occ.shape).to(dev)
-        data.append((occt, gc, torch.as_tensor(blk).to(dev)))
-    for _ in range(a.epochs):
-        for i in torch.randperm(len(data)):
-            occt, gc, y = data[i]
-            opt.zero_grad(); lossf(net(occt, gc), y).backward(); opt.step()
+    network = ConvONetLite(out_dim=output_dim).to(device)
+    optimizer = torch.optim.Adam(network.parameters(), lr=1e-3, weight_decay=1e-4)
+    loss = torch.nn.BCEWithLogitsLoss()
+    for epoch in range(args.epochs):
+        for index in torch.randperm(len(training_data)):
+            occ, coords, blocked = training_data[int(index)]
+            optimizer.zero_grad()
+            loss(network(occ, coords), blocked).backward()
+            optimizer.step()
+        if (epoch + 1) % 30 == 0:
+            print(f"epoch={epoch + 1}/{args.epochs}", flush=True)
 
-    # 展示候选：留出件中 oracle 可达方向占比 ∈[0.3,0.6] 的点（方向盘混合、好看）
-    cand = []
-    for m in te:
-        if m.points.shape[0] == 0:
-            continue
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
-        for idx, p in enumerate(m.points):
-            vf = float(o.direction_labels(p, m.radius).mean())
-            if 0.3 <= vf <= 0.6:
-                cand.append((m.name, int(idx), round(vf, 3)))
-    cand = cand[:40]
-    out = os.path.join(_ROOT, "runs", "figures"); os.makedirs(out, exist_ok=True)
-    torch.save({"state_dict": net.state_dict(), "D": D, "dirs": dirs, "n_directions": a.n_directions,
-                "test_names": [m.name for m in te], "showcase_cand": cand}, os.path.join(out, "ckpt_dir.pt"))
-    print(f"SAVED ckpt_dir.pt (D={D}, test={len(te)}, showcase_cand={len(cand)})")
-    for c in cand[:8]:
-        print("  cand:", c)
+    # Pick the strongest mixed-direction example by a declared deterministic rule.
+    network.eval(); candidates = []
+    with torch.no_grad():
+        for position, model in enumerate(test_models, start=1):
+            blocked = refined_targets(model).astype(bool)
+            occ = torch.as_tensor(np.asarray(model.occ, np.float32)).view(1, 1, *model.occ.shape).to(device)
+            coords = to_grid_coords(model.points, model.occ.shape).to(device)
+            probabilities = torch.sigmoid(network(occ, coords)).detach().cpu().numpy()
+            predicted = probabilities >= .5
+            viable = ~blocked
+            for index, directions in enumerate(viable):
+                fraction = float(directions.mean())
+                if not .30 <= fraction <= .60:
+                    continue
+                agreement = float((predicted[index] == blocked[index]).mean())
+                top1 = bool(directions[int(np.argmin(probabilities[index]))])
+                if top1:
+                    candidates.append((agreement - .02 * abs(fraction - .5), model.name, index,
+                                       fraction, agreement, top1))
+            print(f"scored held-out labels {position}/{len(test_models)}", flush=True)
+    if not candidates:
+        raise RuntimeError("No mixed-direction held-out point with correct Top-1 recommendation")
+    _score, name, index, fraction, agreement, top1 = sorted(candidates,
+                                                             key=lambda row: (-row[0], row[1], row[2]))[0]
+    outdir = os.path.join(ROOT, "runs", "figures"); os.makedirs(outdir, exist_ok=True)
+    torch.save({"state_dict": network.state_dict(), "D": output_dim, "dirs": direction_set,
+                "n_directions": args.n_directions, "test_names": [model.name for model in test_models],
+                "label_semantics": "d020_refined", "showcase": {"name": name, "idx": int(index),
+                "viable_fraction": fraction, "agreement": agreement, "top1_correct": top1},
+                "seed": 0, "max_models": args.max_models, "epochs": args.epochs},
+               os.path.join(outdir, "ckpt_dir.pt"))
+    print(f"SAVED ckpt_dir.pt showcase={name}:{index} agreement={agreement:.3f}", flush=True)
 
 
 if __name__ == "__main__":

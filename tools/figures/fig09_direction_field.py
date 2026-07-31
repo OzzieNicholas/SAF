@@ -1,110 +1,106 @@
 #!/usr/bin/env python3
-"""图 9 方向级可达性场（写作指引 §5.5 / 图9）。
-
-(a) 选一典型接触点，下半球逼近方向以极坐标圆盘投影（方位角=角向、极角=径向，圆心=竖直↓、边缘=水平）：
-    左=判定器（可达蓝/被挡红），右=网络预测（被挡概率蓝→红热图）——两盘高度一致。
-(b) 零件 3D 渲染 + 该点网络 Top-1 推荐逼近方向箭头。
-模型 = runs/figures/ckpt_dir.pt（方向级，留出 seed=0）；展示标签在原网格匹配时走 D-020 精确细化，否则明示占据回落。
-用法：conda run -n saf python tools/figures/fig09_direction_field.py [--root ...] [--name ..] [--idx ..]
-"""
+"""Figure 9. D-020 directional field and a held-out Top-1 approach recommendation."""
 import argparse
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import style as S  # noqa: E402
 import _data as D  # noqa: E402
-import numpy as np  # noqa: E402
+import examples as X  # noqa: E402
+import style as S  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib import cm, colors as mcolors  # noqa: E402
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+from matplotlib import colors as mcolors  # noqa: E402
 from matplotlib.patches import Circle, Patch  # noqa: E402
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_CMAP = mcolors.LinearSegmentedColormap.from_list("acc", [S.ACC, "#EDEDED", S.INACC])
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CMAP = mcolors.LinearSegmentedColormap.from_list("blocked_probability", [S.ACC, "#F0F1F1", S.INACC])
 
 
-def _disk_xy(dirs):
-    """下半球方向 (D,3) → 圆盘 (x,y)：方位角=atan2(vy,vx)，径向=极角/90°（圆心=−Z 竖直）。"""
-    az = np.arctan2(dirs[:, 1], dirs[:, 0])
-    rad = np.arccos(np.clip(-dirs[:, 2], 0, 1)) / (np.pi / 2)
-    return rad * np.cos(az), rad * np.sin(az)
+def _disk_coordinates(directions):
+    azimuth = np.arctan2(directions[:, 1], directions[:, 0])
+    radius = np.arccos(np.clip(-directions[:, 2], 0, 1)) / (np.pi / 2)
+    return radius * np.cos(azimuth), radius * np.sin(azimuth)
 
 
-def _disk_axes(ax, title):
-    ax.add_patch(Circle((0, 0), 1.0, fc="none", ec="#999", lw=1.2))
-    for rr in (1 / 3, 2 / 3):
-        ax.add_patch(Circle((0, 0), rr, fc="none", ec="#DDD", lw=0.8))
-    ax.set_xlim(-1.2, 1.2); ax.set_ylim(-1.28, 1.2); ax.set_aspect("equal"); ax.axis("off")
-    ax.text(0, -1.22, "水平 →", ha="center", va="top", fontsize=8, color="#777")
-    ax.scatter([0], [0], marker="+", s=60, color="#777", zorder=3)
-    ax.text(0.03, 0.08, "竖直↓", fontsize=7.5, color="#777")
-    ax.set_title(title, fontsize=9.8)
+def _disk_axis(axis, title):
+    for radius, lw in ((1.0, .9), (2 / 3, .45), (1 / 3, .45)):
+        axis.add_patch(Circle((0, 0), radius, fc="none", ec=S.NEUTRAL if radius == 1 else "#D9DDDF", lw=lw))
+    axis.scatter([0], [0], marker="+", s=38, color=S.NEUTRAL, zorder=3)
+    axis.text(0, -1.18, "圆心：竖直向下；边缘：水平", ha="center", va="top", fontsize=7.5, color=S.NEUTRAL)
+    axis.set_xlim(-1.15, 1.15); axis.set_ylim(-1.28, 1.15); axis.set_aspect("equal"); axis.axis("off")
+    axis.set_title(title, loc="left", fontsize=8.4, fontweight="bold", pad=3)
 
 
 def main():
-    import torch
     from support_accessibility.data.dataset import load_dataset
-    from support_accessibility.oracle import SupportAccessibilityOracle
     from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
+    from support_accessibility.oracle import SupportAccessibilityOracle
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="E:/Fusion360Gallery/reconstruction")
-    ap.add_argument("--name", default=None)
-    ap.add_argument("--idx", type=int, default=None)
-    a = ap.parse_args()
-
-    ck = torch.load(os.path.join(_ROOT, "runs", "figures", "ckpt_dir.pt"), map_location="cpu", weights_only=False)
-    Dd = int(ck["D"]); dirs = np.asarray(ck["dirs"], float); ndir = int(ck["n_directions"])
-    net = ConvONetLite(out_dim=Dd); net.load_state_dict(ck["state_dict"]); net.eval()
-    name = a.name or ck["showcase_cand"][0][0]
-    idx = a.idx if a.idx is not None else ck["showcase_cand"][0][1]
-
-    ms, _ = load_dataset(os.path.join(_ROOT, "data", "processed", "fusion360_full"))
-    m = {mm.name: mm for mm in ms}[name]
-    p = np.asarray(m.points[idx], float)
-
-    mesh = D.load_fusion_mesh(name, a.root)
-    if mesh is not None:
-        Vn, F, occ, lo, pitch = mesh
-        refined = occ.shape == m.occ.shape and bool((occ == np.asarray(m.occ, bool)).all())
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": ndir}, mesh=(Vn, F, lo, pitch)) if refined else SupportAccessibilityOracle(m.occ, {"n_directions": ndir})
-    else:
-        refined = False
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": ndir})
-    viable = o.direction_labels(p, m.radius)                              # (D,) True=可达
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", default=X.FUSION_ROOT)
+    args = parser.parse_args()
+    checkpoint = torch.load(os.path.join(ROOT, "runs", "figures", "ckpt_dir.pt"), map_location="cpu",
+                            weights_only=False)
+    if checkpoint.get("label_semantics") != "d020_refined":
+        raise RuntimeError("Figure 9 requires a D-020-refined checkpoint; run _train_dir_ckpt.py --root first")
+    showcase = checkpoint.get("showcase")
+    if not showcase:
+        raise RuntimeError("D-020 directional checkpoint has no deterministic held-out showcase")
+    example = X.Example("fusion", showcase["name"], "Fusion 留出件", 1.48, -14., 7.)
+    X.assert_checkpoint_holdout(checkpoint, example, "Figure 9")
+    models, _ = load_dataset(os.path.join(ROOT, "data", "processed", "fusion360_full"))
+    model = {item.name: item for item in models}[example.name]
+    index = int(showcase["idx"])
+    mesh = D.load_fusion_mesh(example.name, args.root)
+    if mesh is None:
+        raise FileNotFoundError(f"Missing Fusion mesh for Figure 9: {example.name}")
+    Vn, F, occupancy, lo, pitch = mesh
+    if occupancy.shape != model.occ.shape or not np.array_equal(occupancy, np.asarray(model.occ, bool)):
+        raise RuntimeError("Figure 9 mesh occupancy does not match its processed held-out item")
+    directions = np.asarray(checkpoint["dirs"], float)
+    oracle = SupportAccessibilityOracle(model.occ, {"n_directions": int(checkpoint["n_directions"])},
+                                        mesh=(Vn, F, lo, pitch))
+    viable = oracle.direction_labels(model.points[index], model.radius)
+    network = ConvONetLite(out_dim=int(checkpoint["D"])); network.load_state_dict(checkpoint["state_dict"]); network.eval()
     with torch.no_grad():
-        occ = torch.as_tensor(np.asarray(m.occ, np.float32)).view(1, 1, *m.occ.shape)
-        gc = to_grid_coords(p.reshape(1, 3), m.occ.shape)
-        blocked_prob = torch.sigmoid(net(occ, gc)).numpy().reshape(-1)     # (D,) 被挡概率
-    acc = float(((blocked_prob >= 0.5) == (~viable)).mean())               # 方向级一致率
-    x, y = _disk_xy(dirs)
-    rec = dirs[int(np.argmin(blocked_prob))]                               # Top-1 最可达方向（网络）
+        occ = torch.as_tensor(np.asarray(model.occ, np.float32)).view(1, 1, *model.occ.shape)
+        coords = to_grid_coords(model.points[index:index + 1], model.occ.shape)
+        blocked_probability = torch.sigmoid(network(occ, coords)).numpy().ravel()
+    predicted = blocked_probability >= .5
+    agreement = float((predicted == (~viable)).mean())
+    top1 = int(np.argmin(blocked_probability))
+    if not (.30 <= viable.mean() <= .60 and viable[top1] and agreement >= .85):
+        raise RuntimeError("Stored showcase no longer satisfies mixed-direction, Top-1, and agreement constraints")
+    x, y = _disk_coordinates(directions)
+    point_world = np.asarray(lo) + (np.asarray(model.points[index]) + .5) * float(pitch)
+    local = D.render_dir_arrow_arr(Vn, F, point_world, directions[top1], zoom=example.zoom,
+                                   azimuth=example.azimuth, elevation=example.elevation, wsize=(1100, 900))
 
-    fig = plt.figure(figsize=(10.6, 3.7))
-    gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.25], wspace=0.1, left=0.02, right=0.9, top=0.9, bottom=0.1)
-
-    ax0 = fig.add_subplot(gs[0]); _disk_axes(ax0, f"(a) {'D-020 细化' if refined else '占据'}判定器")
-    ax0.scatter(x[viable], y[viable], s=34, color=S.ACC, zorder=4, edgecolors="white", linewidths=0.3)
-    ax0.scatter(x[~viable], y[~viable], s=34, color=S.INACC, zorder=4, edgecolors="white", linewidths=0.3)
-
-    ax1 = fig.add_subplot(gs[1]); _disk_axes(ax1, f"网络预测（方向级一致 {100 * acc:.0f}%）")
-    ax1.scatter(x, y, c=blocked_prob, cmap=_CMAP, vmin=0, vmax=1, s=34, zorder=4,
-                edgecolors="white", linewidths=0.3)
-
-    ax2 = fig.add_subplot(gs[2])
-    Vn, F, _oo, lo, pitch = D.load_fusion_mesh(name, a.root)
-    p_world = np.asarray(lo, float) + (p + 0.5) * float(pitch)
-    img = D.render_dir_arrow_arr(Vn, F, p_world, rec, zoom=1.5)
-    ax2.imshow(img); ax2.axis("off")
-    ax2.set_title(f"(b) Top-1 推荐逼近方向\n{'D-020 细化标签' if refined else '占据标签（无网格）'}", fontsize=9.8)
-
-    sm = cm.ScalarMappable(cmap=_CMAP, norm=mcolors.Normalize(0, 1)); sm.set_array([])
-    cax = fig.add_axes([0.905, 0.28, 0.015, 0.42])
-    cb = fig.colorbar(sm, cax=cax); cb.set_label("被挡概率", fontsize=8.5)
-    cb.set_ticks([0, 0.5, 1]); cb.set_ticklabels(["0 可达", "0.5", "1 被挡"]); cb.ax.tick_params(labelsize=7.5)
-    fig.legend(handles=[Patch(color=S.ACC, label="可达方向"), Patch(color=S.INACC, label="被挡方向")],
-               loc="lower left", bbox_to_anchor=(0.03, 0.0), ncol=2, frameon=False, fontsize=8.5)
-
+    fig = plt.figure(figsize=S.double_column(72))
+    grid = fig.add_gridspec(1, 3, width_ratios=(1, 1, 1.16), wspace=.12,
+                            left=.035, right=.93, bottom=.13, top=.91)
+    truth = fig.add_subplot(grid[0, 0]); _disk_axis(truth, "(a) D-020 几何判定器")
+    truth.scatter(x[viable], y[viable], s=27, c=S.ACC, edgecolors="white", linewidths=.35, zorder=4)
+    truth.scatter(x[~viable], y[~viable], s=27, c=S.INACC, edgecolors="white", linewidths=.35, zorder=4)
+    prediction_axis = fig.add_subplot(grid[0, 1]); _disk_axis(prediction_axis, f"网络预测（一致率 {agreement:.0%}）")
+    prediction_axis.scatter(x, y, s=27, c=blocked_probability, cmap=CMAP, vmin=0, vmax=1,
+                            edgecolors="white", linewidths=.35, zorder=4)
+    render = fig.add_subplot(grid[0, 2]); render.imshow(local); render.axis("off")
+    render.set_title("(b) Top-1 推荐逼近方向", loc="left", fontsize=8.4, fontweight="bold", pad=3)
+    render.text(.5, .02, f"{example.name}  |  可达方向 {viable.mean():.0%}", transform=render.transAxes,
+                ha="center", va="bottom", fontsize=7.5, color=S.INK,
+                bbox={"fc": "white", "ec": "none", "pad": 1.5, "alpha": .9})
+    colourbar_axis = fig.add_axes([.945, .30, .014, .42])
+    mapper = plt.cm.ScalarMappable(cmap=CMAP, norm=mcolors.Normalize(0, 1)); mapper.set_array([])
+    colourbar = fig.colorbar(mapper, cax=colourbar_axis); colourbar.set_ticks([0, .5, 1])
+    colourbar.set_ticklabels(["0", ".5", "1"]); colourbar.ax.tick_params(labelsize=7.5)
+    colourbar_axis.text(-.72, .5, "被挡概率", transform=colourbar_axis.transAxes, rotation=90,
+                        ha="center", va="center", fontsize=7.5, color=S.INK)
+    fig.legend([Patch(fc=S.ACC), Patch(fc=S.INACC)], ["可达方向", "被挡方向"],
+               loc="lower left", bbox_to_anchor=(.04, .008), frameon=False, ncol=2, fontsize=7.5)
     print("SAVED", S.save(fig, "fig09_direction_field"))
 
 

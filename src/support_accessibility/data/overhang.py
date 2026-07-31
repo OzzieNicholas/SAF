@@ -37,6 +37,9 @@ def support_contact_faces(V, F, d, overhang_deg=45.0):
     d = np.asarray(d, float)
     d = d / np.linalg.norm(d)
     n, c = face_normals_centroids(V, F)
-    mask = (n @ d) < -np.cos(np.radians(overhang_deg))
+    # Avoid dispatching a tiny BLAS matvec after VTK/PyVista has loaded its
+    # OpenMP runtime on Windows.  Elementwise reduction is mathematically
+    # identical and keeps figure generation in the same process reliable.
+    mask = np.sum(n * d[None, :], axis=1) < -np.cos(np.radians(overhang_deg))
     idx = np.nonzero(mask)[0]
     return SupportContact(idx, c[mask], n[mask], d, float(overhang_deg))

@@ -1,7 +1,8 @@
 # 论文图件流水线（paper/figures/）
 
-写作指引 §4.1 的 10 幅图，脚本在此目录，产物 PNG(600dpi) + 字体嵌入 PDF 落 `paper/figures/`。
-统一样式见 `style.py`（中文字体、配色语义 **不可达=红/可达=蓝/不确定=灰/FN=紫/FP=橙**、正交 CAD 离屏主题）；
+写作指引 §4.1 的 10 幅图，脚本在此目录，产物为固定物理尺寸的 PNG(600 dpi) + 字体嵌入 PDF，
+落 `paper/figures/`。图题/图注源稿见 `paper/figures/captions.md`。
+统一样式见 `style.py`（中文字体、双栏 175 mm 尺寸、配色语义 **不可达=红/可达=蓝/FN=紫/支撑接触区或 FP=橙**）；
 数据/渲染助手见 `_data.py`。所有依赖真实数据/模型的图均可由脚本从数据集 + 缓存 checkpoint 复现。
 
 ## 依赖
@@ -10,7 +11,7 @@
 - Fusion 原网格根：`E:/Fusion360Gallery/reconstruction`（`--root`，图2/7/9/10b 精网格渲染用；gitignore）。
 - 缓存 checkpoint / 中间产物（`runs/`，DVC/gitignore，机器 emit）：
   - `runs/figures/ckpt_point.pt` ← `_train_ckpt.py`（点级模型，1200 件/150 轮，留出 seed=0）— 图7。
-  - `runs/figures/ckpt_dir.pt` ← `_train_dir_ckpt.py`（方向级模型，占据口径，250 件/120 轮）— 图9。
+  - `runs/figures/ckpt_dir.pt` ← `_train_dir_ckpt.py --root ...`（D-020 细化口径、留出集元数据、确定性展示点）— 图9。
   - `runs/failure_audit/{failure.json,fig10_worst.npz}` ← `failure_cases.py --max-models 400` — 图10。
 
 ## 图件清单
@@ -22,10 +23,10 @@
 | 图3 判据示意 | `fig03_criterion.py` | 示意 | 无（2D 剖面三联） |
 | 图4 两级判定器 | `fig04_two_stage.py` | 示意 | (a) 真 scipy EDT 距离场；(b) 胶囊–三角示意 |
 | 图5 网络结构 | `fig05_network.py` | 示意 | 无（维数照 `models/convonet.py`） |
-| 图6 面积⊥可达 | `fig06_area_vs_access.py` | pyvista+mpl | `flagship_pair` 对照对 + `fusion360_full` 散点 + `eval.spearman` |
-| 图7 预测热图 | `fig07_prediction_heatmap.py` | pyvista+mpl | `ckpt_point.pt` + `fusion360_full` 留出件 + `--root` 网格 |
+| 图6 面积⊥可达 | `fig06_area_vs_access.py` | pyvista+mpl | `examples.FIG06_PAIR` 真实 Fusion 配对 + `fusion360_full` 散点 + `eval.spearman` |
+| 图7 预测热图 | `fig07_prediction_heatmap.py` | pyvista+mpl | `examples.FIG07`（两 Fusion 留出件 + Thingi）+ `ckpt_point.pt` |
 | 图8 基线+消融 | `fig08_baselines_ablation.py` | mpl | `runs/baselines/latest.json` + `results.md` 消融常量 |
-| 图9 方向级场 | `fig09_direction_field.py` | mpl+pyvista | `ckpt_dir.pt` + oracle 方向标签 + `--root` 网格 |
+| 图9 方向级场 | `fig09_direction_field.py` | mpl+pyvista | D-020 `ckpt_dir.pt` + 细化 oracle 方向标签 + `--root` 网格 |
 | 图10 失败案例 | `fig10_failure.py` | mpl+pyvista | `runs/failure_audit/{failure.json,fig10_worst.npz}`（同 `results.md` 失败案例行源） |
 
 ## 全量重生（顺序：先缓存后出图）
@@ -34,7 +35,7 @@
 source "D:/Miniforge/Install/etc/profile.d/conda.sh" && conda activate saf
 # 1) 缓存 checkpoint / 中间产物（各约 10–60min；勿并发）
 python tools/figures/_train_ckpt.py --max-models 1200 --epochs 150
-python tools/figures/_train_dir_ckpt.py --max-models 250 --epochs 120
+python tools/figures/_train_dir_ckpt.py --root E:/Fusion360Gallery/reconstruction --max-models 250 --epochs 120
 python tools/failure_cases.py --max-models 400          # 复现 results.md 失败案例行 + 落图10数据
 # 2) 出图（无先后依赖，可逐条跑）
 for f in 01_framework 02_direction_dependence 03_criterion 04_two_stage 05_network \
@@ -42,10 +43,13 @@ for f in 01_framework 02_direction_dependence 03_criterion 04_two_stage 05_netwo
          09_direction_field 10_failure; do
   python tools/figures/fig${f}.py
 done
+# 3) 导出后 QA：文字候选碰撞、最小字号、图像非空、PDF 字体与最终尺度 contact sheet
+python tools/figures/qa_figures.py --strict
 ```
 
 ## 注记
 
 - 配色红线（写作指引 §1.2）：不可达=红、可达=蓝、不确定=灰（红绿色盲友好）；图2 支撑接触区高亮用橙（避开红/蓝语义）。
-- 图7/9 的 checkpoint 为**图件专用**（子集/较短训练，出可读预测即可，非 benchmark）；主指标以 `results.md` / `runs/` 正式评测为准。图9在提供 Fusion 原网格根且占据逐比特一致时使用 D-020 精确细化，否则会在图中明确标注占据回落。
+- `examples.py` 是定性样本的唯一清单。图 7 在运行时检查 Fusion 样本属于点级检查点的留出集；图 9 只接受保存 D-020 细化语义和留出展示点的检查点。两图均不会静默回落到训练件或占据口径。
+- `qa_figures.py` 的布局警告是导出前人工复核入口；`--strict` 用于最后验收。生成的 `contact_sheet.png` 仅供印刷尺度检查，不属于论文图号。
 - 图10 的失败分箱由 `failure_cases.py` 计算（cuDNN 非确定，逐次训练略有浮动）；图与 `results.md` 失败案例行同源，数值以最近一次 emit 的 `runs/failure_audit/failure.json` 为准。

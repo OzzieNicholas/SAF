@@ -44,7 +44,7 @@ def _field_panel(ax, fig):
               cmap=plt.matplotlib.colors.ListedColormap([SOLID]), zorder=2)
     levels = ax.contour(X, Y, np.where(~solid, dist, np.nan), levels=[0.55, 1.10, 1.65],
                         colors="white", linewidths=0.55, alpha=0.75, zorder=3)
-    ax.clabel(levels, fmt="%.2f", fontsize=6, inline=True)
+    ax.clabel(levels, fmt="%.2f", fontsize=7.5, inline=True)
 
     p = np.array([4.35, 3.62])
     v = np.array([0.10, -1.0]); v /= np.linalg.norm(v)
@@ -58,16 +58,15 @@ def _field_panel(ax, fig):
             ax.add_patch(Circle(c, r, fc="none", ec=S.ACC, lw=1.25, zorder=8))
     ax.scatter(*p, s=35, color=INK, edgecolors="white", linewidths=0.5, zorder=9)
     ax.text(p[0] + 0.13, p[1] + 0.12, "$p$", fontsize=10, zorder=9)
-    ax.text(5.08, 1.75, r"ray-march along $\mathbf{v}$", color=S.ACC, fontsize=7.6, rotation=-78)
     ax.text(0.28, 0.42, r"明确可达： $\min_t\;\mathrm{free\_dist}(p+t\mathbf{v}) > r+\varepsilon$",
-            fontsize=8.2, color=S.ACC, bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.88))
+            fontsize=7.6, color=S.ACC)
     ax.set_title("(a) 第一级 · 距离场快速筛选", loc="left", fontsize=10.5, weight="bold", color=INK)
     ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
     cax = ax.inset_axes([0.08, 0.91, 0.38, 0.027])
     cb = fig.colorbar(im, cax=cax, orientation="horizontal")
-    cb.set_ticks([0, 1.2, 2.4]); cb.ax.tick_params(labelsize=6, length=2, pad=1)
+    cb.set_ticks([0, 1.2, 2.4]); cb.ax.tick_params(labelsize=7.5, length=2, pad=1)
     cb.outline.set_visible(False)
-    ax.text(0.08, 0.955, "自由空间欧氏距离", transform=ax.transAxes, fontsize=6.5, color=INK)
+    ax.text(0.08, 0.955, "自由空间欧氏距离", transform=ax.transAxes, fontsize=7.5, color=INK)
 
 
 def _refine_panel(ax):
@@ -101,45 +100,34 @@ def _refine_panel(ax):
                 xytext=(5.45, 4.55), fontsize=7.8, color=S.INACC,
                 arrowprops=dict(arrowstyle="->", color=S.INACC, lw=0.8))
     ax.text(0.28, 0.42, r"含糊方向： $r-\varepsilon < c_i \leq r+\varepsilon$  →  胶囊–三角网格求交",
-            fontsize=8.0, color="#A9562D",
-            bbox=dict(boxstyle="round,pad=0.28", fc="white", ec="none", alpha=0.88))
+            fontsize=7.6, color="#A9562D")
     ax.set_title("(b) 第二级 · 边界带精确细化", loc="left", fontsize=10.5, weight="bold", color=INK)
     ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
 
 
-def _decision_strip(fig):
-    ax = fig.add_axes([0.07, 0.035, 0.86, 0.17])
-    ax.set_xlim(0, 12); ax.set_ylim(0, 2.3); ax.axis("off")
-    ax.text(0.0, 2.04, r"每方向最小净空 $c_i$", fontsize=8.4, weight="bold", color=INK)
-    items = [
-        (0.0, 3.35, "明确碰撞", r"$c_i\leq r-\varepsilon$", "距离场判定", "#F6E4E1", S.INACC),
-        (4.3, 3.35, "边界带", r"$r-\varepsilon<c_i\leq r+\varepsilon$", "精确胶囊测试", "#FAEDE3", S.ORANGE),
-        (8.6, 3.35, "明确无碰撞", r"$c_i>r+\varepsilon$", "距离场判定", "#E6EFF7", S.ACC),
-    ]
-    for x, w, title, rule, action, fc, ec in items:
-        ax.add_patch(FancyBboxPatch((x, 0.34), w, 1.40, boxstyle="round,pad=0.02,rounding_size=0.10",
-                                    fc=fc, ec=ec, lw=0.9))
-        ax.text(x + w / 2, 1.40, title, ha="center", fontsize=8.0, weight="bold", color=ec)
-        ax.text(x + w / 2, 0.98, rule, ha="center", fontsize=7.6, color=INK)
-        ax.text(x + w / 2, 0.57, action, ha="center", fontsize=6.7, color=S.NEUTRAL)
-    ax.text(11.98, 2.04, r"点级：任一方向可达 $\Rightarrow p$ 可达", ha="right", fontsize=8.2, color=INK)
+def _stability_inset(fig):
+    """A small factual validation mark anchors the two-stage schematic."""
+    ax = fig.add_axes([.715, .065, .245, .16])
+    x = np.arange(3)
+    vals = (.865, .899, 1.000)
+    ax.plot(x, vals, color=S.NEUTRAL, lw=.9, zorder=1)
+    ax.scatter(x[:2], vals[:2], s=24, color=S.UNC, edgecolors="white", zorder=2)
+    ax.scatter(x[2:], vals[2:], s=28, color=S.ACC, edgecolors="white", zorder=2)
+    ax.set_xticks(x, ["48/96", "96/192", "两级"])
+    ax.set_ylim(.82, 1.02); ax.set_yticks([.85, 1.00])
+    ax.set_ylabel("一致率", fontsize=7.5)
+    ax.tick_params(labelsize=7.5, pad=1)
+    ax.set_title("跨分辨率标签稳定性", fontsize=7.5, loc="left", pad=2)
+    for xx, value in zip(x, vals):
+        ax.text(xx, value + .012, f"{value:.3f}", ha="center", fontsize=7.5)
 
 
 def main():
-    fig, axes = plt.subplots(1, 2, figsize=(11.2, 5.6), gridspec_kw={"wspace": 0.06})
+    fig, axes = plt.subplots(1, 2, figsize=S.double_column(84), gridspec_kw={"wspace": 0.06})
     _field_panel(axes[0], fig)
     _refine_panel(axes[1])
-    fig.subplots_adjust(left=0.04, right=0.98, top=0.82, bottom=0.22)
-    fig.suptitle("两级几何判定器：快速筛选绝大多数方向，仅细化离散边界带", x=0.05, y=0.975,
-                 ha="left", fontsize=13, weight="bold", color=INK)
-    fig.text(0.05, 0.914,
-             "占据栅格距离场对一个工具半径一次摊销；有原网格时，临界方向回到连续表面作精确无碰撞判定",
-             fontsize=8.4, color=S.NEUTRAL)
-    fig.text(0.50, 0.855, "fast voxel screen", ha="center", fontsize=7.1, color=S.ACC)
-    fig.add_artist(FancyArrowPatch((0.47, 0.852), (0.55, 0.852), transform=fig.transFigure,
-                                   arrowstyle="-|>", mutation_scale=10, color=S.ORANGE, lw=1.2))
-    fig.text(0.58, 0.855, "exact continuous refinement", ha="left", fontsize=7.1, color=S.ORANGE)
-    _decision_strip(fig)
+    fig.subplots_adjust(left=.025, right=.985, top=.89, bottom=.25)
+    _stability_inset(fig)
     print("SAVED", S.save(fig, "fig04_two_stage"))
 
 
