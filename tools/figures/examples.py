@@ -18,23 +18,29 @@ class Example:
     zoom: float = 1.45
     azimuth: float = 0.0
     elevation: float = 0.0
+    roi_zoom: float = 2.15
 
 
-FIG02 = Example("fusion", "23954_a8c09819_0000", "Fusion CAD", 1.42, -12.0, 8.0)
+FIG01_LABEL = Example("fusion", "23632_5c8e8093_0000", "几何标签案例", 1.42, -10.0, 7.0, 2.05)
+FIG01_POINT = Example("fusion", "23954_a8c09819_0000", "点级留出件", 1.46, -12.0, 8.0, 2.25)
+FIG02 = Example("fusion", "119907_90a6e5af_0000", "Fusion CAD", 1.40, -18.0, 10.0, 2.10)
 
 # Chosen deterministically from fusion360_full: identical support-contact point
 # counts (77) with the largest accessibility gap among exact count matches.
 FIG06_PAIR = (
-    Example("fusion", "23035_6087bb57_0000", "接近全可达", 1.52, -18.0, 8.0),
-    Example("fusion", "134918_d66774a6_0000", "接近全不可达", 1.52, -18.0, 8.0),
+    Example("fusion", "62955_58bbef9f_0000", "全可达", 1.48, -18.0, 8.0, 2.20),
+    Example("fusion", "137290_d81443d2_0000", "高不可达", 1.48, -12.0, 8.0, 2.20),
 )
 
 # Both Fusion examples are members of ckpt_point.pt's declared held-out set.
 FIG07 = (
-    Example("fusion", "49896_6387ac02_0000", "Fusion A", 1.48, -12.0, 6.0),
-    Example("fusion", "23630_84ec484d_0000", "Fusion B", 1.48, 10.0, 6.0),
-    Example("thingi", "100035", "Thingi10K", 1.48, -10.0, 8.0),
+    Example("fusion", "138499_e52099a3_0000", "Fusion 留出件", 1.44, -12.0, 8.0, 2.15),
+    Example("thingi", "1028708", "Thingi10K 跨域件", 1.42, -10.0, 8.0, 2.05),
 )
+
+FIG09 = Example("fusion", "101190_cfdcb477_0001", "方向级留出件", 1.50, -14.0, 7.0, 2.10)
+FIG09_POINT_INDEX = 27
+FIG10 = Example("fusion", "116082_b59d8605_0002", "代表性高误差留出件", 1.42, -18.0, 9.0, 2.30)
 
 
 def assert_checkpoint_holdout(checkpoint, example, figure):

@@ -92,15 +92,32 @@ def main():
             preds["convonet"].append((torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy())
 
     G = np.concatenate(golds)
+    bootstrap_rng = np.random.default_rng(0)
+
+    def bootstrap_mean_ci(values, draws=10000):
+        values = np.asarray(values, float)
+        samples = bootstrap_rng.integers(0, len(values), size=(draws, len(values)))
+        means = values[samples].mean(axis=1)
+        return [round(float(v), 4) for v in np.quantile(means, [.025, .975])]
+
     rep = {"n_test_models": len(fte), "n_test_points": int(G.size), "seed": a.seed,
            "epochs": a.epochs, "tiny_epochs": a.tiny_epochs, "device": dev,
-           "n_directions_baseline": a.n_directions, "methods": {}}
+           "n_directions_baseline": a.n_directions, "bootstrap_seed": 0,
+           "bootstrap_draws": 10000, "test_names": [m.name for m in fte], "methods": {}}
+    per_method = {}
     for k, ps in preds.items():
         P = np.concatenate(ps)
         per = np.array([E.f1_inaccessible(p, g) for p, g in zip(ps, golds)])
+        per_method[k] = per
         rep["methods"][k] = {"f1_overall": round(E.f1_inaccessible(P, G), 4),
                              "f1_model_mean": round(float(per.mean()), 4),
-                             "f1_model_std": round(float(per.std()), 4)}
+                             "f1_model_std": round(float(per.std()), 4),
+                             "f1_model_ci95": bootstrap_mean_ci(per),
+                             "f1_by_model": [round(float(value), 6) for value in per]}
+    delta = per_method["convonet"] - per_method["ray_visibility"]
+    rep["paired_delta_convonet_minus_ray"] = {
+        "mean": round(float(delta.mean()), 4), "ci95": bootstrap_mean_ci(delta)
+    }
     outdir = os.path.join(os.path.dirname(_ROOT), "runs", "baselines")
     os.makedirs(outdir, exist_ok=True)
     json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)

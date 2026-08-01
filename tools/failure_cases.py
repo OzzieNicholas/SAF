@@ -42,6 +42,8 @@ def main():
     ap.add_argument("--n-directions", type=int, default=128)
     ap.add_argument("--outdir", default=None, help="审计 PNG 输出目录（默认 scratch 内）")
     ap.add_argument("--top-audit", type=int, default=4)
+    ap.add_argument("--figure-case", default="116082_b59d8605_0002",
+                    help="图10固定留出案例；必须属于本次首种子测试集")
     a = ap.parse_args()
 
     import json
@@ -151,12 +153,19 @@ def main():
     try:
         json.dump(rep, open(os.path.join(outdir, "failure.json"), "w", encoding="utf-8"),
                   ensure_ascii=False, indent=1)
-        wname, _wne, _wmask, wm = max(per_model0, key=lambda t: t[1])
-        wp = preds0[wname]; wg = np.asarray(wm.labels, bool)
-        np.savez(os.path.join(outdir, "fig10_worst.npz"), name=wname, points=wm.points,
-                 fp=(wp & ~wg), fn=(~wp & wg), gold=wg, nviable=nv_by[wname])
+        case = next((item for item in per_model0 if item[0] == a.figure_case), None)
+        if case is None:
+            raise RuntimeError(f"figure case is not in the held-out set: {a.figure_case}")
+        cname, cerrors, _cmask, cm = case
+        cp = preds0[cname]; cg = np.asarray(cm.labels, bool)
+        np.savez(os.path.join(outdir, "fig10_case.npz"), name=cname, points=cm.points,
+                 fp=(cp & ~cg), fn=(~cp & cg), gold=cg, nviable=nv_by[cname],
+                 error_count=int(cerrors), split="test", seed=int(seeds[0]))
+        rep["figure_case"] = {"name": cname, "errors": int(cerrors), "split": "test"}
+        json.dump(rep, open(os.path.join(outdir, "failure.json"), "w", encoding="utf-8"),
+                  ensure_ascii=False, indent=1)
     except Exception as e:
-        print(f"(fig10 数据落盘跳过：{str(e)[:80]})", flush=True)
+        raise RuntimeError(f"fig10 artifact generation failed: {e}") from e
 
 
 if __name__ == "__main__":

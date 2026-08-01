@@ -39,7 +39,7 @@ plt.rcParams.update({
     "savefig.dpi": 600,
     "pdf.fonttype": 42,
     "ps.fonttype": 42,
-    "font.size": 8.2,
+    "font.size": 8.0,
     "axes.titlesize": 8.8,
     "axes.labelsize": 8.2,
     "xtick.labelsize": 7.5,
@@ -66,8 +66,9 @@ UNC = "#8A8F93"          # neutral / uncertain
 NEUTRAL = "#626A70"
 INK = "#1F2930"
 PAPER = "#FFFFFF"
-PART = "#C9CDD0"
-PART_DARK = "#9DA4A8"
+PART = "#BBC2C7"
+PART_DARK = "#7F8990"
+PART_EDGE = "#48535B"
 PALE_BLUE = "#E8F0F7"
 PALE_RED = "#F7E8E5"
 PALE_ORANGE = "#FAEEE3"
@@ -77,7 +78,7 @@ PALE_GREY = "#F2F4F5"
 GREEN = "#547F68"
 INACC_RGB = (0.753, 0.224, 0.169)
 ACC_RGB = (0.173, 0.435, 0.698)
-PART_RGB = (0.788, 0.804, 0.816)
+PART_RGB = (0.733, 0.761, 0.780)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTDIR = os.path.join(_ROOT, "paper", "figures")
@@ -107,6 +108,19 @@ def panel_label(ax, text, x=0.0, y=1.01):
             fontsize=8.4, fontweight="bold", color=INK, clip_on=False)
 
 
+def imshow_cad(ax, image, label=None, semantic=False, semantic_min=None):
+    """Place a cropped technical render without allowing text into its data region."""
+    artist = ax.imshow(image, interpolation="lanczos")
+    ax.set_axis_off()
+    ax._saf_cad_artist = artist
+    if semantic_min is None:
+        semantic_min = .02 if semantic else 0.0
+    ax._saf_semantic_min = float(semantic_min)
+    if label:
+        panel_label(ax, label)
+    return artist
+
+
 def save(fig, name):
     """Export fixed-size PNG/PDF and write non-destructive layout diagnostics."""
     from qa_figures import inspect_figure
@@ -119,8 +133,8 @@ def save(fig, name):
     png = os.path.join(OUTDIR, name + ".png")
     pdf = os.path.join(OUTDIR, name + ".pdf")
     metadata = {"Creator": "SAF reproducible figure pipeline", "Title": name}
-    fig.savefig(png, facecolor="white", metadata=metadata)
-    fig.savefig(pdf, facecolor="white", metadata=metadata)
+    fig.savefig(png, dpi=600, facecolor="white", metadata=metadata, bbox_inches=None)
+    fig.savefig(pdf, dpi=600, facecolor="white", metadata=metadata, bbox_inches=None)
     plt.close(fig)
     return png
 

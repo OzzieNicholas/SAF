@@ -38,6 +38,7 @@ def main():
     ap.add_argument("--max-models", type=int, default=400)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--out", default="runs/ablation/latest.json")
     a = ap.parse_args()
 
     import json
@@ -111,10 +112,16 @@ def main():
         res[variant] = round(E.f1_inaccessible(np.concatenate(pr), np.concatenate(go)), 3)
         print(f"variant={variant} f1={res[variant]}", flush=True)
 
-    print("ABLATION_RESULT " + json.dumps({
-        "device": dev, "epochs": a.epochs, "test_models": len(fte),
-        "f1": res, "order": "no_shape < local(RF3) < lite(RF7) ?> pooled（形状必需、RF 适中）",
-    }))
+    report = {"schema_version": 1, "device": dev, "epochs": a.epochs,
+              "max_models": a.max_models, "seed": a.seed,
+              "train_models": len(ftr), "test_models": len(fte),
+              "f1": res,
+              "order": ["no_shape", "local", "lite", "pooled"]}
+    output = os.path.abspath(a.out)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    with open(output, "w", encoding="utf-8") as handle:
+        json.dump(report, handle, ensure_ascii=False, indent=1)
+    print("ABLATION_RESULT " + json.dumps(report, ensure_ascii=False))
 
 
 if __name__ == "__main__":

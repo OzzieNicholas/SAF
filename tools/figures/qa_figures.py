@@ -29,14 +29,22 @@ def _tick_like(text):
 
 
 def inspect_figure(fig, name):
-    """Inspect matplotlib text geometry before export; do not reject intentional overlap."""
+    """Inspect final-size text and CAD panels before export."""
     renderer = fig.canvas.get_renderer()
     width, height = fig.canvas.get_width_height()
     texts = []
-    tick_texts = set()
+    all_tick_texts, valid_tick_texts = set(), set()
     for axis in fig.axes:
-        tick_texts.update(axis.get_xticklabels())
-        tick_texts.update(axis.get_yticklabels())
+        active_axis = axis.get_visible() and axis.axison
+        for values, labels, limits in (
+            (axis.get_xticks(), axis.get_xticklabels(), axis.get_xlim()),
+            (axis.get_yticks(), axis.get_yticklabels(), axis.get_ylim()),
+        ):
+            low, high = sorted(limits)
+            for value, label in zip(values, labels):
+                all_tick_texts.add(label)
+                if active_axis and low - 1e-9 <= value <= high + 1e-9:
+                    valid_tick_texts.add(label)
     for artist in fig.findobj(lambda item: hasattr(item, "get_window_extent")):
         if (not hasattr(artist, "get_text") or not hasattr(artist, "get_fontsize")
                 or not artist.get_visible()):
@@ -44,7 +52,7 @@ def inspect_figure(fig, name):
         if hasattr(artist, "axes") and artist.axes is not None:
             if not artist.axes.get_visible() or not artist.axes.axison:
                 continue
-        if artist in tick_texts:
+        if artist in all_tick_texts and artist not in valid_tick_texts:
             continue
         text = artist.get_text().strip()
         if not text:
@@ -65,7 +73,7 @@ def inspect_figure(fig, name):
             overlap = _intersection(left["bbox"], right["bbox"])
             small = min(left["bbox"].width * left["bbox"].height,
                         right["bbox"].width * right["bbox"].height)
-            if small and overlap / small > 0.55:
+            if small and overlap > 2.0 and overlap / small > 0.08:
                 warnings.append({"kind": "text_overlap_candidate", "left": left["text"],
                                  "right": right["text"], "fraction": round(overlap / small, 3)})
     for item in texts:
@@ -76,8 +84,39 @@ def inspect_figure(fig, name):
         if (not _tick_like(item["text"]) and
                 (bbox.x0 < -5 or bbox.y0 < -5 or bbox.x1 > width + 5 or bbox.y1 > height + 5)):
             warnings.append({"kind": "text_outside_canvas", "text": item["text"]})
+    cad_panels = []
+    for axis in fig.axes:
+        artist = getattr(axis, "_saf_cad_artist", None)
+        if artist is None:
+            continue
+        image = np.asarray(artist.get_array())[..., :3]
+        mask = np.any(image < 248, axis=2)
+        yy, xx = np.where(mask)
+        bbox_fraction = 0.0
+        if len(xx):
+            bbox_fraction = ((xx.max() - xx.min() + 1) * (yy.max() - yy.min() + 1)
+                             / float(image.shape[0] * image.shape[1]))
+        semantic = np.zeros(mask.shape, dtype=bool)
+        for rgb in ((44, 111, 178), (192, 57, 43), (122, 62, 157), (215, 131, 63)):
+            semantic |= np.linalg.norm(image.astype(float) - np.asarray(rgb), axis=2) < 38
+        semantic_fraction = float(semantic.mean())
+        semantic_min = float(getattr(axis, "_saf_semantic_min", 0.0))
+        item = {"bbox_fraction": round(float(bbox_fraction), 4),
+                "semantic_fraction": round(semantic_fraction, 4),
+                "semantic_min": round(semantic_min, 4)}
+        cad_panels.append(item)
+        if bbox_fraction < .55:
+            warnings.append({"kind": "cad_underfilled", "fraction": round(float(bbox_fraction), 3)})
+        if semantic_fraction < semantic_min:
+            warnings.append({"kind": "semantic_area_too_small",
+                             "fraction": round(semantic_fraction, 3),
+                             "minimum": round(semantic_min, 3)})
+        axis_bbox = axis.get_window_extent(renderer)
+        for text_item in texts:
+            if text_item["axes"] is axis and _intersection(text_item["bbox"], axis_bbox) > 2:
+                warnings.append({"kind": "text_inside_cad_panel", "text": text_item["text"]})
     return {"figure": name, "canvas_px": [width, height], "text_count": len(texts),
-            "warnings": warnings}
+            "cad_panels": cad_panels, "warnings": warnings}
 
 
 def _image_report(path):
@@ -92,19 +131,42 @@ def _image_report(path):
         bbox = [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
     else:
         bbox = None
+    dpi = image.info.get("dpi", (0, 0))
     return {"path": os.path.basename(path), "size_px": list(image.size),
+            "dpi": [round(float(dpi[0]), 1), round(float(dpi[1]), 1)],
             "content_fraction": round(content_fraction, 5), "content_bbox": bbox,
-            "blank": content_fraction < 0.01}
+            "blank": content_fraction < 0.01,
+            "dpi_ok": all(abs(float(value) - 600.0) < 2.0 for value in dpi)}
 
 
 def _pdf_font_report(path):
-    command = shutil.which("pdffonts")
-    if command is None:
-        return {"available": False, "embedded": None}
-    output = subprocess.run([command, path], check=False, capture_output=True, text=True).stdout.splitlines()
-    rows = [line.split() for line in output[2:] if line.strip()]
-    embedded = bool(rows) and all(len(row) >= 4 and row[3].lower() == "yes" for row in rows)
-    return {"available": True, "embedded": embedded, "font_rows": len(rows)}
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        return {"available": False, "embedded": False, "type3": None, "page_mm": None}
+    reader = PdfReader(path)
+    fonts, embedded, type3 = 0, True, False
+    for page in reader.pages:
+        resources = page.get("/Resources", {})
+        for ref in resources.get("/Font", {}).values():
+            font = ref.get_object(); fonts += 1
+            subtype = str(font.get("/Subtype", ""))
+            type3 |= subtype == "/Type3"
+            candidates = [font]
+            if subtype == "/Type0":
+                candidates = [item.get_object() for item in font.get("/DescendantFonts", [])]
+            for candidate in candidates:
+                descriptor = candidate.get("/FontDescriptor")
+                if descriptor is None:
+                    embedded = False
+                    continue
+                descriptor = descriptor.get_object()
+                embedded &= any(key in descriptor for key in ("/FontFile", "/FontFile2", "/FontFile3"))
+    page = reader.pages[0]
+    width_mm = float(page.mediabox.width) / 72.0 * 25.4
+    height_mm = float(page.mediabox.height) / 72.0 * 25.4
+    return {"available": True, "embedded": bool(fonts and embedded), "type3": bool(type3),
+            "font_rows": fonts, "page_mm": [round(width_mm, 2), round(height_mm, 2)]}
 
 
 def build_report():
@@ -141,15 +203,18 @@ def contact_sheet():
     thumbs = []
     for name in names:
         image = Image.open(os.path.join(FIGURE_DIR, name)).convert("RGB")
-        image.thumbnail((980, 760))
-        thumbs.append((name, image.copy()))
-    cell_w, cell_h = 1040, 820
-    sheet = Image.new("RGB", (cell_w * 2, cell_h * 5), "white")
+        large = image.copy(); large.thumbnail((1034, 780))
+        small = image.copy(); small.thumbnail((502, 380))
+        thumbs.append((name, large, small))
+    cell_w, cell_h = 1600, 850
+    sheet = Image.new("RGB", (cell_w, cell_h * len(thumbs)), "white")
     draw = ImageDraw.Draw(sheet)
-    for index, (name, image) in enumerate(thumbs):
-        x, y = (index % 2) * cell_w, (index // 2) * cell_h
-        sheet.paste(image, (x + (cell_w - image.width) // 2, y + 42))
-        draw.text((x + 28, y + 16), name.replace(".png", ""), fill="#1F2930")
+    for index, (name, large, small) in enumerate(thumbs):
+        y = index * cell_h
+        sheet.paste(large, (32, y + 48))
+        sheet.paste(small, (1080, y + 48))
+        draw.text((28, y + 16), name.replace(".png", "") + "  |  175 mm", fill="#1F2930")
+        draw.text((1080, y + 16), "85 mm stress preview", fill="#626A70")
     path = os.path.join(FIGURE_DIR, "contact_sheet.png")
     sheet.save(path, dpi=(300, 300))
     return path
@@ -166,6 +231,12 @@ def main():
         json.dump(report, handle, ensure_ascii=False, indent=2)
     path = contact_sheet()
     warnings = sum(len(item.get("warnings", ())) for item in report["layout_reports"])
+    for item in report["figures"]:
+        if not item.get("dpi_ok", False):
+            warnings += 1
+        pdf = item.get("pdf_fonts", {})
+        if not pdf.get("embedded", False) or pdf.get("type3", False):
+            warnings += 1
     blanks = sum(1 for item in report["figures"] if item.get("blank"))
     print(json.dumps({"report": output, "contact_sheet": path, "warnings": warnings,
                       "blank_images": blanks}, ensure_ascii=False))

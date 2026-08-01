@@ -36,6 +36,7 @@ def main():
     ap.add_argument("--overhang-deg", type=float, default=45.0)
     ap.add_argument("--nudge-voxels", type=float, default=2.0)
     ap.add_argument("--max-models", type=int, default=None)
+    ap.add_argument("--out", default="runs/true_area/latest.json")
     a = ap.parse_args()
 
     import json
@@ -45,15 +46,15 @@ def main():
     from support_accessibility.data import mesh as MESH, overhang as OVH
     from support_accessibility import eval as E
 
-    ms, _rows = load_dataset(a.data)
+    ms, rows = load_dataset(a.data)
     if a.max_models:
         ms = ms[:a.max_models]
     path_of = {name: path for name, path in iter_final_designs(a.root)}   # 同名后者覆盖，镜像 ingest 覆写序
 
     d = np.array([0.0, 0.0, 1.0])
-    area_tot, area_frac, cnt_tot, cnt_frac = [], [], [], []
+    area_tot, area_frac, cnt_tot, cnt_frac, per_model = [], [], [], [], []
     done = miss = mismatch = bad = 0
-    for m in ms:
+    for m, row in zip(ms, rows):
         if m.points.shape[0] == 0:
             continue
         p = path_of.get(m.name)
@@ -92,6 +93,11 @@ def main():
         area_frac.append(float(kept_area[lab].sum()) / s)  # 不可达面积占比（面积加权）
         cnt_tot.append(float(lab.size))
         cnt_frac.append(float(lab.mean()))
+        per_model.append({"name": m.name, "split": row.get("split", ""),
+                          "contact_area": s,
+                          "inaccessible_area_fraction": float(kept_area[lab].sum()) / s,
+                          "contact_count": int(lab.size),
+                          "inaccessible_count_fraction": float(lab.mean())})
 
     area_tot, area_frac = np.asarray(area_tot), np.asarray(area_frac)
     cnt_tot, cnt_frac = np.asarray(cnt_tot), np.asarray(cnt_frac)
@@ -110,8 +116,15 @@ def main():
             "spearman_bothclass": round(E.spearman(cnt_tot[both_c], cnt_frac[both_c]), 4) if both_c.sum() >= 2 else 0.0,
         },
         "interpretation": "真面积 ρ 与计数代理 ρ 同量级或更小 ⟹ H1 弱相关结论非计数代理伪影（论文局限-面积口径引用）",
+        "per_model": per_model,
     }
-    print("TRUE_AREA_RESULT " + json.dumps(out, ensure_ascii=False))
+    output = os.path.abspath(a.out)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    with open(output, "w", encoding="utf-8") as handle:
+        json.dump(out, handle, ensure_ascii=False, indent=1)
+    out["output"] = output
+    summary = {key: value for key, value in out.items() if key != "per_model"}
+    print("TRUE_AREA_RESULT " + json.dumps(summary, ensure_ascii=False))
 
 
 if __name__ == "__main__":

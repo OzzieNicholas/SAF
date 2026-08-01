@@ -1,133 +1,142 @@
 #!/usr/bin/env python3
-"""图 4 距离场筛选与边界带精确胶囊细化的两级判定器。"""
+"""Figure 4. Complete two-stage geometry-label decision flow."""
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import style as S  # noqa: E402
-import numpy as np  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle  # noqa: E402
+import numpy as np  # noqa: E402
+from matplotlib.patches import Circle, FancyArrowPatch, Polygon, Rectangle  # noqa: E402
+from scipy.ndimage import distance_transform_edt  # noqa: E402
 
 
-INK = "#263238"
-SOLID = "#AEB4B8"
-EDGE = "#515A60"
+def _connect(fig, left, right):
+    a, b = left.get_position(), right.get_position()
+    fig.add_artist(FancyArrowPatch((a.x1 + .002, (a.y0 + a.y1) / 2),
+                                   (b.x0 - .002, (b.y0 + b.y1) / 2),
+                                   transform=fig.transFigure, arrowstyle="-|>", mutation_scale=8,
+                                   lw=.9, color=S.NEUTRAL))
 
 
-def _capsule(ax, a, b, r, fc=S.ORANGE, ec="#A9562D", alpha=0.34):
-    a = np.asarray(a, float)
-    b = np.asarray(b, float)
-    u = (b - a) / np.linalg.norm(b - a)
-    n = np.array([-u[1], u[0]]) * r
-    ax.add_patch(Polygon([a + n, b + n, b - n, a - n], closed=True, fc=fc, ec="none",
-                         alpha=alpha, zorder=4))
-    ax.add_patch(Circle(a, r, fc=fc, ec="none", alpha=alpha, zorder=4))
-    ax.add_patch(Circle(b, r, fc=fc, ec="none", alpha=alpha, zorder=4))
-    ax.plot([a[0], b[0]], [a[1], b[1]], color=ec, lw=1.2, zorder=5)
+def _finish(ax, title, code):
+    ax.set_title(title, fontsize=7.8, fontweight="bold", pad=3)
+    ax.text(.5, -.04, code, transform=ax.transAxes, ha="center", va="top",
+            fontsize=7.5, color=S.NEUTRAL, clip_on=False)
+    ax.set_axis_off()
 
 
-def _field_panel(ax, fig):
-    from scipy.ndimage import distance_transform_edt
-
-    nx, ny = 240, 180
-    ext = (0.0, 8.0, 0.0, 6.0)
-    pitch = 8.0 / nx
-    xs = (np.arange(nx) + 0.5) * pitch
-    ys = (np.arange(ny) + 0.5) * pitch
-    X, Y = np.meshgrid(xs, ys)
-    solid = ((X <= 1.35) & (Y <= 4.45)) | ((X <= 6.45) & (Y >= 3.62) & (Y <= 4.45))
-    dist = distance_transform_edt(~solid) * pitch
-    im = ax.imshow(np.where(~solid, dist, np.nan), origin="lower", extent=ext, cmap="Blues",
-                   vmin=0, vmax=2.4, zorder=1)
-    ax.imshow(np.where(solid, 1.0, np.nan), origin="lower", extent=ext,
-              cmap=plt.matplotlib.colors.ListedColormap([SOLID]), zorder=2)
-    levels = ax.contour(X, Y, np.where(~solid, dist, np.nan), levels=[0.55, 1.10, 1.65],
-                        colors="white", linewidths=0.55, alpha=0.75, zorder=3)
-    ax.clabel(levels, fmt="%.2f", fontsize=7.5, inline=True)
-
-    p = np.array([4.35, 3.62])
-    v = np.array([0.10, -1.0]); v /= np.linalg.norm(v)
-    r = 0.55
-    centers = [p + v * (r + i * 0.63) for i in range(5)]
-    ax.add_patch(FancyArrowPatch(p, p + v * 3.45, arrowstyle="-|>", mutation_scale=11,
-                                 color=S.ACC, lw=1.5, ls=(0, (4, 2)), zorder=7))
-    for i, c in enumerate(centers):
-        ax.scatter(*c, s=14, fc="white", ec=S.ACC, lw=0.8, zorder=8)
-        if i == 1:
-            ax.add_patch(Circle(c, r, fc="none", ec=S.ACC, lw=1.25, zorder=8))
-    ax.scatter(*p, s=35, color=INK, edgecolors="white", linewidths=0.5, zorder=9)
-    ax.text(p[0] + 0.13, p[1] + 0.12, "$p$", fontsize=10, zorder=9)
-    ax.text(0.28, 0.42, r"明确可达： $\min_t\;\mathrm{free\_dist}(p+t\mathbf{v}) > r+\varepsilon$",
-            fontsize=7.6, color=S.ACC)
-    ax.set_title("(a) 第一级 · 距离场快速筛选", loc="left", fontsize=10.5, weight="bold", color=INK)
-    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
-    cax = ax.inset_axes([0.08, 0.91, 0.38, 0.027])
-    cb = fig.colorbar(im, cax=cax, orientation="horizontal")
-    cb.set_ticks([0, 1.2, 2.4]); cb.ax.tick_params(labelsize=7.5, length=2, pad=1)
-    cb.outline.set_visible(False)
-    ax.text(0.08, 0.955, "自由空间欧氏距离", transform=ax.transAxes, fontsize=7.5, color=INK)
+def _occupancy(ax):
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.add_patch(Rectangle((.15, .18), .28, .62, fc=S.PART_DARK, ec=S.PART_EDGE, lw=.8))
+    ax.add_patch(Rectangle((.15, .62), .70, .18, fc=S.PART_DARK, ec=S.PART_EDGE, lw=.8))
+    for value in np.linspace(.2, .8, 7):
+        ax.plot([value, value], [.18, .80], color="white", lw=.25, alpha=.65)
+        ax.plot([.15, .85], [value, value], color="white", lw=.25, alpha=.65)
+    _finish(ax, "占据栅格", r"$O\in\{0,1\}^{48^3}$")
 
 
-def _refine_panel(ax):
-    for x in np.arange(0, 8.1, 0.5):
-        ax.plot([x, x], [0, 6], color="#EAEBEC", lw=0.42, zorder=0)
-    for y in np.arange(0, 6.1, 0.5):
-        ax.plot([0, 8], [y, y], color="#EAEBEC", lw=0.42, zorder=0)
-
-    surf = np.array([(0.45, 4.65), (2.30, 3.55), (3.45, 3.10), (5.35, 3.52), (7.55, 2.12)])
-    ax.add_patch(Polygon(np.vstack([surf, (7.55, 0.15), (0.45, 0.15)]), closed=True,
-                         fc="#D1D4D6", ec=EDGE, lw=1.0, zorder=2))
-    ax.plot(surf[:, 0], surf[:, 1], color=EDGE, lw=1.5, zorder=3)
-    ax.scatter(surf[:, 0], surf[:, 1], s=14, color=EDGE, zorder=4)
-    for i in range(1, len(surf) - 1):
-        ax.plot([surf[i, 0], 4.6], [surf[i, 1], 0.18], color="#A4A9AC", lw=0.55, zorder=3)
-
-    p = np.array([3.45, 3.10])
-    v = np.array([0.56, 1.0]); v /= np.linalg.norm(v)
-    a, b, r = p + 0.10 * v, p + 2.55 * v, 0.56
-    _capsule(ax, a, b, r)
-    ax.add_patch(FancyArrowPatch(p, b + v * 0.25, arrowstyle="-|>", mutation_scale=10,
-                                 color="#A9562D", lw=1.2, zorder=6))
-    ax.scatter(*p, s=35, color=INK, edgecolors="white", linewidths=0.5, zorder=8)
-    ax.text(p[0] - 0.28, p[1] + 0.08, "$p$", fontsize=10, zorder=8)
-
-    q = np.array([5.35, 3.52])
-    foot = np.array([4.55, 4.10])
-    ax.plot([q[0], foot[0]], [q[1], foot[1]], color=S.INACC, lw=1.55, zorder=8)
-    ax.scatter(*q, s=34, color=S.INACC, edgecolors="white", linewidths=0.5, zorder=9)
-    ax.annotate("精确最近距离", xy=((q[0] + foot[0]) / 2, (q[1] + foot[1]) / 2),
-                xytext=(5.45, 4.55), fontsize=7.8, color=S.INACC,
-                arrowprops=dict(arrowstyle="->", color=S.INACC, lw=0.8))
-    ax.text(0.28, 0.42, r"含糊方向： $r-\varepsilon < c_i \leq r+\varepsilon$  →  胶囊–三角网格求交",
-            fontsize=7.6, color="#A9562D")
-    ax.set_title("(b) 第二级 · 边界带精确细化", loc="left", fontsize=10.5, weight="bold", color=INK)
-    ax.set_xlim(0, 8); ax.set_ylim(0, 6); ax.set_aspect("equal"); ax.axis("off")
+def _distance(ax):
+    n = 150
+    yy, xx = np.mgrid[0:n, 0:n]
+    solid = ((xx < 42) & (yy < 120)) | ((xx < 120) & (yy > 94))
+    dist = distance_transform_edt(~solid)
+    ax.imshow(np.where(~solid, dist, np.nan), cmap="Blues", origin="lower")
+    ax.imshow(np.where(solid, 1, np.nan), cmap=plt.matplotlib.colors.ListedColormap([S.PART_DARK]), origin="lower")
+    _finish(ax, "距离场 EDT", r"$D=\mathrm{EDT}(\neg O)$")
 
 
-def _stability_inset(fig):
-    """A small factual validation mark anchors the two-stage schematic."""
-    ax = fig.add_axes([.715, .065, .245, .16])
-    x = np.arange(3)
-    vals = (.865, .899, 1.000)
-    ax.plot(x, vals, color=S.NEUTRAL, lw=.9, zorder=1)
-    ax.scatter(x[:2], vals[:2], s=24, color=S.UNC, edgecolors="white", zorder=2)
-    ax.scatter(x[2:], vals[2:], s=28, color=S.ACC, edgecolors="white", zorder=2)
-    ax.set_xticks(x, ["48/96", "96/192", "两级"])
-    ax.set_ylim(.82, 1.02); ax.set_yticks([.85, 1.00])
-    ax.set_ylabel("一致率", fontsize=7.5)
-    ax.tick_params(labelsize=7.5, pad=1)
-    ax.set_title("跨分辨率标签稳定性", fontsize=7.5, loc="left", pad=2)
-    for xx, value in zip(x, vals):
-        ax.text(xx, value + .012, f"{value:.3f}", ha="center", fontsize=7.5)
+def _sample(ax):
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.add_patch(Polygon([(0, .10), (.58, .22), (1, .12), (1, 0), (0, 0)],
+                         fc=S.PART, ec=S.PART_EDGE, lw=.8))
+    point = np.array([.56, .22]); ax.scatter(*point, s=24, c=S.INK, zorder=5)
+    for angle, colour in ((65, S.ACC), (90, S.ORANGE), (120, S.INACC)):
+        end = point + .62 * np.array([np.cos(np.radians(angle)), np.sin(np.radians(angle))])
+        ax.add_patch(FancyArrowPatch(point, end, arrowstyle="-|>", mutation_scale=8,
+                                     lw=1.0, color=colour))
+        for t in (.25, .45, .65):
+            sample = point + t * (end - point)
+            ax.scatter(*sample, s=10, fc="white", ec=colour, lw=.6, zorder=4)
+    _finish(ax, "方向 ray-march", r"$p+t\mathbf{v}_i$")
+
+
+def _clearance(ax):
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    values = (.78, .50, .23)
+    colours = (S.ACC, S.ORANGE, S.INACC)
+    for row, (value, colour) in enumerate(zip(values, colours)):
+        y = .72 - row * .25
+        ax.plot([.18, .82], [y, y], color=S.PALE_GREY, lw=5, solid_capstyle="round")
+        ax.plot([.18, .18 + .64 * value], [y, y], color=colour, lw=5, solid_capstyle="round")
+        ax.text(.08, y, f"$c_{row + 1}$", ha="center", va="center", fontsize=7.5)
+    _finish(ax, "最小净空", r"$c_i=\min_t D(p+t\mathbf{v}_i)$")
+
+
+def _triage(ax):
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    bounds = (.14, .35, .65, .86)
+    ax.plot([bounds[0], bounds[-1]], [.52, .52], color=S.PART_EDGE, lw=1)
+    ax.axvspan(bounds[0], bounds[1], ymin=.38, ymax=.66, color=S.PALE_RED)
+    ax.axvspan(bounds[1], bounds[2], ymin=.38, ymax=.66, color=S.PALE_ORANGE)
+    ax.axvspan(bounds[2], bounds[3], ymin=.38, ymax=.66, color=S.PALE_BLUE)
+    for x, text in ((bounds[1], r"$r-\varepsilon$"), (bounds[2], r"$r+\varepsilon$")):
+        ax.plot([x, x], [.40, .64], color=S.PART_EDGE, lw=.8)
+        ax.text(x, .29, text, ha="center", fontsize=7.5)
+    ax.text(.245, .72, "挡", ha="center", fontsize=7.5, color=S.INACC)
+    ax.text(.50, .72, "细化", ha="center", fontsize=7.5, color=S.ORANGE)
+    ax.text(.755, .72, "清", ha="center", fontsize=7.5, color=S.ACC)
+    _finish(ax, "三态分流", r"$c_i$ 对比 $r\pm\varepsilon$")
+
+
+def _refine(ax):
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    surface = np.array([[.05, .25], [.32, .38], [.52, .30], [.76, .43], [.95, .22]])
+    ax.add_patch(Polygon(np.vstack([surface, [.95, .05], [.05, .05]]),
+                         fc=S.PART, ec=S.PART_EDGE, lw=.8))
+    ax.plot(surface[:, 0], surface[:, 1], color=S.PART_EDGE, lw=1.0)
+    ax.plot([.45, .73], [.34, .86], color=S.ORANGE, lw=10, alpha=.32, solid_capstyle="round")
+    ax.plot([.45, .73], [.34, .86], color="#A9562D", lw=1.0)
+    ax.scatter([.64], [.37], marker="x", s=30, c=S.INACC, lw=1.4, zorder=4)
+    _finish(ax, "连续几何细化", r"$\mathcal{C}_i\cap P\;?$")
 
 
 def main():
-    fig, axes = plt.subplots(1, 2, figsize=S.double_column(84), gridspec_kw={"wspace": 0.06})
-    _field_panel(axes[0], fig)
-    _refine_panel(axes[1])
-    fig.subplots_adjust(left=.025, right=.985, top=.89, bottom=.25)
-    _stability_inset(fig)
+    fig = plt.figure(figsize=S.double_column(88))
+    grid = fig.add_gridspec(2, 6, height_ratios=(1, .44), left=.025, right=.985,
+                            bottom=.10, top=.93, wspace=.22, hspace=.36)
+    top = [fig.add_subplot(grid[0, i]) for i in range(6)]
+    for function, axis in zip((_occupancy, _distance, _sample, _clearance, _triage, _refine), top):
+        function(axis)
+    for left, right in zip(top[:-1], top[1:]):
+        _connect(fig, left, right)
+
+    decision = fig.add_subplot(grid[1, :3])
+    decision.set_xlim(0, 1); decision.set_ylim(0, 1); decision.axis("off")
+    decision.set_title("(a) 每方向判定与点级归约", loc="left", fontsize=8.4, fontweight="bold", pad=2)
+    for x, colour in ((.10, S.ACC), (.18, S.INACC), (.26, S.ACC), (.34, S.INACC)):
+        decision.add_patch(Circle((x, .49), .025, fc=colour, ec="white", lw=.4))
+    decision.add_patch(FancyArrowPatch((.39, .49), (.48, .49), arrowstyle="-|>", mutation_scale=8,
+                                       color=S.NEUTRAL, lw=.8))
+    decision.add_patch(Rectangle((.49, .34), .18, .30, fc=S.PALE_GREY, ec=S.UNC, lw=.8))
+    decision.text(.58, .49, r"$[a_1,\ldots,a_D]$", ha="center", va="center", fontsize=8)
+    decision.add_patch(FancyArrowPatch((.68, .49), (.75, .49), arrowstyle="-|>", mutation_scale=8,
+                                       color=S.NEUTRAL, lw=.8))
+    decision.text(.82, .49, r"$y=\neg\bigvee_i a_i$", ha="center", va="center",
+                  fontsize=7.5, color=S.INK)
+
+    stability = fig.add_subplot(grid[1, 3:])
+    x = np.arange(3); values = np.array([.865, .899, 1.000])
+    stability.plot(x, values, color=S.NEUTRAL, lw=1.0, zorder=1)
+    stability.scatter(x[:2], values[:2], s=34, c=S.UNC, edgecolors="white", zorder=2)
+    stability.scatter(x[2], values[2], s=38, c=S.ACC, edgecolors="white", zorder=2)
+    for xx, value in zip(x, values):
+        stability.text(xx, value + .012, f"{value:.3f}", ha="center", fontsize=7.5)
+    stability.set_xticks(x, ["48/96", "96/192", "两级细化"])
+    stability.set_ylim(.83, 1.025); stability.set_yticks([.85, .90, .95, 1.00])
+    stability.set_title("(b) 边界细化后的跨分辨率稳定性", loc="left",
+                        fontsize=8.4, fontweight="bold", pad=2)
+    stability.grid(axis="y"); stability.set_axisbelow(True)
     print("SAVED", S.save(fig, "fig04_two_stage"))
 
 
