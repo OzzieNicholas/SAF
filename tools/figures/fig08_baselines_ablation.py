@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Figure 8. Per-model baseline distributions and controlled ablation."""
+"""Figure 8. Baseline comparison and controlled ablation.
+
+The default mode renders the full per-part diagnostics from the reproducibility
+artifacts.  ``--paper-ledger`` is intentionally narrower: it renders only the
+audited aggregate values recorded in ``charter/results.md``.  It is appropriate
+for the paper when those raw artifacts are not distributed, because it never
+invents per-part dots or confidence intervals.
+"""
+import argparse
 import json
 import os
 import sys
@@ -13,7 +21,54 @@ import numpy as np  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def plot_paper_ledger():
+    """Render the paper's ledger-backed summary without unavailable raw runs."""
+    order = (("多数类", 0.000, S.UNC), ("局部规则", 0.317, S.NEUTRAL),
+             ("射线可见性", 0.676, S.ACC), ("局部形状", 0.851, S.ORANGE),
+             ("形状条件网络", 0.925, S.INK))
+    ablation = (("无形状", 0.434, S.UNC), ("局部 RF3", 0.859, S.ACC),
+                ("中等 RF7", 0.926, S.INK), ("过度池化", 0.803, S.NEUTRAL))
+    fig, (left, right) = plt.subplots(
+        1, 2, figsize=S.double_column(78),
+        gridspec_kw={"width_ratios": (1.18, 1), "wspace": .34},
+    )
+
+    for axis, entries, title in (
+        (left, order, "(a) 点级基线：80 件留出集"),
+        (right, ablation, "(b) 受控消融：形状上下文"),
+    ):
+        positions = np.arange(len(entries))[::-1]
+        for y, (label, value, colour) in zip(positions, entries):
+            axis.plot([0, value], [y, y], color="#D3D7DA", lw=1.0, zorder=1)
+            axis.scatter([value], [y], s=62, c=colour, edgecolors="white",
+                         linewidths=.8, zorder=3)
+            axis.text(value + .025, y, f"{value:.3f}", va="center",
+                      fontsize=7.5, color=S.INK)
+        axis.set_yticks(positions, [item[0] for item in entries])
+        axis.set_xlim(-.03, 1.10)
+        axis.set_xlabel("不可达类 F1")
+        axis.set_title(title, loc="left", fontsize=8.4, fontweight="bold", pad=4)
+        axis.grid(axis="x")
+        axis.set_axisbelow(True)
+
+    fig.subplots_adjust(left=.10, right=.965, bottom=.25, top=.91)
+    fig.text(.10, .055,
+             "独立回归：神经 0.916，对比射线 0.676；配对差 95% CI [0.338, 0.527]",
+             fontsize=7.2, color=S.INK)
+    fig.text(.635, .055, "消融：400 件 · seed=0 · 60 轮",
+             fontsize=7.2, color=S.NEUTRAL)
+    print("SAVED", S.save(fig, "fig08_baselines_ablation"))
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--paper-ledger", action="store_true",
+                        help="render only audited aggregate values from charter/results.md")
+    args = parser.parse_args()
+    if args.paper_ledger:
+        plot_paper_ledger()
+        return
+
     baseline_path = os.path.join(ROOT, "runs", "baselines", "latest.json")
     ablation_path = os.path.join(ROOT, "runs", "ablation", "latest.json")
     with open(baseline_path, encoding="utf-8") as handle:

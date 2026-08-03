@@ -17,14 +17,82 @@ from matplotlib.patches import Patch  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 AUDIT = os.path.join(ROOT, "runs", "failure_audit")
+PAPER_EVIDENCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "assets", "fig10_failure_evidence.png")
+
+
+def plot_paper_ledger(evidence_path):
+    """Render audited failure summaries without reconstructing absent raw runs."""
+    if not os.path.isfile(evidence_path):
+        raise FileNotFoundError(f"Paper evidence image not found: {evidence_path}")
+
+    bins = ("全被挡\n(0)", "临界\n(1–2)", "边界\n(3–5)", "开阔\n(≥6)")
+    rates = np.asarray((2.9, 15.7, 10.7, 3.9))
+    bar_colours = (S.UNC, S.ORANGE, S.ORANGE, S.UNC)
+    error_names = ("误报 FP", "漏报 FN")
+    error_values = np.asarray((1.4, 3.3))
+    evidence = plt.imread(evidence_path)
+
+    fig = plt.figure(figsize=S.double_column(92))
+    outer = fig.add_gridspec(1, 2, width_ratios=(.94, 1.42),
+                             left=.075, right=.985, bottom=.16, top=.92, wspace=.16)
+    stats = outer[0].subgridspec(2, 1, height_ratios=(1.0, .42), hspace=.38)
+    rate_axis = fig.add_subplot(stats[0])
+    x = np.arange(len(rates))
+    bars = rate_axis.bar(x, rates, width=.62, color=bar_colours)
+    for bar, value in zip(bars, rates):
+        rate_axis.text(bar.get_x() + bar.get_width() / 2, value + .45,
+                       f"{value:.1f}%", ha="center", fontsize=7.5)
+    rate_axis.axhline(4.7, color=S.NEUTRAL, ls=(0, (3, 2)), lw=.9)
+    rate_axis.text(3.45, 5.05, "总体 4.7% ± 0.3%", ha="right", va="bottom",
+                   fontsize=7.0, color=S.NEUTRAL)
+    rate_axis.set_xticks(x, bins)
+    rate_axis.set_ylabel("误判率 (%)")
+    rate_axis.set_ylim(0, 19.2)
+    rate_axis.set_title("(a) 误判集中于临界可达方向", loc="left",
+                        fontsize=8.4, fontweight="bold", pad=3)
+    rate_axis.grid(axis="y")
+    rate_axis.set_axisbelow(True)
+
+    composition_axis = fig.add_subplot(stats[1])
+    composition_bars = composition_axis.bar(np.arange(2), error_values, width=.55,
+                                             color=(S.ORANGE, S.FN))
+    for bar, value in zip(composition_bars, error_values):
+        composition_axis.text(bar.get_x() + bar.get_width() / 2, value + .12,
+                              f"{value:.1f}%", ha="center", fontsize=7.4)
+    composition_axis.set_xticks(np.arange(2), error_names)
+    composition_axis.set_ylabel("占比 (%)", fontsize=7.5)
+    composition_axis.set_ylim(0, 4.15)
+    composition_axis.set_title("(b) 总误判构成", loc="left", fontsize=8.2,
+                               fontweight="bold", pad=2)
+    composition_axis.grid(axis="y")
+    composition_axis.set_axisbelow(True)
+
+    evidence_axis = fig.add_subplot(outer[1])
+    S.imshow_cad(evidence_axis, evidence, semantic=True)
+    evidence_axis.set_title("(c) 代表性留出件的定性误差面", loc="left",
+                            fontsize=8.4, fontweight="bold", pad=3)
+    fig.legend([Patch(fc=S.FN), Patch(fc=S.ORANGE), Patch(fc=S.PART)],
+               ["漏报不可达（FN）", "误报（FP）", "零件"], ncol=3,
+               loc="lower right", bbox_to_anchor=(.985, .012), frameon=False)
+    fig.text(.075, .045, "Fusion 400 件子集、5 次聚合；分箱仅报告账本可核验的误判率。",
+             fontsize=7.0, color=S.NEUTRAL)
+    print("SAVED", S.save(fig, "fig10_failure"))
 
 
 def main():
-    from support_accessibility.data.dataset import load_dataset
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=X.FUSION_ROOT)
+    parser.add_argument("--paper-ledger", action="store_true",
+                        help="render the ledger-backed paper summary without raw audit artifacts")
+    parser.add_argument("--evidence-image", default=PAPER_EVIDENCE,
+                        help="qualitative fixed-case image used only by --paper-ledger")
     args = parser.parse_args()
+    if args.paper_ledger:
+        plot_paper_ledger(args.evidence_image)
+        return
+
+    from support_accessibility.data.dataset import load_dataset
     with open(os.path.join(AUDIT, "failure.json"), encoding="utf-8") as handle:
         report = json.load(handle)
     artifact_path = os.path.join(AUDIT, "fig10_case.npz")
