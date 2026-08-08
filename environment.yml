@@ -1,11 +1,11 @@
-# SAF 开发环境（canonical 源；理由见 charter/decisions.md D-007）
+# SAF 开发环境（canonical 源；理由见 governance/decisions.md D-007）
 # 建/复现：conda env create -f environment.yml   （已存在则 conda env update -f environment.yml --prune）
 # 本次实测版本：igl 2.6.1 / numpy 2.5.1 / scipy 1.18.0(本次自 pypi) / trimesh 4.12.2 / pytest 9.1.1 / hypothesis 6.156.5
 # 神经栈（Phase-3，D-020 后）：torch 2.6.0+cu124（CUDA 12.4 轮子，RTX 4060 Ti 实测；装后 numpy 未变、几何栈 45 passed 不退绿）。
 #   其它机复现：CUDA 12.x GPU 直接 create；无 GPU 或其它 CUDA 版本改下方 pip extra-index-url（cpu / cu121 / cu126）。
 #   注：torch(Intel OMP) + numpy/scipy(LLVM OMP) 同进程撞 OMP#15，或 torch fbgemm.dll 满载进程加载 WinError 127；
 #       E5/方向场 + 验收门确会混用，已由 tests/conftest.py + tests/gate.py 置 KMP_DUPLICATE_LIB_OK=TRUE 兜底。
-#       非交互跑法（壳内激活，勿裸调 python.exe / 勿并发 conda run）见 CLAUDE.md「怎么跑」。
+#       非交互跑法（壳内激活，勿裸调 python.exe / 勿并发 conda run）见 AGENTS.md「怎么跑」。
 name: saf
 channels:
   - conda-forge

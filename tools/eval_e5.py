@@ -45,6 +45,7 @@ def main():
     import json
     import numpy as np
     import torch
+    from artifacts import write_result
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.oracle import SupportAccessibilityOracle
@@ -164,9 +165,7 @@ def main():
         "topk_hit_top3_mean": round(float(arr[:, 5].mean()), 3),
         "topk_precision_at3_mean": round(float(arr[:, 6].mean()), 3),
     }
-    outdir = os.path.join(os.path.dirname(_ROOT), "runs", "e5")          # 机器落痕：签收证据之家（D-024）
-    os.makedirs(outdir, exist_ok=True)
-    json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    rep = write_result("e5", rep, inputs=(a.data, a.root or ""))
     print("E5_RESULT " + json.dumps(rep))
 
 

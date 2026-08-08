@@ -6,8 +6,8 @@
   <out>/dataset.json        数据集级 provenance（build 参数 + 切分统计；无时间戳→ manifest/json 字节可复现）
 
 复用 data.make_dataset / split_by_model / LabeledModel（不重造）；Fusion360/Thingi 按同格式接入
-（source 字段 {procedural,fusion360,thingi10k}，见 charter/decisions.md D-023）。单位=**体素**（对齐 oracle 口径与
-make_dataset）；conf/params.yaml 归一单位的"单位桥"属真实网格接入（deferred）。
+（source 字段 {procedural,fusion360,thingi10k}，见 governance/decisions.md D-023）。单位=**体素**（对齐 oracle 口径与
+make_dataset）；configs/params.yaml 归一单位的"单位桥"属真实网格接入（deferred）。
 numpy 在函数内 import（沿袭 data 包约定：模块级只 stdlib，`import dataset` 不依赖 numpy）。
 """
 

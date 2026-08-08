@@ -3,8 +3,8 @@
 The paper figures are composed at their final physical size.  Vector marks and
 text stay in PDF; PyVista renderings are embedded as 600 dpi raster evidence.
 """
-import json
 import os
+import sys
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 # VTK and the MKL-backed scientific stack load separate OpenMP runtimes on the
@@ -81,10 +81,13 @@ ACC_RGB = (0.173, 0.435, 0.698)
 PART_RGB = (0.733, 0.761, 0.780)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUTDIR = os.path.join(_ROOT, "paper", "figures")
-QA_DIR = os.path.join(_ROOT, "runs", "figure_qa")
+OUTDIR = os.path.join(_ROOT, "deliverables", "paper", "figures")
+QA_DIR = os.path.join(_ROOT, "artifacts", "runs", "figure_qa")
 os.makedirs(OUTDIR, exist_ok=True)
 os.makedirs(QA_DIR, exist_ok=True)
+if os.path.join(_ROOT, "tools") not in sys.path:
+    sys.path.insert(0, os.path.join(_ROOT, "tools"))
+from artifacts import write_result  # noqa: E402
 
 
 def mm(value):
@@ -127,8 +130,7 @@ def save(fig, name):
 
     fig.canvas.draw()
     report = inspect_figure(fig, name)
-    with open(os.path.join(QA_DIR, name + ".json"), "w", encoding="utf-8") as handle:
-        json.dump(report, handle, ensure_ascii=False, indent=2)
+    write_result("figure_qa", report, os.path.join(QA_DIR, name + ".json"), (OUTDIR,))
 
     png = os.path.join(OUTDIR, name + ".png")
     pdf = os.path.join(OUTDIR, name + ".pdf")

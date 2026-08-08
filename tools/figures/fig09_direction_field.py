@@ -43,7 +43,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=X.FUSION_ROOT)
     args = parser.parse_args()
-    checkpoint = torch.load(os.path.join(ROOT, "runs", "figures", "ckpt_dir.pt"),
+    checkpoint = torch.load(os.path.join(ROOT, "artifacts", "cache", "figures", "ckpt_dir.pt"),
                             map_location="cpu", weights_only=False)
     showcase = checkpoint.get("showcase", {})
     if (checkpoint.get("label_semantics") != "d020_refined"

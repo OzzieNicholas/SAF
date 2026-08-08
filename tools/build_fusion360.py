@@ -4,7 +4,7 @@ self-add src → fusion360.build_from_root（同 tools/build_dataset.py 模式�
 
 用法：
   conda run -n saf python tools/build_fusion360.py --root /path/to/reconstruction --out data/processed/fusion360_v1
-  （--root 空则读 conf/params.yaml 的 data.fusion360_root）
+  （--root 空则读 configs/params.yaml 的 data.fusion360_root）
 
 只用最终零件 .obj（不碰构造序列/B-Rep）。数据未落地 → 清晰 FileNotFoundError（exit 2）。
 **命门（D-018）**：物化后须人审 <out>/audit/*.png 再签收（翻 dataset.json human_signoff），方可用于训练。
@@ -26,8 +26,8 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 
 def _root_from_params():
-    """裸 stdlib 从 conf/params.yaml 抓 data.fusion360_root（params 无 yaml 依赖，见 D-016）。"""
-    p = os.path.join(os.path.dirname(_ROOT), "conf", "params.yaml")
+    """裸 stdlib 从 configs/params.yaml 抓 data.fusion360_root（params 无 yaml 依赖，见 D-016）。"""
+    p = os.path.join(os.path.dirname(_ROOT), "configs", "params.yaml")
     try:
         with open(p, encoding="utf-8") as f:
             for ln in f:
@@ -41,7 +41,7 @@ def _root_from_params():
 
 def main():
     ap = argparse.ArgumentParser(description="物化 Fusion360 reconstruction 网格数据集（统一 processed 记录，D-017）")
-    ap.add_argument("--root", default="", help="reconstruction 目录（含 final .obj）；空则读 conf/params.yaml data.fusion360_root")
+    ap.add_argument("--root", default="", help="reconstruction 目录（含 final .obj）；空则读 configs/params.yaml data.fusion360_root")
     ap.add_argument("--out", default="data/processed/fusion360_v1")
     ap.add_argument("--resolution", type=int, default=48)
     ap.add_argument("--radius-world", type=float, default=0.05)
@@ -61,7 +61,7 @@ def main():
                               max_models=a.max_models, frac_train=a.frac_train,
                               frac_val=a.frac_val, seed=a.seed)
     except FileNotFoundError as e:
-        sys.stderr.write(f"数据未就绪：{e}\n  → 下好数据后传 --root 或填 conf/params.yaml data.fusion360_root\n")
+        sys.stderr.write(f"数据未就绪：{e}\n  → 下好数据后传 --root 或填 configs/params.yaml data.fusion360_root\n")
         sys.exit(2)
 
     from support_accessibility.data.dataset import load_dataset

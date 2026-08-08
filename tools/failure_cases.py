@@ -49,6 +49,7 @@ def main():
     import json
     import numpy as np
     import torch
+    from artifacts import write_result
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.oracle import SupportAccessibilityOracle
@@ -121,7 +122,7 @@ def main():
     # 首种子最糟件（审计 PNG + fig10 npz）
     per_model0 = [(m.name, int((preds0[m.name] != np.asarray(m.labels, bool)).sum()),
                    preds0[m.name] != np.asarray(m.labels, bool), m) for m in fte]
-    outdir = a.outdir or os.path.join(_ROOT, "..", "runs", "failure_audit")
+    outdir = a.outdir or os.path.join(_ROOT, "..", "artifacts", "runs", "failure_audit")
     emitted = []
     try:
         os.makedirs(outdir, exist_ok=True)
@@ -150,9 +151,9 @@ def main():
     print("FAILURE_ANALYSIS " + json.dumps(rep))
 
     # —— 图件数据落盘（附加，不改判定口径）：聚合 rep + 首种子最糟件逐点 FP/FN/n_viable，供 tools/figures/fig10 ——
+    evidence_path = os.path.join(outdir, "failure.json")
+    written = False
     try:
-        json.dump(rep, open(os.path.join(outdir, "failure.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=1)
         case = next((item for item in per_model0 if item[0] == a.figure_case), None)
         if case is None:
             raise RuntimeError(f"figure case is not in the held-out set: {a.figure_case}")
@@ -162,9 +163,13 @@ def main():
                  fp=(cp & ~cg), fn=(~cp & cg), gold=cg, nviable=nv_by[cname],
                  error_count=int(cerrors), split="test", seed=int(seeds[0]))
         rep["figure_case"] = {"name": cname, "errors": int(cerrors), "split": "test"}
-        json.dump(rep, open(os.path.join(outdir, "failure.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False, indent=1)
+        rep = write_result("failure_audit", rep, evidence_path, (a.fusion, a.procedural))
+        written = True
     except Exception as e:
+        if not written:
+            # Preserve the aggregate analysis even when the optional Figure 10
+            # sample is unavailable or malformed.
+            write_result("failure_audit", rep, evidence_path, (a.fusion, a.procedural))
         raise RuntimeError(f"fig10 artifact generation failed: {e}") from e
 
 

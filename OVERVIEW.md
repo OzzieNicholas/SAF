@@ -1,8 +1,8 @@
 # SAF 项目综述（一篇读懂，不必看代码）
 
 > 本文是**面向外部读者**（合作者 / 审稿人 / 未来的你）的自足综述：读完这一篇即可了解 SAF 的
-> 需求、方法、关键决策、结果、状态、配置、局限与复现方式。**权威数字以 [`charter/results.md`](charter/results.md)
-> 为准、实时状态以 `python tests/gate.py` 为准**（本文的数字是快照，用于叙事）。深入细节见 [`charter/`](charter/)。
+> 需求、方法、关键决策、结果、状态、配置、局限与复现方式。**权威数字以 [`governance/results.md`](governance/results.md)
+> 为准、实时状态以 `python tests/gate.py` 为准**（本文的数字是快照，用于叙事）。深入细节见 [`governance/`](governance/)。
 
 ---
 
@@ -26,10 +26,10 @@
   **接触区域**是后处理关键对象。传统方向评价只看支撑量/过悬面积，**不反映后处理难度**。
 - **对象**：支撑**接触区表面**（下朝悬垂面），而非支撑体积（对比 IMF 的体积口径）、也非零件全表面（对比 DeepMill 的铣削口径）。
 - **贡献表述**：定义问题 + 采用成熟方法；跨模型泛化是关键区分点（相对逐零件重训的 PARC）。
-- **硬约束（铁律，`charter/constraints.md`）**：只用公开/程序化数据；不碰企业边界/oracle 判定口径；
+- **硬约束（铁律，`governance/constraints.md`）**：只用公开/程序化数据；不碰企业边界/oracle 判定口径；
   不把方向评价写成方向优化、不声称首创、不把哈希当主创新；**标签先于模型**（oracle 未过质量门不训练）；
   **命门须作者据实签收**（现由量化审核客观化）。
-- **完整需求/指标/非目标**：见 [`charter/problem.md`](charter/problem.md)。
+- **完整需求/指标/非目标**：见 [`governance/problem.md`](governance/problem.md)。
 
 ---
 
@@ -51,13 +51,13 @@
 - **方向级"场"（E5）**：oracle 输出可从"点级二分"扩为"**每逼近方向可达向量**"（项目命名的"Field"本义），
   二分是其 `any` 归约的特例。
 
-细节判据见 [`charter/decisions.md`](charter/decisions.md) D-001..D-005、D-020、D-024。
+细节判据见 [`governance/decisions.md`](governance/decisions.md) D-001..D-005、D-020、D-024。
 
 ---
 
 ## 4. 关键设计决策（为什么这么设计）
 
-台账 [`charter/decisions.md`](charter/decisions.md) 有 **D-000..D-027** 全部冻结决策（append-only、每条有验收性质守护）。要点：
+台账 [`governance/decisions.md`](governance/decisions.md) 有 **D-000..D-027** 全部冻结决策（append-only、每条有验收性质守护）。要点：
 
 | 决策 | 内容 | 为什么 |
 |---|---|---|
@@ -89,7 +89,7 @@
 
 ## 6. 结果（假设与数值）
 
-> 权威账本 = [`charter/results.md`](charter/results.md)（含每条的样本量、±std、可复现命令、局限）。以下为摘要（**D-028 新口径**：重物化+命门重签收后）。
+> 权威账本 = [`governance/results.md`](governance/results.md)（含每条的样本量、±std、可复现命令、局限）。以下为摘要（**D-028 新口径**：重物化+命门重签收后）。
 
 | 假设/实验 | 结论 | 数值 |
 |---|---|---|
@@ -111,22 +111,22 @@
   - 三道量化门 PASS：预算门（全量构建外推 0.69h ≤ 4h）、回归门、标签审核门（命门进棘轮）。
   - 4 项 **N/A** = 经检验判定为**非不变量**（尺度/半径/旋转等变）或已被他处覆盖（mesh_sanity）——是诚实终态、非待办。
 - **完成**：几何 oracle + 三数据源 + 神经预测 + 全部计划假设（H1/H2/H3/H5·E1/E4/E5/E8 + 消融）**全部坐实、各有复现器**。
-- **进行中**：论文写作（`paper/`）——写作骨架数字已对齐结果账本。
-- **弧位置**：见 [`charter/roadmap.md`](charter/roadmap.md)。
+- **进行中**：论文写作（`deliverables/paper/`）——写作骨架数字已对齐结果账本。
+- **弧位置**：见 [`governance/roadmap.md`](governance/roadmap.md)。
 
 ---
 
 ## 8. 配置与复现
 
-- **冻结口径（D-021，`conf/params.yaml`）**：方向数 `n_directions=128`、分辨率 `resolution=48`+精确细化、
+- **冻结口径（D-021，`configs/params.yaml`）**：方向数 `n_directions=128`、分辨率 `resolution=48`+精确细化、
   工具半径 `radius_world=0.05`、过悬阈值 `overhang=45°`、边界带宽 `epsilon_voxels=1.5`。
 - **硬件上限**：单卡 RTX 4060 / 32G（设计上限；实测机为 4060 Ti）——模型与数据规模据此控制。
 - **环境**：conda env `saf`（py3.12，conda-forge + torch cu124）——`conda env create -f environment.yml`。
 - **复现**：
   - 验收门：`python tests/gate.py`
   - 数据流水线（可复现阶段）：`dvc repro`
-  - 每个结果：见 `charter/results.md` 对应行的复现命令（如 `tools/train_convonet.py --fusion data/processed/fusion360_full --seeds 5` 重生 H3）。
-  - 非交互跑法注意（壳内激活、勿裸调 python.exe）见 [`CLAUDE.md`](CLAUDE.md)「怎么跑」。
+  - 每个结果：见 `governance/results.md` 对应行的复现命令（如 `tools/train_convonet.py --fusion data/processed/fusion360_full --seeds 5` 重生 H3）。
+  - 非交互跑法注意（壳内激活、勿裸调 python.exe）见 [`AGENTS.md`](AGENTS.md)「怎么跑」。
 
 ---
 
@@ -147,14 +147,15 @@
 
 SAF 用一套**可执行治理**保证"说到做到、不造假绿"：
 
-- **散文**（`charter/`）：问题/铁律/证据（意图，最弱）→ **决策台账** `decisions.md`（append-only，D-000..）+
+- **散文**（`governance/`）：问题/铁律/证据（意图，最弱）→ **决策台账** `decisions.md`（append-only，D-000..）+
   未决触发册 `deferred.md`。
 - **可执行**（`tests/acceptance/` + `tests/gate.py`）：每条冻结决策都有**会跑的验收性质**守护；
   门是**棘轮**——绿了不许静默退绿，真 FAIL/新 PENDING 即 RED。
 - **命门人签收**：真实网格标签有效性等"命门"由**客观量化审核**裁定并进门棘轮（D-025），杜绝假绿。
 - **状态看门、地图看 README**：现状不手写、跑门实时裁决；"一个事实一个家、指针不复制"。
+- **通用控制平面**（`docs/other/project-control-plane/`）：把契约、策略、工作流、执行、检查、评审和证据定义为可复用规范；SAF 的路径和能力由 `governance/project.json` 适配声明，论文与图件只是项目能力，不进入通用内核。
 
-治理地图（决策↔性质映射、修改触发）见 [`charter/README.md`](charter/README.md)。
+治理地图（决策↔性质映射、修改触发）见 [`governance/README.md`](governance/README.md)。
 
 ---
 
@@ -162,17 +163,19 @@ SAF 用一套**可执行治理**保证"说到做到、不造假绿"：
 
 | 想深入 | 去 |
 |---|---|
-| 需求/指标/非目标 | `charter/problem.md` |
-| 不可破铁律 | `charter/constraints.md` |
-| 冻结决策台账 | `charter/decisions.md`（D-000..D-027） |
-| 结果账本（权威数字+复现命令） | `charter/results.md` |
-| 研发弧位置 | `charter/roadmap.md` |
-| 文献证据 | `charter/evidence.md`；富矩阵 `docs/2_文献矩阵与相关工作.md` |
+| 需求/指标/非目标 | `governance/problem.md` |
+| 不可破铁律 | `governance/constraints.md` |
+| 冻结决策台账 | `governance/decisions.md`（D-000..D-030） |
+| 结果账本（权威数字+复现命令） | `governance/results.md` |
+| 研发弧位置 | `governance/roadmap.md` |
+| 文献证据 | `governance/evidence.md`；富矩阵 `docs/2_文献矩阵与相关工作.md` |
+| 文献输入 | `docs/references/`（PDF/候选书目，只读；不属于论文交付物） |
 | 实现代码 | `src/support_accessibility/{oracle,data,eval,models,baselines,viz}/` |
 | 验收性质 + 门 | `tests/acceptance/` + `tests/gate.py` |
 | 实验/复现 CLI | `tools/` |
+| 通用控制平面规范 | `docs/other/project-control-plane/`；SAF 适配 `governance/project.json` |
 | 退役富文档（全本，只读） | `docs/` |
 
 ---
 
-*本综述在里程碑更新；权威事实见 `charter/results.md` 与 `tests/gate.py`。*
+*本综述在里程碑更新；权威事实见 `governance/results.md` 与 `tests/gate.py`。*

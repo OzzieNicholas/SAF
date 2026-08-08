@@ -1,8 +1,8 @@
 """tests/gate.py — 验收裁决门（棘轮）。
 
-汇总 charter/decisions.md 冻结决策对应的性质 + 两道门 → JSON 裁决 + 退出码。
+汇总 governance/decisions.md 冻结决策对应的性质 + 两道门 → JSON 裁决 + 退出码。
 零安装可跑：`python tests/gate.py`（延续"会跑、可全红"）。几何性质在 oracle 实现前 PENDING；
-文档机检（test_charter）现在就应绿——证明治理散文这层当场有牙。
+文档机检（test_governance）现在就应绿——证明治理散文这层当场有牙。
 
 门（对应决策与量化阶段门）：
   预算门   D0 实测单点单方向 ms → eval.extrapolate → 超上限先换口径再降采样
@@ -23,7 +23,7 @@ for _p in (os.path.join(_ROOT, "src"), _HERE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from acceptance import PASS, NA, test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_data, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_deferred
+from acceptance import PASS, NA, test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_data, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_figure_face_mapping, test_deferred
 
 try:
     from support_accessibility import oracle
@@ -58,11 +58,11 @@ def budget_gate():
 def regression_gate():
     """回归门（D-026）：读 tools/regression_check.py 产出（模型级配对 + bootstrap CI）。神经二分显著**不劣于
     最强几何基线**（射线可见性 E4；配对差 95%CI 下界 >0）→ PASS；含 0/负 → FAIL；无产出（未跑实验）→ PENDING。
-    产出在 runs/（机器 emit、gitignore），故裸克隆 PENDING、跑实验后棘轮。"""
-    path = os.path.join(_ROOT, "runs", "regression", "latest.json")
+    产出在 artifacts/runs/（机器 emit、gitignore），故裸克隆 PENDING、跑实验后棘轮。"""
+    path = os.path.join(_ROOT, "artifacts", "runs", "regression", "latest.json")
     if not os.path.exists(path):
         return {"name": "regression", "status": PENDING,
-                "detail": "未见回归产出——跑 `tools/regression_check.py` 生成 runs/regression/latest.json（D-026）"}
+                "detail": "未见回归产出——跑 `tools/regression_check.py` 生成 artifacts/runs/regression/latest.json（D-026）"}
     try:
         with open(path, encoding="utf-8") as f:
             r = json.load(f)
@@ -115,8 +115,8 @@ def label_audit_gate():
 
 def build_verdict():
     acceptance = []
-    # test_env / test_charter 在前：它们现在就应绿，其余几何性质 PENDING
-    for mod in (test_env, test_charter, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_data, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_deferred):
+    # test_env / test_governance 在前：它们现在就应绿，其余几何性质 PENDING
+    for mod in (test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_data, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_figure_face_mapping, test_deferred):
         acceptance += mod.checks()
     gates = [budget_gate(), regression_gate(), label_audit_gate()]
     # GREEN = 无 FAIL 且无 PENDING（N/A 是终态、非待办、不阻塞——决定为非不变量/已覆盖，见 D-027）

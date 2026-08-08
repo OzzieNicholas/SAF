@@ -112,7 +112,7 @@ def main():
     labelled = D.render_face_field_arr(V, F, mapping.face_indices, label_rgb,
                                        cpos=support_camera, zoom=1.10)
 
-    point_checkpoint = torch.load(os.path.join(ROOT, "runs", "figures", "ckpt_point.pt"),
+    point_checkpoint = torch.load(os.path.join(ROOT, "artifacts", "cache", "figures", "ckpt_point.pt"),
                                   map_location="cpu", weights_only=False)
     X.assert_checkpoint_holdout(point_checkpoint, X.FIG01_POINT, "Figure 1")
     point_model = by_name[X.FIG01_POINT.name]
@@ -126,7 +126,7 @@ def main():
     predicted = D.render_face_field_arr(Vp, Fp, point_map.face_indices, PROB_CMAP(probability)[:, :3],
                                         cpos=point_camera, zoom=1.10)
 
-    direction_checkpoint = torch.load(os.path.join(ROOT, "runs", "figures", "ckpt_dir.pt"),
+    direction_checkpoint = torch.load(os.path.join(ROOT, "artifacts", "cache", "figures", "ckpt_dir.pt"),
                                       map_location="cpu", weights_only=False)
     showcase = direction_checkpoint.get("showcase", {})
     if (direction_checkpoint.get("label_semantics") != "d020_refined"

@@ -5,13 +5,17 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 import numpy as np
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FIGURE_DIR = os.path.join(ROOT, "paper", "figures")
-QA_DIR = os.path.join(ROOT, "runs", "figure_qa")
+FIGURE_DIR = os.path.join(ROOT, "deliverables", "paper", "figures")
+QA_DIR = os.path.join(ROOT, "artifacts", "runs", "figure_qa")
+if os.path.join(ROOT, "tools") not in sys.path:
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+from artifacts import write_result  # noqa: E402
 EXPECTED = [f"fig{i:02d}_" for i in range(1, 11)]
 
 
@@ -227,8 +231,7 @@ def main():
     report = build_report()
     os.makedirs(QA_DIR, exist_ok=True)
     output = os.path.join(QA_DIR, "report.json")
-    with open(output, "w", encoding="utf-8") as handle:
-        json.dump(report, handle, ensure_ascii=False, indent=2)
+    report = write_result("figure_qa", report, output, (FIGURE_DIR,))
     path = contact_sheet()
     warnings = sum(len(item.get("warnings", ())) for item in report["layout_reports"])
     for item in report["figures"]:
@@ -242,6 +245,10 @@ def main():
                       "blank_images": blanks}, ensure_ascii=False))
     if args.strict and (warnings or blanks):
         raise SystemExit(1)
+    # Checkpoint caches are useful while assembling figures, but old copies
+    # must not accumulate indefinitely after the QA workflow completes.
+    subprocess.run([sys.executable, os.path.join(ROOT, "tools", "prune_artifacts.py"),
+                    "--apply", "--kind", "figures", "--ttl-days", "0"], check=False)
 
 
 if __name__ == "__main__":

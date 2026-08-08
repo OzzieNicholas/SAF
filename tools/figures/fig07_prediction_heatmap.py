@@ -41,7 +41,7 @@ def main():
     parser.add_argument("--root", default=X.FUSION_ROOT)
     parser.add_argument("--thingi-root", default=X.THINGI_ROOT)
     args = parser.parse_args()
-    checkpoint = torch.load(os.path.join(ROOT, "runs", "figures", "ckpt_point.pt"),
+    checkpoint = torch.load(os.path.join(ROOT, "artifacts", "cache", "figures", "ckpt_point.pt"),
                             map_location="cpu", weights_only=False)
     network = ConvONetLite(); network.load_state_dict(checkpoint["state_dict"]); network.eval()
     fusion, _ = load_dataset(os.path.join(ROOT, "data", "processed", "fusion360_full"))

@@ -1,12 +1,12 @@
-# me (hand-managed, ignored)
-charter/reference/
-method/
+# local render and visual-QA workspace; never a project artifact
+tmp/
 
 # processed datasets (materialized; regenerable from seed+code / DVC-later, D-016)
 data/processed/
 
-# run artifacts (machine-emit：audit/failure/signoff/regression 图+json；需版本化则 DVC 追踪，见 CLAUDE.md)
-runs/
+# run artifacts (machine-emit：evidence in runs, disposable state in cache；需版本化则 DVC 追踪，见 AGENTS.md)
+artifacts/runs/
+artifacts/cache/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

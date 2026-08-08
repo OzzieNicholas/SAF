@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""训练 + 缓存图件用 ConvONet 点级模型 → runs/figures/ckpt_point.pt（state_dict + 留出件名 + seed）。
+"""训练 + 缓存图件用 ConvONet 点级模型 → artifacts/cache/figures/ckpt_point.pt（state_dict + 留出件名 + seed）。
 图 7 预测热图用它在**未见（留出）件**上出预测。默认 1200 件 / 150 轮 → 预测足够自信、代表正式模型。
 用法：python tools/figures/_train_ckpt.py [--max-models 1200] [--epochs 150]
 末尾打印留出集里可读双类候选件（name, npts, inacc），供 fig07 选件。"""
@@ -51,7 +51,7 @@ def main():
         for i in torch.randperm(len(data)):
             occ, gc, y = data[i]
             opt.zero_grad(); lossf(net(occ, gc), y).backward(); opt.step()
-    out = os.path.join(_ROOT, "runs", "figures")
+    out = os.path.join(_ROOT, "artifacts", "cache", "figures")
     os.makedirs(out, exist_ok=True)
     torch.save({"state_dict": net.state_dict(), "test_names": [m.name for m in fte], "seed": 0,
                 "max_models": a.max_models, "epochs": a.epochs},

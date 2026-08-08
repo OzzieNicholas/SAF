@@ -3,7 +3,7 @@
 
 The default mode renders the full per-part diagnostics from the reproducibility
 artifacts.  ``--paper-ledger`` is intentionally narrower: it renders only the
-audited aggregate values recorded in ``charter/results.md``.  It is appropriate
+audited aggregate values recorded in ``governance/results.md``.  It is appropriate
 for the paper when those raw artifacts are not distributed, because it never
 invents per-part dots or confidence intervals.
 """
@@ -63,14 +63,14 @@ def plot_paper_ledger():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--paper-ledger", action="store_true",
-                        help="render only audited aggregate values from charter/results.md")
+                        help="render only audited aggregate values from governance/results.md")
     args = parser.parse_args()
     if args.paper_ledger:
         plot_paper_ledger()
         return
 
-    baseline_path = os.path.join(ROOT, "runs", "baselines", "latest.json")
-    ablation_path = os.path.join(ROOT, "runs", "ablation", "latest.json")
+    baseline_path = os.path.join(ROOT, "artifacts", "runs", "baselines", "latest.json")
+    ablation_path = os.path.join(ROOT, "artifacts", "runs", "ablation", "latest.json")
     with open(baseline_path, encoding="utf-8") as handle:
         baseline = json.load(handle)
     with open(ablation_path, encoding="utf-8") as handle:

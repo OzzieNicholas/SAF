@@ -1,6 +1,6 @@
 # 论文图件流水线
 
-本目录生成 `paper/figures/` 中 10 幅主图。每幅图仅维护一套 `175 mm` 全栏版式，导出 600 dpi PNG 与字体嵌入 PDF；`85 mm` 仅由 QA contact sheet 作缩小压力测试。图题/图注唯一源稿为 `paper/figures/captions.md`。
+本目录生成 `deliverables/paper/figures/` 中 10 幅主图。每幅图仅维护一套 `175 mm` 全栏版式，导出 600 dpi PNG 与字体嵌入 PDF；`85 mm` 仅由 QA contact sheet 作缩小压力测试。图题/图注唯一源稿为 `deliverables/paper/figures/captions.md`。
 
 ## 不变量
 
@@ -32,14 +32,14 @@
 
 | 产物 | 生成工具 | 消费图 |
 |---|---|---|
-| `runs/figures/ckpt_point.pt` | `tools/figures/_train_ckpt.py` | 1、7 |
-| `runs/figures/ckpt_dir.pt` | `tools/figures/_train_dir_ckpt.py` | 1、9 |
-| `runs/true_area/latest.json` | `tools/eval_true_area.py` | 6 |
-| `runs/baselines/latest.json` | `tools/eval_baselines.py` | 8a |
-| `runs/ablation/latest.json` | `tools/eval_ablation.py` | 8b |
-| `runs/failure_audit/{failure.json,fig10_case.npz}` | `tools/failure_cases.py --figure-case ...` | 10 |
+| `artifacts/cache/figures/ckpt_point.pt` | `tools/figures/_train_ckpt.py` | 1、7 |
+| `artifacts/cache/figures/ckpt_dir.pt` | `tools/figures/_train_dir_ckpt.py` | 1、9 |
+| `artifacts/runs/true_area/latest.json` | `tools/eval_true_area.py` | 6 |
+| `artifacts/runs/baselines/latest.json` | `tools/eval_baselines.py` | 8a |
+| `artifacts/runs/ablation/latest.json` | `tools/eval_ablation.py` | 8b |
+| `artifacts/runs/failure_audit/{failure.json,fig10_case.npz}` | `tools/failure_cases.py --figure-case ...` | 10 |
 
-`latest.json` 保存生成图所需的逐模型值，而不是由图脚本重新硬编码。GPU 训练存在小幅种子/运行时波动；一次成稿必须统一使用同一组产物并同步 `paper/draft.md`、`paper/写作指引.md` 和图注。
+`latest.json` 保存生成图所需的逐模型值，而不是由图脚本重新硬编码。GPU 训练存在小幅种子/运行时波动；一次成稿必须统一使用同一组产物并同步 `deliverables/paper/draft.md`、`deliverables/paper/写作指引.md` 和图注。结果 JSON 和 QA 报告属于 `artifacts/runs/` 证据；训练检查点属于 `artifacts/cache/`，由 QA 完成后的 TTL 清理器处理。
 
 ## 重生成
 
@@ -73,7 +73,7 @@ conda run -n saf python tools/figures/qa_figures.py --strict
 
 ## QA 输出
 
-每个脚本在 `runs/figure_qa/fig*.json` 写入布局诊断。`qa_figures.py` 进一步检查：
+每个脚本在 `artifacts/runs/figure_qa/fig*.json` 写入布局诊断。`qa_figures.py` 进一步检查：
 
 - PNG 像素尺寸、600 dpi 物理尺寸、空白图与异常边缘留白；
 - PDF 页面尺寸、字体嵌入和 Type 3 字体；
@@ -81,4 +81,4 @@ conda run -n saf python tools/figures/qa_figures.py --strict
 - CAD 占用率和需要语义色的面板覆盖率；
 - 10 幅图是否一一对应 PNG/PDF。
 
-`paper/figures/contact_sheet.png` 左列按 175 mm 原尺度组织，右列为 85 mm 缩小预览。自动 QA 通过后仍须人工检查轮廓、ROI、颜色、标注和证据关系；contact sheet 不属于论文主图。
+`deliverables/paper/figures/contact_sheet.png` 左列按 175 mm 原尺度组织，右列为 85 mm 缩小预览。自动 QA 通过后仍须人工检查轮廓、ROI、颜色、标注和证据关系；contact sheet 不属于论文主图。

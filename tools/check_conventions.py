@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """动作规范校验器（git 历史 / 分支）—— 规范的唯一可执行权威（spec 之家）。纯 stdlib。
 
-由 .github/workflows/conventions.yml（CI）与 hooks/（本地可选）共用。校验：
+由 .github/workflows/conventions.yml（CI）与 tools/hooks/（本地可选）共用。校验：
   - commit 主题匹配 <type>(<scope>): <主题>，type ∈ TYPES；
   - 当前分支名匹配 <type>/<slug>，或属豁免（main / master / claude/* harness 分支）。
 只强制**本分支新增**（相对 base=main，且非 merge 提交）且**自规范引入**
-（charter/conventions.md 首次加入的提交）起的提交；base 上的历史与合并提交祖父豁免、不改写历史。
-理据 / 生命周期散文见 charter/conventions.md，冻结见 decisions D-013。
+（governance/conventions.md 首次加入的提交）起的提交；base 上的历史与合并提交祖父豁免、不改写历史。
+理据 / 生命周期散文见 governance/conventions.md，冻结见 decisions D-013。
 
 用法：
   python tools/check_conventions.py [--branch <name>] [--base <ref>]  # 分支名 + 历史提交（CI / pre-push）
@@ -35,7 +35,8 @@ def _has(ref):
 
 def _commits_to_check(base=None):
     """要强制的提交：自规范引入起（祖父豁免更早）∩ 本分支新增（相对 base、非 merge）。"""
-    intro = _git("log", "--diff-filter=A", "--reverse", "--format=%H", "--", "charter/conventions.md")
+    # --follow keeps the bootstrap point discoverable after the governance-root rename.
+    intro = _git("log", "--follow", "--reverse", "--format=%H", "--", "governance/conventions.md")
     start = intro.splitlines()[0] if intro else None
     if not start:
         return []                                                  # 规范未引入：不强制
@@ -86,7 +87,7 @@ def main():
     else:
         errs = check(_arg(a, "--base"), _arg(a, "--branch"))
     if errs:
-        sys.stderr.write("动作规范校验未过（见 charter/conventions.md）：\n")
+        sys.stderr.write("动作规范校验未过（见 governance/conventions.md）：\n")
         for e in errs:
             sys.stderr.write("  ✗ " + e + "\n")
         sys.exit(1)

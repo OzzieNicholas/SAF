@@ -100,7 +100,7 @@ def inaccessible_area_error(pred_region, gold_region):
     """不可达**点占比**误差 = |pred 不可达点占比 − gold 不可达点占比|。
 
     注：这是点占比误差；仅当点集**按面积均匀采样**时才≈面积比例误差，而当前 ingest（逐三角质心 / 分层体素）
-    不满足该假设（真面积口径见 conf/params.yaml sampling 注 + eval_h1 说明）。数值本身有效（同点集 pred vs gold），
+    不满足该假设（真面积口径见 configs/params.yaml sampling 注 + eval_h1 说明）。数值本身有效（同点集 pred vs gold），
     只是"面积"解读不成立。形状校验对齐 f1/iou（`_check_same`）。"""
     import numpy as np
     p, g = _pos_mask(pred_region), _pos_mask(gold_region)

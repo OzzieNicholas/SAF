@@ -38,12 +38,13 @@ def main():
     ap.add_argument("--max-models", type=int, default=400)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--out", default="runs/ablation/latest.json")
+    ap.add_argument("--out", default="artifacts/runs/ablation/latest.json")
     a = ap.parse_args()
 
     import json
     import numpy as np
     import torch
+    from artifacts import write_result
     import torch.nn as nn
     import torch.nn.functional as F
     from support_accessibility.data.dataset import load_dataset
@@ -117,10 +118,7 @@ def main():
               "train_models": len(ftr), "test_models": len(fte),
               "f1": res,
               "order": ["no_shape", "local", "lite", "pooled"]}
-    output = os.path.abspath(a.out)
-    os.makedirs(os.path.dirname(output), exist_ok=True)
-    with open(output, "w", encoding="utf-8") as handle:
-        json.dump(report, handle, ensure_ascii=False, indent=1)
+    report = write_result("ablation", report, a.out, (a.fusion, a.procedural))
     print("ABLATION_RESULT " + json.dumps(report, ensure_ascii=False))
 
 

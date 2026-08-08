@@ -1,7 +1,7 @@
 # 验收门 CI（棘轮上云）：忠实复现 canonical 环境（environment.yml，env saf）跑 gate + pytest。
 # CI 成败以 pytest 为准（回归信号：无 test 失败=绿）。tests/gate.py 是"项目完整性"棘轮，
 # 全程 RED 直到 budget/regression 门就绪，故只作可视展示（|| true）、不决定 CI 成败。
-# 见 charter/README.md、charter/decisions.md。
+# 见 governance/README.md、governance/decisions.md。
 name: gate
 
 on: [push, pull_request]

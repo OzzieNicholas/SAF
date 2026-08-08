@@ -120,7 +120,7 @@ def down_facing_points(occ, max_points=None, rng=None):
     **按高度 z 分层采样**：开阔底面（低 z）与受限腔顶（高 z）是几何上不同的下朝面，体素数悬殊；
     面积均匀采样会让庞大的开阔底面淹没小小的腔顶（风险正类）。分层给每个 z-面配额，保证受限腔顶
     被代表——与"不可达=稀有风险正类"（problem.md）一致，不靠伪造平衡。（真实网格前端将按面积泊松采样，
-    见 conf/params.yaml sampling；此处是程序化件的务实提取。）
+    见 configs/params.yaml sampling；此处是程序化件的务实提取。）
     """
     import numpy as np
     occ = np.asarray(occ, dtype=bool)
@@ -145,7 +145,7 @@ def down_facing_points(occ, max_points=None, rng=None):
 def make_dataset(n_models=12, N=28, max_points=24, radius=3.0, n_directions=32, seed=0):
     """程序化标签数据集：n_models 个参数化件 → 提取下朝接触点 → oracle 自动打标。
 
-    形状条件训练用（按模型切分，见 split_by_model / conf/params.yaml split.by=model）。默认是小烟测集,
+    形状条件训练用（按模型切分，见 split_by_model / configs/params.yaml split.by=model）。默认是小烟测集,
     Phase-2/3 靠增大 n_models/N/max_points 扩量。半径以体素为单位（对齐 oracle 口径与已知答案件）。
     """
     import numpy as np
@@ -170,7 +170,7 @@ def make_dataset(n_models=12, N=28, max_points=24, radius=3.0, n_directions=32, 
 
 
 def split_by_model(models, frac_train=0.7, frac_val=None, seed=0):
-    """按模型切分（split.by=model；禁按点随机切分，见 conf/params.yaml）。
+    """按模型切分（split.by=model；禁按点随机切分，见 configs/params.yaml）。
 
     frac_val=None → 返回 (train, test)（2-way；在内存快评/薄纵切用）；
     frac_val 给值 → 返回 (train, val, test)（物化数据集用，落地 D-016 切分 {train,val,test}）。

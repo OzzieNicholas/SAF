@@ -1,0 +1,4 @@
+#!/bin/sh
+# 本地 pre-push hook（可选，快失败）：push 前校验分支名 + 历史提交合规。
+# 权威同 CI = tools/check_conventions.py。装：sh tools/hooks/install.sh
+exec python3 "$(git rev-parse --show-toplevel)/tools/check_conventions.py"

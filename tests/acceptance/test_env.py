@@ -1,6 +1,6 @@
 """环境自检（env_ready）—— 把"用对环境"变成会跑的门。
 
-canonical 环境源 = environment.yml（conda env `saf`，见 charter/decisions.md D-007）。
+canonical 环境源 = environment.yml（conda env `saf`，见 governance/decisions.md D-007）。
 本检查验证**当前解释器**能 import 几何/数值栈 + py≥3.12；不对就当场 FAIL（不是 PENDING），
 从而"环境歧义"变成 RED 而非静默。模块级只用 stdlib（重型 import 在函数内 try/except），
 保证 tests/gate.py 在任何解释器都能 import 本模块不崩。

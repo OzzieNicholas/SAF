@@ -16,7 +16,7 @@ from matplotlib.patches import Patch  # noqa: E402
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-AUDIT = os.path.join(ROOT, "runs", "failure_audit")
+AUDIT = os.path.join(ROOT, "artifacts", "runs", "failure_audit")
 PAPER_EVIDENCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "assets", "fig10_failure_evidence.png")
 

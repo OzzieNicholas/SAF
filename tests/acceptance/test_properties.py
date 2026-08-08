@@ -1,6 +1,6 @@
 """变形/性质测试：不需要知道绝对答案，只钉"关系"。
 
-守护决策与现状（详见 charter/decisions.md、charter/README.md 映射）：
+守护决策与现状（详见 governance/decisions.md、governance/README.md 映射）：
   D-005 尺度不变（整数上采样 k×，label 不变）—— **已证伪（D-011）**：分辨率依赖、非严格
         不变量；粗网格误判欠分辨薄特征（细网格纠正为不可达）；真实网格上复核
   D-005 旋转等变 —— 体素旋转有重采样伪影，属连续几何性质，移交 mesh 前端批次

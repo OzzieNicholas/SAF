@@ -1,7 +1,7 @@
 """程序化标签数据集验收：生成 → oracle 自动打标 → 按模型切分，且非退化（两类俱在）。
 
 守护 Phase-1 数据管线：形状条件样本 (occ, 下朝接触点, 标签)，标签由 oracle 自动生成（无人工标注）；
-split.by=model（禁按点切分，见 conf/params.yaml）。saf 内真跑；缺依赖 → PENDING/skip。
+split.by=model（禁按点切分，见 configs/params.yaml）。saf 内真跑；缺依赖 → PENDING/skip。
 """
 
 from unittest import SkipTest

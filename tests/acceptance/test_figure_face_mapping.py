@@ -3,16 +3,31 @@ import os
 import sys
 from unittest import SkipTest
 
-import pytest
-
-
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FIGURE_TOOLS = os.path.join(ROOT, "tools", "figures")
 if FIGURE_TOOLS not in sys.path:
     sys.path.insert(0, FIGURE_TOOLS)
 
-import _data as D  # noqa: E402
-import examples as X  # noqa: E402
+from . import pending, result
+
+try:
+    import _data as D  # noqa: E402
+    import examples as X  # noqa: E402
+    _IMPORT_ERROR = None
+except ImportError as exc:  # pragma: no cover - exercised by bare interpreters
+    D = X = None
+    _IMPORT_ERROR = exc
+
+
+def checks():
+    if _IMPORT_ERROR is not None:
+        return [pending("figure_face_mapping", f"依赖未就绪：{_IMPORT_ERROR}", "D-028")]
+    return [result("figure_face_mapping", True, "出版物样本面映射模块可加载", "D-028")]
+
+
+def _require_modules():
+    if _IMPORT_ERROR is not None:
+        raise SkipTest(f"依赖未就绪：{_IMPORT_ERROR}")
 
 
 def _require(path, description):
@@ -21,6 +36,7 @@ def _require(path, description):
 
 
 def _datasets():
+    _require_modules()
     from support_accessibility.data.dataset import load_dataset
 
     fusion_path = os.path.join(ROOT, "data", "processed", "fusion360_full")
@@ -74,8 +90,10 @@ def test_fixed_thingi_face_mapping_uses_stored_normals():
 
 def test_fixed_failure_case_mapping_and_mismatch_fail_closed():
     import numpy as np
+    import pytest
 
-    artifact_path = os.path.join(ROOT, "runs", "failure_audit", "fig10_case.npz")
+    _require_modules()
+    artifact_path = os.path.join(ROOT, "artifacts", "runs", "failure_audit", "fig10_case.npz")
     _require(artifact_path, "Figure 10 failure artifact")
     artifact = np.load(artifact_path, allow_pickle=True)
     assert str(artifact["name"]) == X.FIG10.name

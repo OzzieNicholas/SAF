@@ -2,7 +2,7 @@
 
 目标：端到端证明"形状条件特征 → 支撑接触点可达性"在**未见模型**上成立（H3 跨模型），
 derisk 论文头号命题。**这不是最终模型**——真实 ConvONet / PyTorch 版属 Phase-3（用户本地 GPU，
-见 CLAUDE.md 神经栈）；此云端 env torch 装不下（pytorch 源被代理挡）、且薄纵切要的是可验证的可行性信号。
+见 AGENTS.md 神经栈）；此云端 env torch 装不下（pytorch 源被代理挡）、且薄纵切要的是可验证的可行性信号。
 
 形状条件特征 = 查询点周围的**局部占据 patch**（原始几何，非 oracle 代理，故非循环）+ 归一点坐标；
 小 2 层 MLP + BCE + Adam（numpy 手写反传）学决策边界。numpy 在函数内 import（系统 py 仍可 import models）。

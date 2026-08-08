@@ -1,4 +1,4 @@
-"""未决触发册 → 门：把 charter/deferred.md 的未决项接进 gate（人肉提醒 → 门提醒）。
+"""未决触发册 → 门：把 governance/deferred.md 的未决项接进 gate（人肉提醒 → 门提醒）。
 
 每条未决项 = 前置条件(触发) → 义务。checks() 把每条 surfaced 为门项、指回 deferred.md id；
 机器可判的条目（flagship-pair 的 import-check）附注"休眠/可闭合"。闭合：满足义务后从 deferred.md 删除。
@@ -11,11 +11,11 @@ import re
 from . import pending, result
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-_DEFERRED = os.path.join(_ROOT, "charter", "deferred.md")
+_DEFERRED = os.path.join(_ROOT, "governance", "deferred.md")
 
 
 def _parse_deferred():
-    """解析 charter/deferred.md → [(id, 触发, 义务), ...]。"""
+    """解析 governance/deferred.md → [(id, 触发, 义务), ...]。"""
     try:
         with open(_DEFERRED, encoding="utf-8") as f:
             txt = f.read()
@@ -49,7 +49,7 @@ def _flagship_implemented():
 
 def checks():
     if not os.path.exists(_DEFERRED):
-        return [pending("deferred_register", "charter/deferred.md 缺失", "")]
+        return [pending("deferred_register", "governance/deferred.md 缺失", "")]
     items = _parse_deferred()
     if not items:                       # 空册 = 无开放未决义务（终态，非 PENDING；闭合记录在 decisions.md）
         return [result("deferred_register", True, "无开放未决义务（历次闭合见 decisions.md）", "")]
@@ -67,5 +67,5 @@ def checks():
 
 def test_deferred_register_parses():
     """治理未决册在位且可解析（空册=无开放义务，合法终态；解析不得抛错）。"""
-    assert os.path.exists(_DEFERRED), "charter/deferred.md 应存在"
+    assert os.path.exists(_DEFERRED), "governance/deferred.md 应存在"
     _parse_deferred()   # 不抛即可（空册返回 []，是合法终态）

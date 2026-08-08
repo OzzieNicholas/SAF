@@ -36,11 +36,12 @@ def main():
     ap.add_argument("--overhang-deg", type=float, default=45.0)
     ap.add_argument("--nudge-voxels", type=float, default=2.0)
     ap.add_argument("--max-models", type=int, default=None)
-    ap.add_argument("--out", default="runs/true_area/latest.json")
+    ap.add_argument("--out", default="artifacts/runs/true_area/latest.json")
     a = ap.parse_args()
 
     import json
     import numpy as np
+    from artifacts import write_result
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data.fusion360 import iter_final_designs, load_obj, normalize
     from support_accessibility.data import mesh as MESH, overhang as OVH
@@ -118,11 +119,8 @@ def main():
         "interpretation": "真面积 ρ 与计数代理 ρ 同量级或更小 ⟹ H1 弱相关结论非计数代理伪影（论文局限-面积口径引用）",
         "per_model": per_model,
     }
-    output = os.path.abspath(a.out)
-    os.makedirs(os.path.dirname(output), exist_ok=True)
-    with open(output, "w", encoding="utf-8") as handle:
-        json.dump(out, handle, ensure_ascii=False, indent=1)
-    out["output"] = output
+    out = write_result("true_area", out, a.out, (a.data, a.root))
+    out["output"] = os.path.abspath(a.out)
     summary = {key: value for key, value in out.items() if key != "per_model"}
     print("TRUE_AREA_RESULT " + json.dumps(summary, ensure_ascii=False))
 

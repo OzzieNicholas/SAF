@@ -42,10 +42,10 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=X.FUSION_ROOT)
-    parser.add_argument("--area-json", default=os.path.join(ROOT, "runs", "true_area", "latest.json"))
+    parser.add_argument("--area-json", default=os.path.join(ROOT, "artifacts", "runs", "true_area", "latest.json"))
     args = parser.parse_args()
     if not os.path.exists(args.area_json):
-        raise FileNotFoundError("Figure 6 requires runs/true_area/latest.json; run tools/eval_true_area.py")
+        raise FileNotFoundError("Figure 6 requires artifacts/runs/true_area/latest.json; run tools/eval_true_area.py")
     with open(args.area_json, encoding="utf-8") as handle:
         area_report = json.load(handle)
     records = area_report.get("per_model", [])

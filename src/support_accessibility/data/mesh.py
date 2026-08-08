@@ -1,6 +1,6 @@
 """网格前端：真实三维网格 → 占据栅格（igl generalized winding number 判内外）。
 
-口径见 charter/decisions.md D-007（选 igl）/ D-009（本片：阈值 0.5；无 CSG，多实体用 numpy V/F 堆叠；
+口径见 governance/decisions.md D-007（选 igl）/ D-009（本片：阈值 0.5；无 CSG，多实体用 numpy V/F 堆叠；
 **禁用 trimesh.util.concatenate / apply_translation——本 env 原生崩溃**）。产出 occupancy 喂 oracle（体素单位）。
 mesh 创建/加载用 trimesh；合并与平移用 numpy。
 

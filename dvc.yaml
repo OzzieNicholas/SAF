@@ -5,7 +5,7 @@
 #   `dvc repro` 重建后须复跑训练集含程序化件的复现器（train_convonet/eval_h5/eval_e5/eval_ablation/regression_check/eval_baselines）。
 # Fusion360 / Thingi10K：需外部原始网格（E:\... 路径，经 tools/build_{fusion360,thingi}.py --root 传入）——
 #   属外部只读原料、**不在可复现 DAG 内**（无原料的机器无法 repro）；有数据时用对应 CLI 物化。
-#   见 charter/decisions.md D-016/D-017/D-022/D-023、charter/deferred.md fusion360-ingest/thingi-ingest。
+#   见 governance/decisions.md D-016/D-017/D-022/D-023、governance/deferred.md fusion360-ingest/thingi-ingest。
 stages:
   procedural:
     cmd: python tools/build_dataset.py --out data/processed/procedural_v1 --n-models 120 --N 28

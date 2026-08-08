@@ -3,7 +3,7 @@
 
 方法：多数类 / 局部几何规则 / 射线可见性(r=0) / 局部形状感知基线(tiny MLP) / 本文(ConvONet-lite)。
 镜像 regression_check 制度（both_class[:max_models]、模型级三切 seed、ftr+程序化 训练、留出 fte 评测），
-报告各方法点级总体 F1 + 零件级均值±std，emit runs/baselines/latest.json（论文表 5 的唯一数据源）。
+报告各方法点级总体 F1 + 零件级均值±std，emit artifacts/runs/baselines/latest.json（论文表 5 的唯一数据源）。
 兼复测账本 H3 行挂的 tiny 旧口径值（0.75，D-028 前）。需 torch。self-add src。
 
 用法：
@@ -45,6 +45,7 @@ def main():
     import json
     import numpy as np
     import torch
+    from artifacts import write_result
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
@@ -118,9 +119,7 @@ def main():
     rep["paired_delta_convonet_minus_ray"] = {
         "mean": round(float(delta.mean()), 4), "ci95": bootstrap_mean_ci(delta)
     }
-    outdir = os.path.join(os.path.dirname(_ROOT), "runs", "baselines")
-    os.makedirs(outdir, exist_ok=True)
-    json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    rep = write_result("baselines", rep, inputs=(a.fusion, a.procedural))
     print("BASELINES_RESULT " + json.dumps(rep, ensure_ascii=False))
 
 

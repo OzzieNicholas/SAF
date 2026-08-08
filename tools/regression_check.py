@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """回归门实测（阶段5 指标固化；D-026；需 torch）。**模型级配对 + bootstrap CI**：神经二分预测
-是否**显著不劣于最强几何基线**（射线可见性 E4）。产出 runs/regression/latest.json 供 tests/gate.py 的
+是否**显著不劣于最强几何基线**（射线可见性 E4）。产出 artifacts/runs/regression/latest.json 供 tests/gate.py 的
 regression_gate 读取裁决（配对差 95%CI 下界 >0 → 神经显著胜 → PASS）。self-add src。
 
 用法：
@@ -42,6 +42,7 @@ def main():
     import json
     import numpy as np
     import torch
+    from artifacts import write_result
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
@@ -57,9 +58,7 @@ def main():
         rep = {"n_test_models": 0, "passes": False, "note": "no both-class test models",
                "baseline": "ray_visibility(E4)", "data_roots": [a.fusion, a.procedural],
                "data_digest": E.data_digest(a.fusion, a.procedural)}
-        outdir = os.path.join(os.path.dirname(_ROOT), "runs", "regression")
-        os.makedirs(outdir, exist_ok=True)
-        json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        rep = write_result("regression", rep, inputs=(a.fusion, a.procedural))
         print("REGRESSION " + json.dumps(rep))
         return
 
@@ -104,9 +103,7 @@ def main():
            "passes": bool(ci_low > 0), "baseline": "ray_visibility(E4)",
            "data_roots": [a.fusion, a.procedural],                   # 门据此重算摘要（不硬编根），配 data_digest 判新鲜度（D-026 P5）
            "data_digest": E.data_digest(a.fusion, a.procedural)}
-    outdir = os.path.join(os.path.dirname(_ROOT), "runs", "regression")
-    os.makedirs(outdir, exist_ok=True)
-    json.dump(rep, open(os.path.join(outdir, "latest.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    rep = write_result("regression", rep, inputs=(a.fusion, a.procedural))
     print("REGRESSION " + json.dumps(rep))
 
 

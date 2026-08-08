@@ -1,7 +1,7 @@
 """支撑接触区提取：网格(V,F) + 构建方向 d → 下朝悬垂面（支撑接触区代理 S(P,d)）。
 
 判据（docs §9.1、decisions D-010）：外法向 n 与 d 夹角超阈值 ⟺ 局部倾角<自支撑临界角
-⟺ `n·d̂ < -cos(overhang_deg)`。θ_c=overhang_angle_deg=45（conf/params.yaml）。S 随 d 变（§9.2）。
+⟺ `n·d̂ < -cos(overhang_deg)`。θ_c=overhang_angle_deg=45（configs/params.yaml）。S 随 d 变（§9.2）。
 MVP 用悬垂面质心作支撑接触点。外法向用 numpy cross（假设外向一致缠绕——trimesh 图元成立；
 真实网格缠绕修复属后续）。numpy 在函数内 import（防御式，系统 py 仍可 `import overhang`）。
 """

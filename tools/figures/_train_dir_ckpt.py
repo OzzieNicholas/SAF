@@ -109,7 +109,7 @@ def main():
         raise RuntimeError("No mixed-direction held-out point with correct Top-1 recommendation")
     _score, name, index, fraction, agreement, top1 = sorted(candidates,
                                                              key=lambda row: (-row[0], row[1], row[2]))[0]
-    outdir = os.path.join(ROOT, "runs", "figures"); os.makedirs(outdir, exist_ok=True)
+    outdir = os.path.join(ROOT, "artifacts", "cache", "figures"); os.makedirs(outdir, exist_ok=True)
     torch.save({"state_dict": network.state_dict(), "D": output_dim, "dirs": direction_set,
                 "n_directions": args.n_directions, "test_names": [model.name for model in test_models],
                 "label_semantics": "d020_refined", "showcase": {"name": name, "idx": int(index),
