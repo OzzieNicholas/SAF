@@ -1,0 +1,44 @@
+{
+ "test_models": 80,
+ "test_points": 6033,
+ "seeds": 5,
+ "f1_inaccessible": 0.92,
+ "f1_inaccessible_std": 0.003,
+ "error_rate": 0.046,
+ "error_rate_std": 0.002,
+ "false_pos_rate": 0.018,
+ "false_pos_rate_std": 0.004,
+ "false_neg_rate": 0.028,
+ "false_neg_rate_std": 0.004,
+ "gold_inacc_frac": 0.291,
+ "error_rate_by_nviable": {
+  "0": 0.024,
+  "1-2": 0.154,
+  "3-5": 0.116,
+  "6+": 0.039
+ },
+ "error_rate_by_nviable_std": {
+  "0": 0.008,
+  "1-2": 0.017,
+  "3-5": 0.009,
+  "6+": 0.004
+ },
+ "nviable_share": {
+  "0": 0.213,
+  "1-2": 0.052,
+  "3-5": 0.057,
+  "6+": 0.678
+ },
+ "audit_pngs": [
+  "fail_122755_b830e22d_0009_33err.png",
+  "fail_142488_2f76709c_0000_25err.png",
+  "fail_116082_b59d8605_0002_21err.png",
+  "fail_122019_3a524981_0000_14err.png"
+ ],
+ "audit_dir": "D:\\Work\\SAF\\runs\\failure_audit",
+ "figure_case": {
+  "name": "116082_b59d8605_0002",
+  "errors": 21,
+  "split": "test"
+ }
+}

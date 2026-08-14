@@ -1,0 +1,537 @@
+{
+  "figures": [
+    {
+      "path": "fig01_framework.png",
+      "size_px": [
+        4133,
+        2645
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.20878,
+      "content_bbox": [
+        108,
+        32,
+        4095,
+        2592
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 5,
+        "page_mm": [
+          175.0,
+          112.0
+        ]
+      }
+    },
+    {
+      "path": "fig02_direction_dependence.png",
+      "size_px": [
+        4133,
+        2173
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.17885,
+      "content_bbox": [
+        145,
+        237,
+        4071,
+        2098
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 5,
+        "page_mm": [
+          175.0,
+          92.0
+        ]
+      }
+    },
+    {
+      "path": "fig03_criterion.png",
+      "size_px": [
+        4133,
+        1653
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.32996,
+      "content_bbox": [
+        103,
+        173,
+        4092,
+        1479
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 6,
+        "page_mm": [
+          175.0,
+          70.0
+        ]
+      }
+    },
+    {
+      "path": "fig04_two_stage.png",
+      "size_px": [
+        4133,
+        2078
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.14888,
+      "content_bbox": [
+        109,
+        64,
+        4109,
+        1989
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 7,
+        "page_mm": [
+          175.0,
+          88.0
+        ]
+      }
+    },
+    {
+      "path": "fig05_network.png",
+      "size_px": [
+        4133,
+        1937
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.1406,
+      "content_bbox": [
+        592,
+        256,
+        3757,
+        1625
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 3,
+        "page_mm": [
+          175.0,
+          82.0
+        ]
+      }
+    },
+    {
+      "path": "fig06_area_vs_access.png",
+      "size_px": [
+        4133,
+        2362
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.19262,
+      "content_bbox": [
+        146,
+        50,
+        4074,
+        2315
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 4,
+        "page_mm": [
+          175.0,
+          100.0
+        ]
+      }
+    },
+    {
+      "path": "fig07_prediction_heatmap.png",
+      "size_px": [
+        4133,
+        2645
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.22686,
+      "content_bbox": [
+        55,
+        60,
+        4071,
+        2568
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 2,
+        "page_mm": [
+          175.0,
+          112.0
+        ]
+      }
+    },
+    {
+      "path": "fig08_baselines_ablation.png",
+      "size_px": [
+        4133,
+        1842
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.05679,
+      "content_bbox": [
+        40,
+        73,
+        3991,
+        1751
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 2,
+        "page_mm": [
+          175.0,
+          78.0
+        ]
+      }
+    },
+    {
+      "path": "fig09_direction_field.png",
+      "size_px": [
+        4133,
+        1842
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.13611,
+      "content_bbox": [
+        148,
+        166,
+        4132,
+        1768
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 2,
+        "page_mm": [
+          175.0,
+          78.0
+        ]
+      }
+    },
+    {
+      "path": "fig10_failure.png",
+      "size_px": [
+        4133,
+        2173
+      ],
+      "dpi": [
+        600.0,
+        600.0
+      ],
+      "content_fraction": 0.20603,
+      "content_bbox": [
+        69,
+        89,
+        4014,
+        2083
+      ],
+      "blank": false,
+      "dpi_ok": true,
+      "pdf_fonts": {
+        "available": true,
+        "embedded": true,
+        "type3": false,
+        "font_rows": 4,
+        "page_mm": [
+          175.0,
+          92.0
+        ]
+      }
+    }
+  ],
+  "layout_reports": [
+    {
+      "figure": "fig01_framework",
+      "canvas_px": [
+        1240,
+        793
+      ],
+      "text_count": 126,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.9096,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.8268,
+          "semantic_fraction": 0.2631,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8267,
+          "semantic_fraction": 0.2643,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8267,
+          "semantic_fraction": 0.2643,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8083,
+          "semantic_fraction": 0.1094,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.9094,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "figure": "fig02_direction_dependence",
+      "canvas_px": [
+        1240,
+        651
+      ],
+      "text_count": 57,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.7866,
+          "semantic_fraction": 0.2664,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.9086,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.5963,
+          "semantic_fraction": 0.5471,
+          "semantic_min": 0.02
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "figure": "fig03_criterion",
+      "canvas_px": [
+        1240,
+        496
+      ],
+      "text_count": 54,
+      "cad_panels": [],
+      "warnings": []
+    },
+    {
+      "figure": "fig04_two_stage",
+      "canvas_px": [
+        1240,
+        623
+      ],
+      "text_count": 70,
+      "cad_panels": [],
+      "warnings": []
+    },
+    {
+      "figure": "fig05_network",
+      "canvas_px": [
+        1240,
+        581
+      ],
+      "text_count": 18,
+      "cad_panels": [],
+      "warnings": []
+    },
+    {
+      "figure": "fig06_area_vs_access",
+      "canvas_px": [
+        1240,
+        708
+      ],
+      "text_count": 81,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.921,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.9353,
+          "semantic_fraction": 0.0526,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8154,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.8531,
+          "semantic_fraction": 0.042,
+          "semantic_min": 0.02
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "figure": "fig07_prediction_heatmap",
+      "canvas_px": [
+        1240,
+        793
+      ],
+      "text_count": 12,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.9097,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.8976,
+          "semantic_fraction": 0.4016,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8976,
+          "semantic_fraction": 0.5045,
+          "semantic_min": 0.02
+        },
+        {
+          "bbox_fraction": 0.8976,
+          "semantic_fraction": 0.0094,
+          "semantic_min": 0.009
+        },
+        {
+          "bbox_fraction": 0.8376,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 1.0,
+          "semantic_fraction": 0.0023,
+          "semantic_min": 0.002
+        },
+        {
+          "bbox_fraction": 1.0,
+          "semantic_fraction": 0.0023,
+          "semantic_min": 0.002
+        },
+        {
+          "bbox_fraction": 1.0,
+          "semantic_fraction": 0.0005,
+          "semantic_min": 0.0004
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "figure": "fig08_baselines_ablation",
+      "canvas_px": [
+        1240,
+        552
+      ],
+      "text_count": 38,
+      "cad_panels": [],
+      "warnings": []
+    },
+    {
+      "figure": "fig09_direction_field",
+      "canvas_px": [
+        1240,
+        552
+      ],
+      "text_count": 41,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.8169,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "figure": "fig10_failure",
+      "canvas_px": [
+        1240,
+        651
+      ],
+      "text_count": 44,
+      "cad_panels": [
+        {
+          "bbox_fraction": 0.8904,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.8577,
+          "semantic_fraction": 0.0,
+          "semantic_min": 0.0
+        },
+        {
+          "bbox_fraction": 0.909,
+          "semantic_fraction": 0.0218,
+          "semantic_min": 0.02
+        }
+      ],
+      "warnings": []
+    }
+  ]
+}
