@@ -10,6 +10,14 @@ import sys
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")   # torch+scipy OMP 重复运行时保护（见上）
 
+# Windows 上先载入 torch 的 DLL，再让几何测试引入 scipy/OpenBLAS；反向顺序会在
+# torch._load_dll_libraries 中以 0xc0000139 硬退出，无法由 pytest 捕获或跳过。
+if os.name == "nt":
+    try:
+        import torch as _torch  # noqa: F401
+    except ImportError:
+        pass
+
 _TESTS = os.path.dirname(os.path.abspath(__file__))   # tests/
 _ROOT = os.path.dirname(_TESTS)                        # repo root
 for _p in (os.path.join(_ROOT, "src"), _TESTS):

@@ -33,7 +33,7 @@ def _occupancy(ax):
     for value in np.linspace(.2, .8, 7):
         ax.plot([value, value], [.18, .80], color="white", lw=.25, alpha=.65)
         ax.plot([.15, .85], [value, value], color="white", lw=.25, alpha=.65)
-    _finish(ax, "占据栅格", r"$O\in\{0,1\}^{48^3}$")
+    _finish(ax, "占据栅格", r"$\max(n_x,n_y,n_z)=48$")
 
 
 def _distance(ax):

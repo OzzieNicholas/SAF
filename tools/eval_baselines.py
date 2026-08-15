@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""表 5 基线汇总复现器（指引 §6.1-B4）：同一留出集一次产出五类方法的不可达 F1。
+"""表 5 基线汇总复现器（指引 §6.1-B4）：同一留出集一次产出六类方法的不可达 F1。
 
-方法：多数类 / 局部几何规则 / 射线可见性(r=0) / 局部形状感知基线(tiny MLP) / 本文(ConvONet-lite)。
+方法：多数类 / 局部几何规则 / 射线可见性(r=0) / 粗方向有限工具代理 /
+局部形状感知基线(tiny MLP) / 本文(ConvONet-lite)。
 镜像 regression_check 制度（both_class[:max_models]、模型级三切 seed、ftr+程序化 训练、留出 fte 评测），
 报告各方法点级总体 F1 + 零件级均值±std，emit artifacts/runs/baselines/latest.json（论文表 5 的唯一数据源）。
 兼复测账本 H3 行挂的 tiny 旧口径值（0.75，D-028 前）。需 torch。self-add src。
@@ -40,6 +41,10 @@ def main():
     ap.add_argument("--tiny-epochs", type=int, default=300)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--n-directions", type=int, default=128)   # 射线可见性基线方向数（D-021 冻结）
+    ap.add_argument("--coarse-n-directions", type=int, default=16,
+                    help="有限工具粗方向代理的全局候选方向数（刻意小于参考标签的 128）")
+    ap.add_argument("--out", default="artifacts/runs/baselines/latest.json",
+                    help="结果 JSON；烟测须显式写入非 canonical 路径，避免覆盖 latest.json")
     a = ap.parse_args()
 
     import json
@@ -79,7 +84,7 @@ def main():
     tiny = TINY.train(train_set, epochs=a.tiny_epochs, seed=a.seed)     # 局部形状感知基线（复测旧口径值）
     maj = B.majority_label(train_set)
 
-    preds = {k: [] for k in ("majority", "local_rule", "ray_visibility", "tiny_local", "convonet")}
+    preds = {k: [] for k in ("majority", "local_rule", "ray_visibility", "coarse_finite_tool", "tiny_local", "convonet")}
     golds = []
     with torch.no_grad():
         for m in fte:
@@ -88,6 +93,9 @@ def main():
             preds["majority"].append(B.predict_majority(gold.size, maj))
             preds["local_rule"].append(B.local_solid_rule(m.occ, m.points))
             preds["ray_visibility"].append(B.ray_visibility(m.occ, m.points, a.n_directions))
+            preds["coarse_finite_tool"].append(
+                B.coarse_finite_tool_proxy(m.occ, m.points, m.radius, a.coarse_n_directions)
+            )
             preds["tiny_local"].append(TINY.predict(tiny, m.occ, m.points))
             occ, gc = prep(m)
             preds["convonet"].append((torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy())
@@ -103,7 +111,8 @@ def main():
 
     rep = {"n_test_models": len(fte), "n_test_points": int(G.size), "seed": a.seed,
            "epochs": a.epochs, "tiny_epochs": a.tiny_epochs, "device": dev,
-           "n_directions_baseline": a.n_directions, "bootstrap_seed": 0,
+           "reference_n_directions": a.n_directions, "coarse_n_directions": a.coarse_n_directions,
+           "method_roles": B.baseline_method_roles(), "bootstrap_seed": 0,
            "bootstrap_draws": 10000, "test_names": [m.name for m in fte], "methods": {}}
     per_method = {}
     for k, ps in preds.items():
@@ -119,7 +128,7 @@ def main():
     rep["paired_delta_convonet_minus_ray"] = {
         "mean": round(float(delta.mean()), 4), "ci95": bootstrap_mean_ci(delta)
     }
-    rep = write_result("baselines", rep, inputs=(a.fusion, a.procedural))
+    rep = write_result("baselines", rep, output=a.out, inputs=(a.fusion, a.procedural))
     print("BASELINES_RESULT " + json.dumps(rep, ensure_ascii=False))
 
 

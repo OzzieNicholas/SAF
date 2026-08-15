@@ -148,8 +148,8 @@ def main():
     top1 = int(np.argmin(blocked))
     point_world = np.asarray(lod) + (np.asarray(direction_model.points[X.FIG09_POINT_INDEX]) + .5) * pitchd
     recommended = D.render_dir_arrow_arr(Vd, Fd, point_world, directions[top1],
-                                         zoom=X.FIG09.zoom, azimuth=X.FIG09.azimuth,
-                                         elevation=X.FIG09.elevation, wsize=(1500, 1000))
+                                         cpos=D.underside_camera(Vd), zoom=1.15,
+                                         wsize=(1500, 1000))
 
     fig = plt.figure(figsize=S.double_column(112))
     grid = fig.add_gridspec(3, 6, width_ratios=(.36, 1, 1, 1, 1, 1.08),

@@ -48,14 +48,15 @@ def main():
     ax.set_xlim(0, 16); ax.set_ylim(0, 8); ax.axis("off")
 
     ax.text(.35, 7.55, "(a) 形状编码", fontsize=8.5, fontweight="bold", color=S.INK)
-    _block(ax, (.40, 5.30), (1.55, 1.18), "占据栅格", "1 × 48³", S.PALE_GREY, S.UNC)
+    _block(ax, (.40, 5.30), (1.55, 1.18), "占据栅格", "1 通道", S.PALE_GREY, S.UNC)
     convs = ((2.45, "Conv³", "1 → 16"), (4.35, "Conv³", "16 → 32"),
              (6.25, "Conv³", "32 → 32"))
     for x, title, detail in convs:
         _block(ax, (x, 5.30), (1.55, 1.18), title, detail, S.PALE_BLUE, S.ACC)
     _volume(ax, 8.45, 5.28, 1.05, 1.18)
-    ax.text(9.08, 4.92, "32 × 48³ 特征体", ha="center", fontsize=7.5, color=S.INK)
-    ax.text(5.20, 6.90, "每层 ReLU · 无池化 · 感受野 7³ · 保持 48³ 分辨率",
+    ax.text(9.08, 4.84, "32 通道特征体\nn_x × n_y × n_z", ha="center", va="top",
+            fontsize=7.5, color=S.INK, linespacing=1.15)
+    ax.text(5.20, 6.90, "max(n)=48 · 无池化 · 感受野 7³ · 保持空间分辨率",
             ha="center", fontsize=7.5, color=S.NEUTRAL)
     for start, end in (((1.95, 5.89), (2.43, 5.89)), ((4.00, 5.89), (4.33, 5.89)),
                        ((5.90, 5.89), (6.23, 5.89)), ((7.80, 5.89), (8.42, 5.89))):
@@ -67,7 +68,7 @@ def main():
     ax.text(2.88, 1.98, "8 邻点", ha="center", fontsize=7.5, color=S.INK)
     _block(ax, (3.85, 2.05), (1.65, 1.18), "三线性采样", "[N, 32]", S.PALE_BLUE, S.ACC)
     _block(ax, (6.05, 2.05), (1.65, 1.18), "特征拼接", "[N, 35]", S.PALE_GREY, S.UNC)
-    _block(ax, (8.25, 2.05), (2.05, 1.18), "MLP", "35 → 64 → 64", S.PALE_ORANGE, S.ORANGE)
+    _block(ax, (8.25, 2.05), (2.05, 1.18), "MLP", "两层 64 单元", S.PALE_ORANGE, S.ORANGE)
     for start, end in (((1.95, 2.64), (2.30, 2.64)), ((3.28, 2.64), (3.83, 2.64)),
                        ((5.50, 2.64), (6.03, 2.64)), ((7.70, 2.64), (8.23, 2.64))):
         _arrow(ax, start, end)

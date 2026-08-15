@@ -70,11 +70,24 @@ def underside_camera(vertices, direction=(1.15, -0.90, -1.70)):
     return tuple(position), tuple(centre), (0.0, 0.0, 1.0)
 
 
+def _context_feature_edges_enabled(opacity):
+    """Keep low-opacity CAD context subordinate to explicitly selected faces."""
+    try:
+        value = float(opacity)
+    except (TypeError, ValueError) as error:
+        raise ValueError("context_opacity must be between 0 and 1") from error
+    if not 0.0 <= value <= 1.0:
+        raise ValueError("context_opacity must be between 0 and 1")
+    return value >= 0.5
+
+
 def _add_part(plotter, surface, color, opacity=0.94, smooth=True):
     """Opaque technical-CAD material with a separate feature-line pass."""
     plotter.add_mesh(surface, color=color, smooth_shading=smooth, show_edges=False,
                      opacity=opacity, ambient=0.24, diffuse=0.70, specular=0.13,
                      specular_power=22)
+    if not _context_feature_edges_enabled(opacity):
+        return
     try:
         edges = surface.extract_feature_edges(boundary_edges=True, feature_edges=True,
                                               manifold_edges=False, non_manifold_edges=True,
@@ -183,8 +196,8 @@ def render_face_field_arr(Vn, F, face_indices, colors_rgb, cpos="iso", zoom=1.3,
                           focus=None, clip_origin=None, clip_normal=None,
                           crop=True, base_color=None, selected_edges=False,
                           context_face_mask=None, selected_edge_colors=None,
-                          selected_edge_width=5.0):
-    """Render exact source faces as an opaque categorical or continuous field."""
+                          selected_edge_width=5.0, context_opacity=1.0):
+    """Render exact source faces with opaque selections and optional CAD context."""
     import numpy as np
     import pyvista as pv
     import style as S
@@ -195,6 +208,8 @@ def render_face_field_arr(Vn, F, face_indices, colors_rgb, cpos="iso", zoom=1.3,
     colors = np.asarray(colors_rgb, float).reshape(-1, 3)
     if len(selected) != len(colors):
         raise ValueError("face_indices and colors_rgb must have equal length")
+    opacity = float(context_opacity)
+    show_context_feature_edges = _context_feature_edges_enabled(opacity)
     _pv, plotter = _new_plotter(wsize)
     keep = (np.ones(len(Fa), dtype=bool) if context_face_mask is None
             else np.asarray(context_face_mask, bool).copy())
@@ -205,7 +220,7 @@ def render_face_field_arr(Vn, F, face_indices, colors_rgb, cpos="iso", zoom=1.3,
     keep[selected] = False
     base_faces = np.hstack([np.full((int(keep.sum()), 1), 3), Fa[keep]]).astype(np.int64).ravel()
     base = _clip(pv.PolyData(V, base_faces), clip_origin, clip_normal)
-    _add_part(plotter, base, base_color or S.PART_RGB, opacity=1.0)
+    _add_part(plotter, base, base_color or S.PART_RGB, opacity=opacity)
     if len(selected):
         coloured_faces = np.hstack([np.full((len(selected), 1), 3), Fa[selected]]).astype(np.int64).ravel()
         coloured_raw = pv.PolyData(V, coloured_faces)
@@ -232,19 +247,23 @@ def render_face_field_arr(Vn, F, face_indices, colors_rgb, cpos="iso", zoom=1.3,
                     if lines.n_cells:
                         plotter.add_mesh(lines, color=tuple((rgb / 255.0).tolist()),
                                          line_width=float(selected_edge_width), lighting=False)
-    # Draw feature lines last so cavities remain legible through colour fields.
-    shown = keep.copy()
-    shown[selected] = True
-    all_faces = np.hstack([np.full((int(shown.sum()), 1), 3), Fa[shown]]).astype(np.int64).ravel()
-    full = _clip(pv.PolyData(V, all_faces), clip_origin, clip_normal)
-    try:
-        edges = full.extract_feature_edges(boundary_edges=True, feature_edges=True,
-                                           manifold_edges=False, non_manifold_edges=True,
-                                           feature_angle=34.0)
-        if edges.n_cells:
-            plotter.add_mesh(edges, color="#48535B", line_width=1.2, opacity=0.78, lighting=False)
-    except (AttributeError, ValueError):
-        pass
+    # Selected error boundaries remain visible even when context is faded.
+    if show_context_feature_edges:
+        shown = keep.copy()
+        shown[selected] = True
+        all_faces = np.hstack([
+            np.full((int(shown.sum()), 1), 3), Fa[shown]
+        ]).astype(np.int64).ravel()
+        full = _clip(pv.PolyData(V, all_faces), clip_origin, clip_normal)
+        try:
+            edges = full.extract_feature_edges(boundary_edges=True, feature_edges=True,
+                                               manifold_edges=False, non_manifold_edges=True,
+                                               feature_angle=34.0)
+            if edges.n_cells:
+                plotter.add_mesh(edges, color="#48535B", line_width=1.2,
+                                 opacity=0.78, lighting=False)
+        except (AttributeError, ValueError):
+            pass
     _finish_camera(plotter, cpos, zoom, azimuth, elevation, focus=focus)
     image = plotter.screenshot(return_img=True)
     plotter.close()

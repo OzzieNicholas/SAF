@@ -30,6 +30,98 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
         pass
 
 
+def build_seed_run_record(
+    *,
+    seed,
+    n_train_models,
+    n_test_models,
+    n_train_points,
+    n_test_points,
+    n_directions,
+    test_refined_models,
+    test_occupancy_fallback_models,
+    split_rule,
+    metrics,
+):
+    """Serialize the denominator-aware evidence for one E5 holdout seed."""
+    required_metrics = (
+        "dir_f1",
+        "dir_set_iou",
+        "recovered_binary_f1",
+        "majority_dir_baseline_f1",
+        "topk_hit_top1",
+        "topk_hit_top3",
+        "topk_precision_at3",
+    )
+    return {
+        "seed": int(seed),
+        "split_rule": str(split_rule),
+        "n_train_models": int(n_train_models),
+        "n_test_models": int(n_test_models),
+        "n_train_points": int(n_train_points),
+        "n_test_points": int(n_test_points),
+        "n_directions": int(n_directions),
+        "n_train_direction_labels": int(n_train_points) * int(n_directions),
+        "n_test_direction_labels": int(n_test_points) * int(n_directions),
+        "test_refined_models": int(test_refined_models),
+        "test_occupancy_fallback_models": int(test_occupancy_fallback_models),
+        **{name: float(metrics[name]) for name in required_metrics},
+    }
+
+
+def build_e5_report(
+    *,
+    data,
+    seeds,
+    epochs,
+    device,
+    n_directions,
+    n_models,
+    target_mode,
+    refined_models,
+    occupancy_fallback,
+    rows,
+):
+    """Build an E5 envelope without discarding the seed-level evidence."""
+    import numpy as np
+
+    rows = list(rows)
+    if not rows:
+        raise ValueError("at least one seed run is required")
+    arr = np.asarray([
+        [
+            row["dir_f1"],
+            row["dir_set_iou"],
+            row["recovered_binary_f1"],
+            row["majority_dir_baseline_f1"],
+            row["topk_hit_top1"],
+            row["topk_hit_top3"],
+            row["topk_precision_at3"],
+        ]
+        for row in rows
+    ], dtype=float)
+    return {
+        "data": data,
+        "seeds": int(seeds),
+        "epochs": int(epochs),
+        "device": device,
+        "D_dirs": int(n_directions),
+        "models": int(n_models),
+        "target_mode": target_mode,
+        "refined_models": int(refined_models),
+        "occupancy_fallback": int(occupancy_fallback),
+        "dir_f1_mean": round(float(arr[:, 0].mean()), 3),
+        "dir_f1_std": round(float(arr[:, 0].std()), 3),
+        "dir_setiou_mean": round(float(arr[:, 1].mean()), 3),
+        "recovered_binary_f1_mean": round(float(arr[:, 2].mean()), 3),
+        "majority_dir_baseline_f1": round(float(arr[:, 3].mean()), 3),
+        "topk_hit_top1_mean": round(float(arr[:, 4].mean()), 3),
+        "topk_hit_top3_mean": round(float(arr[:, 5].mean()), 3),
+        "topk_precision_at3_mean": round(float(arr[:, 6].mean()), 3),
+        "runs": rows,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description="E5 方向级可达性场预测（D-024）")
     ap.add_argument("--data", default="data/processed/procedural_v1")
@@ -40,6 +132,7 @@ def main():
     ap.add_argument("--max-models", type=int, default=None)
     ap.add_argument("--root", default=None, help="Fusion 原网格根：给定则方向目标走 D-020 细化口径（B1a）")
     ap.add_argument("--resolution", type=int, default=48, help="须与 ingest 一致（占据逐比特校验）")
+    ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/e5/latest.json")
     a = ap.parse_args()
 
     import json
@@ -91,8 +184,11 @@ def main():
         if D is None:
             D = len(o.dirs)
         viable = np.stack([o.direction_labels(p, m.radius) for p in m.points])   # (K,D) True=可达
-        items.append((m.name, m.occ, m.points, (~viable).astype(np.float32)))    # blocked=1
-    mode = "refined(D-020)" if a.root else "occupancy"
+        items.append((m.name, m.occ, m.points, (~viable).astype(np.float32), bool(refined)))  # blocked=1
+    if a.root:
+        mode = "refined(D-020)" if n_occup == 0 else "mixed refined(D-020) with occupancy fallback"
+    else:
+        mode = "occupancy"
     print(f"device={dev} D_dirs={D} models={len(items)} pts={sum(it[2].shape[0] for it in items)} "
           f"target_labels={mode} refined={n_refined} occup_fallback={n_occup}", flush=True)
     if a.root and n_occup:
@@ -108,7 +204,7 @@ def main():
     def evaluate(net, test):
         P, G, SC = [], [], []
         with torch.no_grad():
-            for _n, occ, pts, blk in test:
+            for _n, occ, pts, blk, _refined in test:
                 occt, gc = prep(occ, pts)
                 logit = net(occt, gc)                                   # (K,D) blocked logit
                 P.append((torch.sigmoid(logit) >= 0.5).cpu().numpy().reshape(-1, D))
@@ -136,7 +232,7 @@ def main():
         net = ConvONetLite(out_dim=D).to(dev)
         opt = torch.optim.Adam(net.parameters(), lr=a.lr, weight_decay=1e-4)
         lossf = torch.nn.BCEWithLogitsLoss()
-        data = [(prep(occ, pts), torch.as_tensor(blk).to(dev)) for _n, occ, pts, blk in tr]
+        data = [(prep(occ, pts), torch.as_tensor(blk).to(dev)) for _n, occ, pts, blk, _refined in tr]
         for _ in range(a.epochs):
             for i in torch.randperm(len(data)):
                 (occt, gc), y = data[i]
@@ -144,28 +240,47 @@ def main():
         net.eval()
         f1, dir_iou, bin_f1, top1, top3, prec3 = evaluate(net, te)
         # 对照：per-direction 多数类基线（train 每方向 blocked 先验）
-        tr_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk in tr])
+        tr_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk, _refined in tr])
         maj = (tr_t.mean(0) >= 0.5)
-        te_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk in te]).astype(bool)
+        te_t = np.concatenate([blk.reshape(-1, D) for _n, _o, _p, blk, _refined in te]).astype(bool)
         base_f1 = E.f1_inaccessible(np.broadcast_to(maj, te_t.shape).ravel(), te_t.ravel())
-        rows.append((f1, dir_iou, bin_f1, base_f1, top1, top3, prec3))
+        split_rule = f"model-level random 70/30 holdout; seed={seed}"
+        rows.append(build_seed_run_record(
+            seed=seed,
+            n_train_models=len(tr),
+            n_test_models=len(te),
+            n_train_points=sum(pts.shape[0] for _n, _occ, pts, _blk, _refined in tr),
+            n_test_points=sum(pts.shape[0] for _n, _occ, pts, _blk, _refined in te),
+            n_directions=D,
+            test_refined_models=sum(int(refined) for _n, _occ, _pts, _blk, refined in te),
+            test_occupancy_fallback_models=sum(int(not refined) for _n, _occ, _pts, _blk, refined in te),
+            split_rule=split_rule,
+            metrics={
+                "dir_f1": f1,
+                "dir_set_iou": dir_iou,
+                "recovered_binary_f1": bin_f1,
+                "majority_dir_baseline_f1": base_f1,
+                "topk_hit_top1": top1,
+                "topk_hit_top3": top3,
+                "topk_precision_at3": prec3,
+            },
+        ))
         print(f"seed{seed} dir_f1={f1:.3f} dir_iou={dir_iou:.3f} bin_f1={bin_f1:.3f} "
               f"top1={top1:.3f} top3={top3:.3f} prec@3={prec3:.3f} maj_base_f1={base_f1:.3f}", flush=True)
 
-    arr = np.array(rows)
-    rep = {
-        "data": a.data, "seeds": a.seeds, "epochs": a.epochs, "device": dev, "D_dirs": D, "models": len(items),
-        "target_mode": ("refined(D-020)" if a.root else "occupancy"),
-        "refined_models": n_refined, "occupancy_fallback": n_occup,
-        "dir_f1_mean": round(float(arr[:, 0].mean()), 3), "dir_f1_std": round(float(arr[:, 0].std()), 3),
-        "dir_setiou_mean": round(float(arr[:, 1].mean()), 3),
-        "recovered_binary_f1_mean": round(float(arr[:, 2].mean()), 3),
-        "majority_dir_baseline_f1": round(float(arr[:, 3].mean()), 3),
-        "topk_hit_top1_mean": round(float(arr[:, 4].mean()), 3),
-        "topk_hit_top3_mean": round(float(arr[:, 5].mean()), 3),
-        "topk_precision_at3_mean": round(float(arr[:, 6].mean()), 3),
-    }
-    rep = write_result("e5", rep, inputs=(a.data, a.root or ""))
+    rep = build_e5_report(
+        data=a.data,
+        seeds=a.seeds,
+        epochs=a.epochs,
+        device=dev,
+        n_directions=D,
+        n_models=len(items),
+        target_mode=mode,
+        refined_models=n_refined,
+        occupancy_fallback=n_occup,
+        rows=rows,
+    )
+    rep = write_result("e5", rep, output=a.out, inputs=(a.data, a.root or ""))
     print("E5_RESULT " + json.dumps(rep))
 
 

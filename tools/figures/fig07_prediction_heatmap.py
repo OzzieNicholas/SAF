@@ -75,6 +75,15 @@ def main():
             focus_faces = mapping.face_indices[labels]
         evidence_camera, focus = D.face_evidence_camera(V, F, focus_faces)
         roi_zoom = max(example.roi_zoom, 3.15)
+        # Error faces can be much smaller than the label field, so the dedicated
+        # error panel uses a tighter crop around the same evidence focus.
+        error_zoom = roi_zoom * (1.50 if example.source == "fusion" else 2.0)
+        error_context_opacity = 1.0
+        if example.source == "thingi":
+            # Some mapped source faces lie behind neighboring raw triangles. Keep
+            # that context visible without letting it hide the exact error faces.
+            error_zoom = max(error_zoom, 8.0)
+            error_context_opacity = .10
         span = float(np.linalg.norm(V.max(0) - V.min(0)))
         face_centres = V[np.asarray(F)].mean(axis=1)
         field_mask = np.ones(len(mapping.face_indices), dtype=bool)
@@ -111,9 +120,10 @@ def main():
         error_colours[fp_mask] = mcolors.to_rgb(S.ORANGE)
         error_colours[~fp_mask] = mcolors.to_rgb(S.FN)
         errors = D.render_face_field_arr(V, F, error_indices, error_colours,
-                                         cpos=evidence_camera, zoom=roi_zoom, focus=focus,
+                                         cpos=evidence_camera, zoom=error_zoom, focus=focus,
                                          wsize=(1650, 1050), selected_edges=True,
-                                         context_face_mask=context_mask, selected_edge_width=12.0)
+                                         context_face_mask=context_mask, selected_edge_width=12.0,
+                                         context_opacity=error_context_opacity)
         cases.append((example, global_view, oracle, predicted, errors,
                       _metrics(probability >= .5, labels)))
 

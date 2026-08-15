@@ -77,7 +77,7 @@ def main():
     direction = directions[top1] / np.linalg.norm(directions[top1])
     render = D.render_dir_arrow_arr(V, F, point_world, direction,
                                     cpos=D.underside_camera(V),
-                                    zoom=1.42,
+                                    zoom=1.00,
                                     wsize=(1900, 1350))
 
     fig = plt.figure(figsize=S.double_column(78))
@@ -102,11 +102,14 @@ def main():
              ha="center", fontsize=7.5, color=S.INK)
     bar_axis = fig.add_axes([.955, .28, .013, .44])
     mapper = plt.cm.ScalarMappable(cmap=CMAP, norm=mcolors.Normalize(0, 1)); mapper.set_array([])
-    bar = fig.colorbar(mapper, cax=bar_axis); bar.set_ticks([0, .5, 1]); bar.ax.tick_params(labelsize=7.5)
+    bar = fig.colorbar(mapper, cax=bar_axis); bar.set_ticks([0, .5, 1])
+    bar.ax.yaxis.set_ticks_position("left")
+    bar.ax.tick_params(labelsize=7.5, pad=2)
     bar_axis.set_title("被挡\n概率", fontsize=7.5, pad=2)
     fig.legend([Patch(fc=S.ACC), Patch(fc=S.INACC)], ["可达", "被挡"], ncol=2,
                loc="lower center", bbox_to_anchor=(.43, .005), frameon=False)
-    print("SAVED", S.save(fig, "fig09_direction_field"))
+    print("SAVED", S.save(fig, "fig09_direction_field"),
+          f"viable={viable.mean():.3f}", f"agreement={agreement:.3f}")
 
 
 if __name__ == "__main__":

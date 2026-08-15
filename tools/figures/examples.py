@@ -26,7 +26,7 @@ FIG01_POINT = Example("fusion", "23954_a8c09819_0000", "点级留出件", 1.46, 
 FIG02 = Example("fusion", "119907_90a6e5af_0000", "Fusion CAD", 1.40, -18.0, 10.0, 2.10)
 
 # Chosen deterministically from fusion360_full: identical support-contact point
-# counts (77) with the largest accessibility gap among exact count matches.
+# counts (84) with the largest accessibility gap among exact count matches.
 FIG06_PAIR = (
     Example("fusion", "62955_58bbef9f_0000", "全可达", 1.48, -18.0, 8.0, 2.20),
     Example("fusion", "137290_d81443d2_0000", "高不可达", 1.48, -12.0, 8.0, 2.20),
@@ -38,8 +38,8 @@ FIG07 = (
     Example("thingi", "1028708", "Thingi10K 跨域件", 1.42, -10.0, 8.0, 2.05),
 )
 
-FIG09 = Example("fusion", "101190_cfdcb477_0001", "方向级留出件", 1.50, -14.0, 7.0, 2.10)
-FIG09_POINT_INDEX = 27
+FIG09 = Example("fusion", "115518_a1bf907b_0000", "方向级留出件", 1.50, -14.0, 7.0, 2.10)
+FIG09_POINT_INDEX = 16
 FIG10 = Example("fusion", "116082_b59d8605_0002", "代表性高误差留出件", 1.42, -18.0, 9.0, 2.30)
 
 

@@ -19,6 +19,39 @@ def ray_visibility(occ, points, n_directions=32):
     return np.array([o.label(p, 0.0).value == "inaccessible" for p in pts], dtype=bool)
 
 
+def coarse_finite_tool_proxy(occ, points, radius, n_directions=16):
+    """有限半径、低方向数的占据代理；用于近似标签 oracle，而非替代其真值口径。
+
+    参考标签使用冻结的 128 个全局候选方向并可在有原网格时做边界带连续细化。
+    本函数只在占据栅格上枚举更少的下半球方向，因此保留有限工具语义而有意丢失
+    方向分辨率和网格细化。返回值与其它基线一致：``True`` 表示不可达。
+    """
+    import numpy as np
+    from support_accessibility.oracle import SupportAccessibilityOracle
+
+    n_directions = int(n_directions)
+    if n_directions < 4:
+        raise ValueError("n_directions must be at least 4")
+    oracle = SupportAccessibilityOracle(np.asarray(occ, dtype=bool), {"n_directions": n_directions})
+    pts = np.asarray(points, dtype=float).reshape(-1, 3)
+    return np.asarray(
+        [oracle.label(point, float(radius)).value == "inaccessible" for point in pts],
+        dtype=bool,
+    )
+
+
+def baseline_method_roles():
+    """返回论文报告中各预测器的固定角色，防止把近似代理误写成标签 oracle。"""
+    return {
+        "majority": "trivial_class_reference",
+        "local_rule": "local_geometric_heuristic",
+        "ray_visibility": "zero_radius_semantic_ablation",
+        "coarse_finite_tool": "coarse_geometric_proxy",
+        "tiny_local": "local_learned_reference",
+        "convonet": "shape_conditioned_surrogate",
+    }
+
+
 def majority_label(train_models):
     """训练集多数类（True=不可达占多数？可达性问题通常返回 False=可达）。"""
     import numpy as np

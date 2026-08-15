@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Figure 10. Error regime statistics and a fixed complex held-out case."""
 import argparse
-import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _data as D  # noqa: E402
 import examples as X  # noqa: E402
+import paper_evidence as E  # noqa: E402
 import style as S  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
@@ -17,20 +17,30 @@ from matplotlib.patches import Patch  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 AUDIT = os.path.join(ROOT, "artifacts", "runs", "failure_audit")
+PAPER_MANIFEST = os.path.join(ROOT, "artifacts", "runs", "paper_rewrite", "latest.json")
 PAPER_EVIDENCE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                               "assets", "fig10_failure_evidence.png")
 
 
-def plot_paper_ledger(evidence_path):
-    """Render audited failure summaries without reconstructing absent raw runs."""
+def load_report():
+    manifest = E.load_manifest(PAPER_MANIFEST, ROOT)
+    return E.load_canonical_artifact(manifest, "failure_audit", "failure_audit", ROOT)
+
+
+def plot_paper_ledger(report, evidence_path):
+    """Render manifest-validated failure summaries without reconstructing the mesh."""
     if not os.path.isfile(evidence_path):
         raise FileNotFoundError(f"Paper evidence image not found: {evidence_path}")
 
+    order = ("0", "1-2", "3-5", "6+")
     bins = ("全被挡\n(0)", "临界\n(1–2)", "边界\n(3–5)", "开阔\n(≥6)")
-    rates = np.asarray((2.9, 15.7, 10.7, 3.9))
+    rates = 100 * np.asarray([report["error_rate_by_nviable"][key] for key in order])
+    rate_std = 100 * np.asarray([report["error_rate_by_nviable_std"][key] for key in order])
     bar_colours = (S.UNC, S.ORANGE, S.ORANGE, S.UNC)
     error_names = ("误报 FP", "漏报 FN")
-    error_values = np.asarray((1.4, 3.3))
+    error_values = 100 * np.asarray((report["false_pos_rate"], report["false_neg_rate"]))
+    overall = 100 * report["error_rate"]
+    overall_std = 100 * report["error_rate_std"]
     evidence = plt.imread(evidence_path)
 
     fig = plt.figure(figsize=S.double_column(92))
@@ -39,16 +49,18 @@ def plot_paper_ledger(evidence_path):
     stats = outer[0].subgridspec(2, 1, height_ratios=(1.0, .42), hspace=.38)
     rate_axis = fig.add_subplot(stats[0])
     x = np.arange(len(rates))
-    bars = rate_axis.bar(x, rates, width=.62, color=bar_colours)
-    for bar, value in zip(bars, rates):
-        rate_axis.text(bar.get_x() + bar.get_width() / 2, value + .45,
+    bars = rate_axis.bar(x, rates, width=.62, color=bar_colours, yerr=rate_std, capsize=3,
+                         error_kw={"elinewidth": .8, "ecolor": S.NEUTRAL})
+    for bar, value, error in zip(bars, rates, rate_std):
+        rate_axis.text(bar.get_x() + bar.get_width() / 2, value + error + .45,
                        f"{value:.1f}%", ha="center", fontsize=7.5)
-    rate_axis.axhline(4.7, color=S.NEUTRAL, ls=(0, (3, 2)), lw=.9)
-    rate_axis.text(3.45, 5.05, "总体 4.7% ± 0.3%", ha="right", va="bottom",
+    rate_axis.axhline(overall, color=S.NEUTRAL, ls=(0, (3, 2)), lw=.9)
+    rate_axis.text(3.45, overall + .35, f"总体 {overall:.1f}% ± {overall_std:.1f}%",
+                   ha="right", va="bottom",
                    fontsize=7.0, color=S.NEUTRAL)
     rate_axis.set_xticks(x, bins)
     rate_axis.set_ylabel("误判率 (%)")
-    rate_axis.set_ylim(0, 19.2)
+    rate_axis.set_ylim(0, max(rates + rate_std) * 1.30)
     rate_axis.set_title("(a) 误判集中于临界可达方向", loc="left",
                         fontsize=8.4, fontweight="bold", pad=3)
     rate_axis.grid(axis="y")
@@ -62,7 +74,7 @@ def plot_paper_ledger(evidence_path):
                               f"{value:.1f}%", ha="center", fontsize=7.4)
     composition_axis.set_xticks(np.arange(2), error_names)
     composition_axis.set_ylabel("占比 (%)", fontsize=7.5)
-    composition_axis.set_ylim(0, 4.15)
+    composition_axis.set_ylim(0, max(error_values) * 1.38)
     composition_axis.set_title("(b) 总误判构成", loc="left", fontsize=8.2,
                                fontweight="bold", pad=2)
     composition_axis.grid(axis="y")
@@ -75,7 +87,9 @@ def plot_paper_ledger(evidence_path):
     fig.legend([Patch(fc=S.FN), Patch(fc=S.ORANGE), Patch(fc=S.PART)],
                ["漏报不可达（FN）", "误报（FP）", "零件"], ncol=3,
                loc="lower right", bbox_to_anchor=(.985, .012), frameon=False)
-    fig.text(.075, .045, "Fusion 400 件子集、5 次聚合；分箱仅报告账本可核验的误判率。",
+    fig.text(.075, .045,
+             f"Fusion 留出 {report['test_models']} 件、{report['test_points']:,} 点、"
+             f"{len(report['seeds'])} 个种子；误差棒为种子标准差。",
              fontsize=7.0, color=S.NEUTRAL)
     print("SAVED", S.save(fig, "fig10_failure"))
 
@@ -84,17 +98,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=X.FUSION_ROOT)
     parser.add_argument("--paper-ledger", action="store_true",
-                        help="render the ledger-backed paper summary without raw audit artifacts")
+                        help="render the manifest-validated summary without reconstructing the mesh")
     parser.add_argument("--evidence-image", default=PAPER_EVIDENCE,
                         help="qualitative fixed-case image used only by --paper-ledger")
     args = parser.parse_args()
+    report = load_report()
     if args.paper_ledger:
-        plot_paper_ledger(args.evidence_image)
+        plot_paper_ledger(report, args.evidence_image)
         return
 
     from support_accessibility.data.dataset import load_dataset
-    with open(os.path.join(AUDIT, "failure.json"), encoding="utf-8") as handle:
-        report = json.load(handle)
     artifact_path = os.path.join(AUDIT, "fig10_case.npz")
     if not os.path.exists(artifact_path):
         raise FileNotFoundError("Figure 10 requires fig10_case.npz; rerun tools/failure_cases.py")
@@ -171,7 +184,9 @@ def main():
     local_axis = fig.add_subplot(evidence[1, :])
     S.imshow_cad(global_axis, global_view)
     S.imshow_cad(section_axis, section_view)
-    S.imshow_cad(local_axis, local_view, semantic=True)
+    # The fixed case has only 18 error faces; 1.5% preserves the true sparse
+    # coverage while still requiring a visibly inspectable semantic overlay.
+    S.imshow_cad(local_axis, local_view, semantic=True, semantic_min=.015)
     global_axis.set_title("(b) 全局定位（test）", loc="left", fontsize=8.4,
                           fontweight="bold", pad=3)
     section_axis.set_title("(c) 局部剖切", loc="left", fontsize=8.4, fontweight="bold", pad=3)

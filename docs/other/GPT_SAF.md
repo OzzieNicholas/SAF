@@ -26,17 +26,16 @@
 ```
 
 ```
-虽然样件个数不少，但类型不够复杂，没有那么多空间嵌套的结果，而且原件也都是同一水平面，我希望的是：
-1. 个数很多（200+）
-2. 类型复杂（各种最全的类型，最能体会嵌套关系的类型组合）
-3. 基面在不同的水平面上
-4. ......
-这才是我想要的测试
+【讨论】【思考现有进度以及论文初稿】
+
+可能用到的插件：
+[@浏览器](plugin://browser@openai-bundled)  [@Chrome](plugin://chrome@openai-bundled)  [@pdf](plugin://pdf@openai-primary-runtime)  [@电脑](plugin://computer-use@openai-bundled)  [@latex](plugin://latex@openai-bundled)  [@visualize](plugin://visualize@openai-bundled)  [@ars-codex](plugin://ars-codex@ars-codex)  [@superpowers](plugin://superpowers@openai-api-curated)  [@github](plugin://github@openai-api-curated) 
+
+你来回答：
+你可以再次阅读 `D:\Work\SAF\docs` 这下面的 0/1/2/3_xxx.md 以及 README，我想问：现在的SAF，已经进行到哪一步了？是不是已经足以写一篇论文出来了？我想写一版草稿（中文论文），你能不能写出来？包含论文的文字/公式/配图之类的，如果可以写的话，写到哪里呢？如果不能写的话，还需要哪些步骤？
 ```
 
-```
-【讨论】
-  1. 你没有理解我的意思吗？为什么你的combine_origin.stl是【同一批输入件未优化的网格铺开基线（不旋转、同基面 z=0、按足印+间距排开）——跟上面并排打开，一眼看出 nester 排紧/转向了多少】，我希望的origin是由一堆：个数很多（200+），类型复杂（各种最全的类型，最能体会嵌套关系的类型组合），基面在不同的水平面上，......能体现最混乱最复杂的情况的一对stl的组合，然后combine_nester.stl是对应的排版后的结果
-  2. 我在想，能不能把combine_nester.stl分为两种情况，也就是combine_nester_height_order.stl和combine_nester_no_height_order.stl（命名可能长了点，你可以自己修改命名），因为我想分别看看对比高度排序这种，或者我分两次cli自己控制？因为我几乎每次实验都需要对比高度排序的情况
-```
+
+
+
 

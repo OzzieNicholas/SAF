@@ -9,6 +9,8 @@ saf 内真跑；缺依赖 → PENDING/skip。
 
 from unittest import SkipTest
 
+import pytest
+
 from . import pending, result
 
 _ARGS = dict(n_models=24, N=28, max_points=24, radius=3.0, n_directions=32, seed=0)
@@ -80,3 +82,50 @@ def test_neural_beats_visibility_and_majority_e4():
     r = _run()
     assert r["neural"] >= r["rayvis"] + _MARGIN, f"神经 {r['neural']:.3f} 未显著胜射线可见性 {r['rayvis']:.3f}"
     assert r["neural"] >= r["majority"] + 0.3, f"神经 {r['neural']:.3f} 未胜多数类 {r['majority']:.3f}"
+
+
+def test_coarse_finite_tool_proxy_respects_open_and_blind_known_answers():
+    """较少方向的有限工具代理仍应通过两项最基本的几何已知答案。"""
+    try:
+        _deps()
+    except ImportError as e:
+        raise SkipTest(f"依赖未就绪：{e}")
+    from support_accessibility import data as D, baselines as B
+
+    open_case = D.open_downface_case()
+    blind_case = D.blind_cavity_case()
+    open_prediction = B.coarse_finite_tool_proxy(
+        open_case.occ, [open_case.point], open_case.radius, n_directions=16
+    )
+    blind_prediction = B.coarse_finite_tool_proxy(
+        blind_case.occ, [blind_case.point], blind_case.radius, n_directions=16
+    )
+    assert open_prediction.tolist() == [False]
+    assert blind_prediction.tolist() == [True]
+
+
+def test_coarse_finite_tool_proxy_rejects_too_few_directions():
+    """粗方向代理必须拒绝无法形成下半球候选集的配置。"""
+    try:
+        _deps()
+    except ImportError as e:
+        raise SkipTest(f"依赖未就绪：{e}")
+    import numpy as np
+    from support_accessibility import baselines as B
+
+    with pytest.raises(ValueError, match="at least 4"):
+        B.coarse_finite_tool_proxy(np.zeros((8, 8, 8), bool), [[3, 3, 3]], 1.0, n_directions=2)
+
+
+def test_baseline_method_roles_keep_reference_hierarchy_explicit():
+    """论文报告不得把粗几何近似、零半径语义对照和学习代理混作同一类别。"""
+    from support_accessibility import baselines as B
+
+    assert B.baseline_method_roles() == {
+        "majority": "trivial_class_reference",
+        "local_rule": "local_geometric_heuristic",
+        "ray_visibility": "zero_radius_semantic_ablation",
+        "coarse_finite_tool": "coarse_geometric_proxy",
+        "tiny_local": "local_learned_reference",
+        "convonet": "shape_conditioned_surrogate",
+    }

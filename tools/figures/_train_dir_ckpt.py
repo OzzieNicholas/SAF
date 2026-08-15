@@ -26,6 +26,7 @@ def main():
     import numpy as np
     import torch
     import _data as D
+    import examples as X
     from support_accessibility.data.dataset import load_dataset
     from support_accessibility.data import split_by_model
     from support_accessibility.oracle import SupportAccessibilityOracle
@@ -85,30 +86,30 @@ def main():
         if (epoch + 1) % 30 == 0:
             print(f"epoch={epoch + 1}/{args.epochs}", flush=True)
 
-    # Pick the strongest mixed-direction example by a declared deterministic rule.
-    network.eval(); candidates = []
+    # Revalidate the immutable publication example instead of changing it when
+    # small backend differences alter the ordering of otherwise valid cases.
+    network.eval()
+    fixed = next((model for model in test_models if model.name == X.FIG09.name), None)
+    if fixed is None:
+        raise RuntimeError(f"Fixed Figure 9 example is not held out: {X.FIG09.name}")
     with torch.no_grad():
-        for position, model in enumerate(test_models, start=1):
-            blocked = refined_targets(model).astype(bool)
-            occ = torch.as_tensor(np.asarray(model.occ, np.float32)).view(1, 1, *model.occ.shape).to(device)
-            coords = to_grid_coords(model.points, model.occ.shape).to(device)
-            probabilities = torch.sigmoid(network(occ, coords)).detach().cpu().numpy()
-            predicted = probabilities >= .5
-            viable = ~blocked
-            for index, directions in enumerate(viable):
-                fraction = float(directions.mean())
-                if not .30 <= fraction <= .60:
-                    continue
-                agreement = float((predicted[index] == blocked[index]).mean())
-                top1 = bool(directions[int(np.argmin(probabilities[index]))])
-                if top1:
-                    candidates.append((agreement - .02 * abs(fraction - .5), model.name, index,
-                                       fraction, agreement, top1))
-            print(f"scored held-out labels {position}/{len(test_models)}", flush=True)
-    if not candidates:
-        raise RuntimeError("No mixed-direction held-out point with correct Top-1 recommendation")
-    _score, name, index, fraction, agreement, top1 = sorted(candidates,
-                                                             key=lambda row: (-row[0], row[1], row[2]))[0]
+        blocked = refined_targets(fixed).astype(bool)
+        index = X.FIG09_POINT_INDEX
+        if not 0 <= index < len(fixed.points):
+            raise RuntimeError(f"Fixed Figure 9 point is out of range: {index}")
+        occ = torch.as_tensor(np.asarray(fixed.occ, np.float32)).view(1, 1, *fixed.occ.shape).to(device)
+        coords = to_grid_coords(fixed.points[index:index + 1], fixed.occ.shape).to(device)
+        probability = torch.sigmoid(network(occ, coords)).detach().cpu().numpy().ravel()
+    directions = ~blocked[index]
+    fraction = float(directions.mean())
+    agreement = float(((probability >= .5) == blocked[index]).mean())
+    top1 = bool(directions[int(np.argmin(probability))])
+    if not (.30 <= fraction <= .60 and top1 and agreement >= .85):
+        raise RuntimeError(
+            f"Fixed Figure 9 example failed constraints: viable={fraction:.3f}, "
+            f"agreement={agreement:.3f}, top1={top1}"
+        )
+    name = fixed.name
     outdir = os.path.join(ROOT, "artifacts", "cache", "figures"); os.makedirs(outdir, exist_ok=True)
     torch.save({"state_dict": network.state_dict(), "D": output_dim, "dirs": direction_set,
                 "n_directions": args.n_directions, "test_names": [model.name for model in test_models],
@@ -116,7 +117,8 @@ def main():
                 "viable_fraction": fraction, "agreement": agreement, "top1_correct": top1},
                 "seed": 0, "max_models": args.max_models, "epochs": args.epochs},
                os.path.join(outdir, "ckpt_dir.pt"))
-    print(f"SAVED ckpt_dir.pt showcase={name}:{index} agreement={agreement:.3f}", flush=True)
+    print(f"SAVED ckpt_dir.pt showcase={name}:{index} viable={fraction:.3f} "
+          f"agreement={agreement:.3f}", flush=True)
 
 
 if __name__ == "__main__":

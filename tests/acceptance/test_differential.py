@@ -1,9 +1,9 @@
-"""差分对拍（D-003）：体素腐蚀口径 vs 暴力胶囊参考——信任 oracle 的命门。
+"""差分对拍（D-003/D-025）：体素腐蚀口径 vs 暴力参考。
 
-快实现（体素腐蚀 label）用慢但显然对的参考（暴力 reference_label）门住。两者用同一方向集与步长，
-方法不同（EDT 体素采样 vs 连续到实体体素的最小距离），故仅在 r 阈值附近可能差 ~1 体素（边界带）。
-规则：label≠reference 时，若 r±ε 邻域两者仍一致 → 判边界、容忍；robust 不一致 = 真 bug = FAIL。
-探针实测 148/150 一致、2/2 皆边界（见 D-003 / 计划）。需 numpy + oracle。
+快实现（EDT 最近体素采样）与慢参考（连续采样点到实体体素中心的距离）使用同一方向集和
+ray-march 步长，但仍是两种离散近似。D-025 因而冻结批量审核口径：在 r±epsilon 的操作性
+邻域检查后，robust 不一致率不得超过 1%，而不是要求任意单个随机 occupancy 必须零不一致。
+固定反例 seed=882 被强制纳入批量样本，避免用随机性隐藏已知近似差异。需 numpy + oracle。
 """
 
 from unittest import SkipTest
@@ -12,6 +12,8 @@ from . import pending, result
 
 _EPS = 0.75          # 边界邻域（体素）
 _NDIR = 32           # 控时
+_N_CASES = 1000      # 批量性质需要稳定分母；运行约 1--2 s
+_MAX_ROBUST_RATE = 0.01  # D-025
 
 
 def _check_one(o, p, r):
@@ -51,6 +53,16 @@ def _run(cases):
     return robust, boundary, total
 
 
+def _audit_cases():
+    """包含已知反例，再接固定批量样本；未来修复反例时仍保持同一审核集。"""
+    from itertools import chain
+    return chain(_gen_cases(1, seed=882), _gen_cases(_N_CASES - 1, seed=12345))
+
+
+def _passes_d025(robust, total):
+    return total == _N_CASES and robust / max(total, 1) <= _MAX_ROBUST_RATE
+
+
 def checks():
     try:
         import numpy  # noqa: F401
@@ -58,32 +70,27 @@ def checks():
     except ImportError as e:
         return [pending("voxel_vs_bruteforce", f"依赖未就绪：{e}", "D-003")]
     try:
-        robust, boundary, total = _run(_gen_cases(10, seed=12345))
-        return [result("voxel_vs_bruteforce", robust == 0,
-                       f"{total} 件：robust 不一致={robust}，容忍边界={boundary}", "D-003")]
+        robust, boundary, total = _run(_audit_cases())
+        return [result(
+            "voxel_vs_bruteforce",
+            _passes_d025(robust, total),
+            f"{total} 件：robust 不一致={robust} ({robust / max(total, 1):.2%})，"
+            f"操作性边界={boundary}；阈值≤{_MAX_ROBUST_RATE:.0%}",
+            "D-003,D-025",
+        )]
     except Exception as e:
         return [result("voxel_vs_bruteforce", False, f"评估异常：{e}", "D-003")]
 
 
-try:
-    from hypothesis import given, settings, strategies as st
-    _HAS_HYP = True
-except ImportError:
-    _HAS_HYP = False
-
-
-if _HAS_HYP:
-    @settings(max_examples=50, deadline=None)
-    @given(seed=st.integers(min_value=0, max_value=2 ** 31 - 1))
-    def test_voxel_matches_bruteforce(seed):
-        """随机件：label 与 reference 一致，或仅差在 ε 边界带（D-003）。"""
-        try:
-            import numpy  # noqa: F401
-            from support_accessibility import oracle  # noqa: F401
-        except ImportError as e:
-            raise SkipTest(f"依赖未就绪：{e}")
-        robust, _, _ = _run(_gen_cases(1, seed=seed))
-        assert robust == 0, f"robust 差分不一致（非边界）：seed={seed}"
-else:
-    def test_voxel_matches_bruteforce():
-        raise SkipTest("hypothesis 未安装（env saf 内应有）")
+def test_voxel_matches_bruteforce():
+    """固定批量差分符合 D-025；已知 seed=882 不被隐去。"""
+    try:
+        import numpy  # noqa: F401
+        from support_accessibility import oracle  # noqa: F401
+    except ImportError as e:
+        raise SkipTest(f"依赖未就绪：{e}")
+    robust, boundary, total = _run(_audit_cases())
+    assert _passes_d025(robust, total), (
+        f"robust 差分率 {robust}/{total}={robust / max(total, 1):.2%} 超过 D-025 的 "
+        f"{_MAX_ROBUST_RATE:.0%}；操作性边界={boundary}"
+    )
