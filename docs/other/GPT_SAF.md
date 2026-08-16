@@ -5,17 +5,14 @@
 
 ```
 【讨论】【按照指定顺序阅读，并理解项目】
-我的项目是 SAF，网址是 https://github.com/OzzieNicholas/SAF，分支是 main，现在我来给你指定阅读顺序：
-1. docs/ 下面的所有文档
-2. README.md
-3. 经过前面的步骤，你已经对项目有所了解了，这一步就是阅读其余所有代码
-上述步骤执行完，你应该会对 SAF 有一个较好的理解，说说你的理解
 
-【讨论】【按照指定顺序阅读，并理解项目】
+可能用到的插件：
+[@浏览器](plugin://browser@openai-bundled)  [@Chrome](plugin://chrome@openai-bundled)  [@pdf](plugin://pdf@openai-primary-runtime)  [@电脑](plugin://computer-use@openai-bundled)  [@latex](plugin://latex@openai-bundled)  [@visualize](plugin://visualize@openai-bundled)  [@ars-codex](plugin://ars-codex@ars-codex)  [@superpowers](plugin://superpowers@openai-api-curated)  [@github](plugin://github@openai-api-curated) 
+
 我的项目是 SAF，也就是这个 SAF 文件夹，现在我来给你指定阅读顺序：
 1. docs/ 下面的所有文档（docs/other/ 下面的文档不需要阅读）
 2. README.md
-3. 经过前面的步骤，你已经对项目有所了解了，这一步就是阅读其余所有代码
+3. 经过前面的步骤，你已经对项目有所了解了，这一步就是阅读其余所有的 .py 代码，迅速了解不同地方的 .py 代码在干什么
 上述步骤执行完，你应该会对 SAF 有一个较好的理解，说说你的理解
 ```
 
