@@ -95,7 +95,7 @@
 | S2 | 报告 Fusion/Thingi10K 的闭合、非流形、退化面、连通分量、丢弃点和从原始候选到最终 137 件的筛选统计，限定跨域结论的输入范围。 | SC-9 | major | `dataset: §4.3 — discarded-normal counts` | 4 — R2/R3 | R2, R3 | P2 | 1--3 天 |
 | S3 | 将 112 倍拆成预处理、标签、模型加载、单点和批量查询；记录 CPU/GPU、同步和 batch size。无法端到端重跑时，把标题改成“单点查询量级”。 | SC-10 | minor | `text: §5.5 "约为 112 倍的量级差"` | 4 — R3 | R3, DA | P2 | 0.5--2 天 |
 | S4 | 增加“设计审阅使用协议”：输入验收、风险排序、oracle 复核触发、不可用状态、离散方向提示和 not-a-toolpath 声明。 | SC-11 | major | `absence: §5--§6 — expected operational review protocol; checked results and discussion` | 4 — R3 | R3, DA | P2 | 1--2 天 |
-| S5 | 为 H5/E5 生成统一 run envelope，补公开数据版本、访问日期、许可、再物化和小型 smoke dataset 入口；保留当前 provenance 注记。 | SC-15 | minor | `dataset: evidence_manifest.md — H5/E5 provenance notes` | 5 — R1/R3/DA | R1, R3, DA | P2 | 1--3 天 |
+| S5 | 为 H5/E5 生成统一 run envelope，补公开数据版本、访问日期、许可、再物化和小型 smoke dataset 入口；保留当前 provenance 注记。 | SC-15 | minor | `dataset: evidence/manifest.md — H5/E5 provenance notes` | 5 — R1/R3/DA | R1, R3, DA | P2 | 1--3 天 |
 | S6 | 明确 0.5 阈值预先冻结，补 precision、recall、PR-AUC 或校准图；若不做概率校准，删去概率可直接支持决策的暗示。 | SC-14 | minor | `text: §4.5 "以 0.5 阈值生成二值结果"` | 5 — R1 | R1 | P2/P3 | 0.5--2 天 |
 | S7 | 将贡献重写成一个可证伪 RQ，并加入与 DeepMill/PARC/IMF 的“可比/不可比”矩阵；不新增首创或优越性断言。 | SC-12 | major | `text: §2.3 "组织为闭环"` | 4--5 — EIC/DA | EIC, DA, R2 | P2 | 1--3 天 |
 | S8 | 图 9 追加“64 个离散方向、非连续刀路”图例；图 1 增加输入网格质量失败分支；图 3 标出未建模的刀柄/夹具。 | SC-11 | minor | `figure: Fig. 9 — lowest blocked-probability arrow` | 4 — R3 | R3 | P3 | 0.5--1 天 |

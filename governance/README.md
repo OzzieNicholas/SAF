@@ -12,7 +12,7 @@
 | 意图 | 问题定义 / 铁律 / 证据 | `problem.md` `constraints.md` `evidence.md` | 人和智能体读（最弱）|
 | 台账 | 决策（已决）+ 未决触发 | `decisions.md` `deferred.md` | `test_governance.py` / `test_deferred.py` 机检 |
 | 可执行 | 必须恒真的性质、门 | `../tests/acceptance/` `../tests/gate.py` `../src/support_accessibility/` | 跑起来会红（最强）|
-| 过程/规范 | 动作规范、控制平面适配与研发方法 | `conventions.md` `project.json` `../docs/other/project-control-plane/` | CI + 可选本地 hooks |
+| 过程/规范 | 动作规范、SAF 自包含治理与研发方法 | `conventions.md` `project.json` `governance/` | CI + 可选本地 hooks |
 
 > 环境：conda env `saf`（`../environment.yml`，py3.12 + igl/numpy/scipy/trimesh），由 `test_env.py` 的 `env_ready` 门守护；跑 `conda run -n saf python ../tests/gate.py`。
 > Agent 入口：根目录 `../AGENTS.md`；运行证据见 `../artifacts/runs/`，可清理缓存见 `../artifacts/cache/`，生命周期说明见 `../artifacts/README.md`。
@@ -29,8 +29,8 @@
 5. `conventions.md` — 动作、代码、测试与产物规范
 6. `evidence.md` — 文献证据（来源↔问题）；富矩阵在 `docs/2_文献矩阵与相关工作.md`
 7. `docs/` — 退役的富文档（问题/文献/实验/执行路线全本），只读参考
-7b. `../docs/references/` — 只读文献输入（PDF/候选书目，不是交付物）
-8. `../docs/other/project-control-plane/` — 可复用控制平面规范（SAF 通过本目录适配）
+7b. `../docs/references/` — 只读文献入口（Zotero 指针/候选书目；PDF 不入仓库）
+8. `../deliverables/paper/` — 论文下游包；文献附件由 Zotero 集合提供
 
 ## 决策 ↔ 性质 映射（棘轮门守护）
 
@@ -65,6 +65,11 @@
 | （动作规范）| `tools/check_conventions.py` + `conventions.yml` CI —— commit/分支合规（git 历史侧，与 gate 分工）|
 
 跑门：`python ../tests/gate.py`（`--format md` 出 markdown STATUS）→ 裁决 + 退出码。**状态一律看门、不在此手写**；棘轮：绿了不许静默退绿。
+
+## 工程门与论文门
+
+- **工程门**：`python ../tests/gate.py`、`python -m pytest ../tests/acceptance ../tests/unit -q`；只裁决工程代码、合成几何、治理和单元回归，不访问 Zotero，也不要求外部数据。
+- **论文门**：`python ../deliverables/paper/pipeline/paper_gate.py --strict`；额外要求 `E:/Work/Data` 的 processed/raw 数据、Zotero 集合、机器证据清单、完整性 sidecar、canonical 图和最终 PDF。缺任一项都明确失败。
 
 ## 修改触发（改什么必须同步什么）
 

@@ -21,20 +21,19 @@
 - **做到哪了 / 有哪些结果**（完成情况）→ 跑 `python tests/gate.py`（现 **GREEN**：budget/regression/label_audit PASS + 4 项 N/A）｜**[`governance/results.md`](governance/results.md)**（结果账本：假设→指标→数值±std→样本→**复现命令** + 局限）｜[`governance/roadmap.md`](governance/roadmap.md)（研发弧位置）
 - **怎么判定 / 为什么这么设计**（决策）→ [`governance/decisions.md`](governance/decisions.md)（判定语义/口径 D-000..D-030，append-only 台账）+ [`governance/README.md`](governance/README.md)（决策↔性质映射 + 修改触发）
 - **当前配置 / 冻结口径** → [`configs/params.yaml`](configs/params.yaml)（**D-021 冻结**：n_dir=128 / res=48+细化 / radius=0.05 / overhang=45° / ε=1.5）+ [`environment.yml`](environment.yml)（conda env `saf`）
-- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；验收门 `python tests/gate.py`；实验 CLI 在 `tools/`（`train_convonet` H3 · `eval_h5` H5 · `eval_e5` E5 · `eval_h1/h2/e8/ablation` · `audit_labels` 命门审核 · `regression_check` 回归门 · `eval_baselines` 表5 基线 · `eval_true_area` 真面积对照；每条**复现命令见 `results.md`**）；一键数据流水线 `dvc repro`；非交互跑法注意见 [`AGENTS.md`](AGENTS.md)「怎么跑」。
+- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；工程门 `python tests/gate.py`；实验 CLI 在 `tools/`（数据默认位于 `E:\Work\Data\Temporary\SAF`，可由 `SAF_DATA_ROOT`/CLI 覆盖）；论文门 `python deliverables/paper/pipeline/paper_gate.py --strict`；论文构建 `python deliverables/paper/pipeline/build_paper.py --strict-zotero`；非交互跑法注意见 [`AGENTS.md`](AGENTS.md)「怎么跑」。
 
 ## 布局
 
 ```
 governance/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
 docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
-docs/references/  只读文献输入（PDF/候选书目；不属于交付物）
-deliverables/paper/      论文草稿轨道（写作实验并行，活文档；从 governance 播种）
+docs/references/  只读文献入口（Zotero 指针/候选书目；PDF 不入仓库）
+deliverables/paper/      论文下游包（源稿、pipeline、canonical 图/PDF、证据与审稿）
 src/support_accessibility/   实现包（oracle/data/eval/models/baselines/viz）
-tests/      验收层（acceptance/ = 决策↔性质）+ gate.py（棘轮门）
-configs/       Hydra 配置（params.yaml）
-docs/other/project-control-plane/  通用控制平面规范（SAF 适配层见 governance/project.json）
-data/        数据：processed/ = 统一数据集（D-016；tools/build_dataset.py 程序化 / build_fusion360.py 网格源，gitignore）
+tests/      验收层（tests/acceptance/）+ 单元层（tests/unit/）+ 论文层（tests/paper/）+ gate.py（棘轮门）
+configs/       冻结口径与外部数据配置（params.yaml）
+E:\\Work\\Data/  外部原始网格与 processed 数据（由 tools/data_paths.py 解析，不入 SAF）
 artifacts/runs/ 机器运行证据（结果/审计/QA，含 run-id；gitignore）
 artifacts/cache/ 机器运行缓存（检查点/日志/候选图，可按 TTL 清理）
 ```

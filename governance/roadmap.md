@@ -26,7 +26,7 @@
 - 阶段6 神经预测 MVP — tiny numpy 证 H3 可行；**ConvONet-lite 真模型（torch，本地 GPU 4060 Ti）跨模型预测 + 消融（形状必需、中等 RF 最优）已坐实**（`models/convonet.py` + `tools/train_convonet.py` + `tools/eval_ablation.py`；数值见 results.md）
 - 阶段7 完整实验 / 消融 / 鲁棒 — **H5 跨域**（Thingi10K OOD，D-022）· **E5 方向级场**（D-024）· E1/H1 旗舰对 已落；失败案例分析已落（见阶段8）
 - 阶段8 可视化与失败案例 — viz 审计仪器已落（D-018）；**失败案例分析已落**（`tools/failure_cases.py`）：误判**集中在可达边界**（可达方向数 1–5 的勉强可达点）、随几何难度非随机（数值见 results.md）
-- 阶段9 论文正文 — `deliverables/paper/draft.md`（活文档，写作实验并行）
+- 阶段9 论文正文 — `deliverables/paper/manuscript/paper.md`（下游源稿；写作实验并行）
 - 阶段10 投稿与修改 — 待
 
 ## 推进 / 降级分支（据阶段6 / H3 结果择路，全文见 `docs/0` §6）
@@ -39,5 +39,5 @@
 ## 下一跳（义务与触发详见 `deferred.md`）
 
 - E5 后续：扩量到全量 Fusion + 细化方向标签（现占据口径、无 D-020 细化）+ 作者签收（方向排序 Top-k 指标已落，见 test_eval）。
-- DVC 基建：dvc.yaml 包裹流水线阶段，`dvc repro` 一键复现（见 dvc-pipeline deferred）。
-- 已闭合/大幅推进（见 decisions + deferred）：fusion360-ingest · **标签有效性量化审核（D-025，替代视觉签收、修假绿）** · params-freeze（D-021）· point-touch-refine（D-020）· thingi-ingest+H5（D-022）· E1/H1 flagship-pair · ABC 弃用（D-023）· **E5 方向级场（D-024）** · **预算门+回归门激活（D-026）** · **网格前端加固 + 重物化重签收（D-028）** · dvc-pipeline · direction_monotonic · local-blas-gate-crash。
+- 外部数据架构：数据与临时 processed 统一迁出 SAF，路径由 `tools/data_paths.py` 解析，论文证据独立入 `deliverables/paper/evidence/`。
+- 已闭合/大幅推进（见 decisions + deferred）：fusion360-ingest · **标签有效性量化审核（D-025，替代视觉签收、修假绿）** · params-freeze（D-021）· point-touch-refine（D-020）· thingi-ingest+H5（D-022）· E1/H1 flagship-pair · ABC 弃用（D-023）· **E5 方向级场（D-024）** · **预算门+回归门激活（D-026）** · **网格前端加固 + 重物化重签收（D-028）** · 外部数据/论文下游包重构 · direction_monotonic · local-blas-gate-crash。

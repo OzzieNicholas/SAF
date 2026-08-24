@@ -4,7 +4,9 @@ import sys
 from unittest import SkipTest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FIGURE_TOOLS = os.path.join(ROOT, "tools", "figures")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+from data_paths import resolve_data_paths
+FIGURE_TOOLS = os.path.join(ROOT, "deliverables", "paper", "pipeline", "figures")
 if FIGURE_TOOLS not in sys.path:
     sys.path.insert(0, FIGURE_TOOLS)
 
@@ -39,8 +41,9 @@ def _datasets():
     _require_modules()
     from support_accessibility.data.dataset import load_dataset
 
-    fusion_path = os.path.join(ROOT, "data", "processed", "fusion360_full")
-    thingi_path = os.path.join(ROOT, "data", "processed", "thingi_v1")
+    paths = resolve_data_paths()
+    fusion_path = str(paths.processed_root("fusion360_full"))
+    thingi_path = str(paths.processed_root("thingi_v1"))
     _require(fusion_path, "processed Fusion data")
     _require(thingi_path, "processed Thingi data")
     fusion, _ = load_dataset(fusion_path)

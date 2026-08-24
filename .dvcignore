@@ -1,9 +1,0 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
-
-# Machine-emitted runs and local test cache are not DVC pipeline inputs.
-artifacts/runs/
-artifacts/cache/
-.pytest_cache/
-tmp/

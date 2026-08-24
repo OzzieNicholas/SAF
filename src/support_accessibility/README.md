@@ -12,4 +12,4 @@
 | `baselines/` | 几何启发式对照基线（射线可见性=oracle@r=0 / 多数类 / 局部规则；E4 对照，非主线，见 D-015）|
 | `viz/` | 热图、方向球面图、失败案例 |
 
-实验产物写入 `artifacts/runs/`（DVC，按 E0–E8 + run-id，机器 emit）；**数据集**物化到 `data/processed/`（D-016，gitignore）。配置见 `configs/params.yaml`（Hydra）。
+实验产物写入 `artifacts/runs/`（按 E0–E8 + run-id，机器 emit）；**数据集**物化到外部 `E:/Work/Data/Temporary/SAF/<dataset>/<run>`。配置见 `configs/params.yaml` 与 `tools/data_paths.py`。

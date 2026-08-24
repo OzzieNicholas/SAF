@@ -9,9 +9,9 @@
 （全方向皆挡→点不可达，any-归约 = D-004）。对照 per-direction 多数类基线。self-add src。
 
 用法：
-  conda run -n saf python tools/eval_e5.py --data data/processed/procedural_v1 --seeds 3
-  conda run -n saf python tools/eval_e5.py --data data/processed/fusion360_full --max-models 500 \
-    --root E:/Fusion360Gallery/reconstruction   # 细化口径方向目标（B1a 升级）
+  conda run -n saf python tools/eval_e5.py --data ${SAF_TEMPORARY_ROOT}/SAF/procedural_v1/latest --seeds 3
+  conda run -n saf python tools/eval_e5.py --data ${SAF_TEMPORARY_ROOT}/SAF/fusion360_full/latest --max-models 500 \
+    --root E:/Work/Data/Fusion360Gallery/reconstruction   # 细化口径方向目标（B1a 升级）
 """
 import argparse
 import os
@@ -22,6 +22,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import logical_data_ref, resolve_data_paths
+except ImportError:
+    from tools.data_paths import logical_data_ref, resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -124,13 +128,17 @@ def build_e5_report(
 
 def main():
     ap = argparse.ArgumentParser(description="E5 方向级可达性场预测（D-024）")
-    ap.add_argument("--data", default="data/processed/procedural_v1")
+    ap.add_argument("--data", default=str(resolve_data_paths().processed_root("procedural_v1")))
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--n-directions", type=int, default=128)     # D-021 冻结值；下半球得 D≈64
     ap.add_argument("--max-models", type=int, default=None)
-    ap.add_argument("--root", default=None, help="Fusion 原网格根：给定则方向目标走 D-020 细化口径（B1a）")
+    ap.add_argument(
+        "--root",
+        default=None,
+        help="可选 Fusion 原网格根；显式给定才启用 D-020 细化口径（B1a），否则使用占据口径",
+    )
     ap.add_argument("--resolution", type=int, default=48, help="须与 ingest 一致（占据逐比特校验）")
     ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/e5/latest.json")
     a = ap.parse_args()
@@ -269,7 +277,7 @@ def main():
               f"top1={top1:.3f} top3={top3:.3f} prec@3={prec3:.3f} maj_base_f1={base_f1:.3f}", flush=True)
 
     rep = build_e5_report(
-        data=a.data,
+        data=logical_data_ref(a.data),
         seeds=a.seeds,
         epochs=a.epochs,
         device=dev,

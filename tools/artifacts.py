@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -23,6 +24,31 @@ ARTIFACT_ROOT = ROOT / "artifacts"
 RUN_ROOT = ARTIFACT_ROOT / "runs"
 CACHE_ROOT = ARTIFACT_ROOT / "cache"
 SCHEMA_VERSION = 1
+_ABSOLUTE_TOKEN_RE = re.compile(r"(?i)(?:[A-Za-z]:[\\/]|\\\\)[^\s\"]+")
+
+
+def _portable_command(command: str) -> str:
+    """Keep command provenance useful without embedding local drive paths."""
+    return _ABSOLUTE_TOKEN_RE.sub("<external-path>", command)
+
+
+def _portable_value(value):
+    """Recursively remove machine-specific paths from JSON payloads."""
+    if isinstance(value, Mapping):
+        return {str(key): _portable_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_portable_value(item) for item in value]
+    if isinstance(value, Path):
+        value = str(value)
+    if isinstance(value, str):
+        try:
+            from data_paths import logical_data_ref
+        except ImportError:
+            from tools.data_paths import logical_data_ref
+
+        if re.match(r"(?i)^(?:[A-Za-z]:[\\/]|\\\\|/)", value):
+            return logical_data_ref(value)
+    return value
 
 
 def _cache_scope(kind: str | None = None) -> Path:
@@ -89,7 +115,7 @@ def run_metadata(kind: str, inputs: Iterable[str | os.PathLike[str]] = ()) -> di
         "run_id": run_id,
         "kind": kind,
         "created_at": now.isoformat().replace("+00:00", "Z"),
-        "command": subprocess.list2cmdline(sys.argv),
+        "command": _portable_command(subprocess.list2cmdline(sys.argv)),
         "tool": _relative(Path(sys.argv[0]).resolve()),
         "tool_revision": _git_revision(),
         "input_digest": input_digest(inputs),
@@ -108,7 +134,7 @@ def write_result(
         target = ROOT / target
     target.parent.mkdir(parents=True, exist_ok=True)
     enriched = dict(run_metadata(kind, inputs))
-    enriched.update(payload)
+    enriched.update(_portable_value(payload))
     run_file = target.parent / f"{enriched['run_id']}.json"
     for path in (run_file, target):
         with path.open("w", encoding="utf-8") as handle:

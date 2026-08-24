@@ -60,7 +60,7 @@ DeepMill、PARC 和 IMF 的已有能力被承认，论文没有使用“首次�
 | m1 | Evidence selection | H2 的 Fusion 4.86% 来自 600 件样本，但摘要未写样本范围，容易被误读为全部 8,590 件统计。 | `text: §5.2 "Fusion 的 600 件样本中有 4.86%"` | 5 — evidence-scope audit |
 | m2 | Runtime claim | 112 倍只比较当前实现的单点时间；需要端到端和 batch 口径，或进一步弱化为量级观察。 | `text: §5.5 "逐点几何判定平均为 3.97 ms"` | 5 — performance benchmarking |
 | m3 | Label certainty | 0.63% 差分审核样本只有 160 点，97.28% 跨分辨率只有 10 件；应加入 10,000 seed 差分审计且不再称整个 oracle“精确”。 | `table: Table 4 — audit sample sizes` | 5 — geometric validation |
-| m4 | Reproducibility | H5 capture 与 E5 legacy artifact 不具备与主要基线相同的统一运行 envelope。 | `dataset: integrity_report.md — EXP-H5 and EXP-E5 provenance notes` | 5 — reproducibility audit |
+| m4 | Reproducibility | H5 capture 与 E5 legacy artifact 不具备与主要基线相同的统一运行 envelope。 | `dataset: evidence/integrity_report.md — EXP-H5 and EXP-E5 provenance notes` | 5 — reproducibility audit |
 
 ## Ignored Alternative Explanations / Paths
 

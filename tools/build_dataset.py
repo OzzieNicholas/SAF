@@ -2,7 +2,7 @@
 """物化程序化数据集 CLI（D-016）。纯 stdlib 顶层运行器：self-add src → dataset.build_procedural。
 
 用法：
-  conda run -n saf python tools/build_dataset.py --out data/processed/procedural_v1 --n-models 24 --seed 0
+  conda run -n saf python tools/build_dataset.py --dataset procedural_v1 --n-models 24 --seed 0
 （`python -m` 需包已安装；本运行器 self-add src，免 editable 安装、跨平台，同 tests/gate.py 模式。）
 """
 import argparse
@@ -14,6 +14,11 @@ _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
+
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
         _s.reconfigure(encoding="utf-8")
@@ -23,12 +28,21 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="物化程序化数据集（统一 processed 记录，D-016）")
-    ap.add_argument("--out", default="data/processed/procedural_v1", help="输出目录")
+    ap.add_argument("--dataset", default="procedural_v1")
+    ap.add_argument("--out", default=None, help="输出目录；默认外部 Temporary/SAF/<dataset>/<run>")
+    ap.add_argument("--data-root", default=None)
+    ap.add_argument("--temporary-root", default=None)
+    ap.add_argument("--run-id", default=None)
     ap.add_argument("--n-models", type=int, default=16)
     ap.add_argument("--N", type=int, default=28)
     ap.add_argument("--max-points", type=int, default=24)
     ap.add_argument("--radius", type=float, default=3.0)
-    ap.add_argument("--n-directions", type=int, default=32)
+    ap.add_argument(
+        "--n-directions",
+        type=int,
+        default=128,
+        help="方向数；默认采用 configs/params.yaml / D-021 的冻结值 128",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--frac-train", type=float, default=0.6)
     ap.add_argument("--frac-val", type=float, default=0.2)
@@ -37,7 +51,9 @@ def main():
     from support_accessibility.data.dataset import build_procedural, load_dataset
     import numpy as np
 
-    out = build_procedural(a.out, n_models=a.n_models, N=a.N, max_points=a.max_points,
+    paths = resolve_data_paths(a.data_root, a.temporary_root, a.run_id)
+    out = a.out or str(paths.processed_root(a.dataset, a.run_id))
+    out = build_procedural(out, n_models=a.n_models, N=a.N, max_points=a.max_points,
                            radius=a.radius, n_directions=a.n_directions, seed=a.seed,
                            frac_train=a.frac_train, frac_val=a.frac_val)
     models, rows = load_dataset(out)

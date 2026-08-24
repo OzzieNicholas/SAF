@@ -118,7 +118,10 @@ def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_
 def build_from_root(out_dir, root, **kw):
     """便捷入口：从 reconstruction 目录读真实网格再物化。root 缺失 → FileNotFoundError（deferred: fusion360-ingest）。"""
     if not root or not os.path.isdir(root):
-        raise FileNotFoundError(f"Fusion360 reconstruction 目录不存在：{root!r}（见 configs/params.yaml data.fusion360_root）")
+        raise FileNotFoundError(
+            f"Fusion360 reconstruction 目录不存在：{root!r}"
+            "（见 tools/data_paths.py 或 SAF_FUSION360_ROOT）"
+        )
     return build_from_meshes(_meshes_from_root(root), out_dir, **kw)
 
 

@@ -1,12 +1,48 @@
 # local render and visual-QA workspace; never a project artifact
 tmp/
+.superpowers/
 
-# processed datasets (materialized; regenerable from seed+code / DVC-later, D-016)
+# Legacy in-repository processed-data path; active datasets live outside SAF.
 data/processed/
+data/
 
-# run artifacts (machine-emit：evidence in runs, disposable state in cache；需版本化则 DVC 追踪，见 AGENTS.md)
+# External/local working copies accidentally placed in the repository.
+/paper/
+/runs/
+
+# Run artifacts (machine-emitted evidence and disposable cache; never tracked).
 artifacts/runs/
 artifacts/cache/
+artifacts/archive/
+
+# Retired paper snapshots are recoverable from Git history, not the active tree.
+deliverables/archive/
+
+# Paper build working state. Final canonical figures and PDFs remain tracked.
+deliverables/paper/build/
+deliverables/paper/pipeline/**/build/
+deliverables/paper/zotero/build/
+deliverables/paper/evidence/work/
+deliverables/paper/figures/contact_sheet.*
+deliverables/paper/figures/*candidate*
+deliverables/paper/figures/*failure_audit*
+deliverables/paper/outputs/*~
+
+# Bibliography is generated from the local Zotero collection at paper-build time.
+docs/references/literature/*.pdf
+deliverables/paper/**/references.bib
+*.aux
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+
+# DVC metadata is retired; keep any accidental local metadata out of Git.
+.dvc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

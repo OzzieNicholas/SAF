@@ -15,6 +15,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import logical_data_ref, resolve_data_paths
+except ImportError:
+    from tools.data_paths import logical_data_ref, resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -30,8 +34,9 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="回归门：神经 vs 几何基线 模型级配对 bootstrap CI（D-026）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_full")
-    ap.add_argument("--procedural", default="data/processed/procedural_v1")
+    paths = resolve_data_paths()
+    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--procedural", default=str(paths.processed_root("procedural_v1")))
     ap.add_argument("--max-models", type=int, default=400)
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--seed", type=int, default=0)
@@ -56,7 +61,8 @@ def main():
     fte = [m for m in fte if m.points.shape[0] > 0]
     if not fte:                              # 退化数据集：无 both-class 测试件 → 干净失败，不崩 bootstrap（写 passes=false）
         rep = {"n_test_models": 0, "passes": False, "note": "no both-class test models",
-               "baseline": "ray_visibility(E4)", "data_roots": [a.fusion, a.procedural],
+               "baseline": "ray_visibility(E4)",
+               "data_roots": [logical_data_ref(a.fusion, paths), logical_data_ref(a.procedural, paths)],
                "data_digest": E.data_digest(a.fusion, a.procedural)}
         rep = write_result("regression", rep, inputs=(a.fusion, a.procedural))
         print("REGRESSION " + json.dumps(rep))
@@ -101,7 +107,7 @@ def main():
            "paired_diff_mean": round(float(diff.mean()), 4),
            "diff_ci_low": round(ci_low, 4), "diff_ci_high": round(ci_high, 4),
            "passes": bool(ci_low > 0), "baseline": "ray_visibility(E4)",
-           "data_roots": [a.fusion, a.procedural],                   # 门据此重算摘要（不硬编根），配 data_digest 判新鲜度（D-026 P5）
+           "data_roots": [logical_data_ref(a.fusion, paths), logical_data_ref(a.procedural, paths)],
            "data_digest": E.data_digest(a.fusion, a.procedural)}
     rep = write_result("regression", rep, inputs=(a.fusion, a.procedural))
     print("REGRESSION " + json.dumps(rep))

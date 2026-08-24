@@ -39,10 +39,16 @@ def files():
 
 def check() -> list[str]:
     errors: list[str] = []
-    forbidden = ("charter", "conf", "paper", "runs", "hooks", "method")
+    forbidden = ("charter", "conf", "paper", "runs", "hooks", "method", "data")
     for name in forbidden:
         if (ROOT / name).exists():
             errors.append(f"forbidden root directory exists: {name}/")
+    for relative in ("artifacts/archive", "deliverables/archive"):
+        if (ROOT / relative).exists():
+            errors.append(f"retired archive must not exist in the active tree: {relative}/")
+    for relative in (".dvcignore", "dvc.yaml", "dvc.lock"):
+        if (ROOT / relative).exists():
+            errors.append(f"retired DVC metadata must not exist: {relative}")
     if not (ROOT / "AGENTS.md").is_file():
         errors.append("AGENTS.md is missing")
     if (ROOT / "CLAUDE.md").exists():
@@ -54,7 +60,9 @@ def check() -> list[str]:
         errors.append(f"project manifest unreadable: {exc}")
         manifest = {}
     for key, value in manifest.get("roots", {}).items():
-        if key != "dvc" and not (ROOT / value).is_dir():
+        if key == "dvc":
+            errors.append("project manifest must not declare a DVC root")
+        elif not (ROOT / value).is_dir():
             errors.append(f"manifest root missing: {key}={value}")
 
     excluded = {".git", ".pytest_cache", ".hypothesis", "__pycache__", "data", "artifacts", "tmp"}

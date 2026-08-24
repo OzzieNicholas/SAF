@@ -12,6 +12,6 @@
 - `workflow-done-DoD` → DoD 达成，见 **D-027**（终态定义 + 门达 GREEN）。
 - `fusion360-ingest` → 8625 设计 / 成功物化 8590 件 + 标签有效性**量化审核**（**D-025**：差分 robust 0.25%/res-稳定 97.7%/分布），假绿已修。
 - `thingi-ingest` → Thingi10K 接入 + H5 跨域（**D-022**：OOD F1 0.908，掉幅 0.006）。
-- `dvc-pipeline` → `dvc init` + `dvc.yaml`（procedural 阶段 `dvc repro` 字节一致）+ `dvc` 入 environment.yml。剩为**文档化限制**（Fusion/Thingi 外部只读原料不在可复现 DAG）+ 可选 CI 接线，非开放义务。
-- `dvc-pipeline` 数据源 = 三源（Fusion360/Thingi10K/程序化），ABC 经 **D-023** 彻底弃用。
+- `external-data-architecture` → 数据与 processed 产物统一位于 `E:/Work/Data` 外部根，SAF 只保留 CLI、配置和逻辑 evidence；DVC 已按项目架构决策移除。
+- 外部数据源仍为 Fusion360/Thingi10K/程序化，ABC 经 **D-023** 彻底弃用。
 - `local-blas-gate-crash` → 诊断为启动/激活问题（非 numpy 缺陷），稳定跑法见 `AGENTS.md`「怎么跑」。

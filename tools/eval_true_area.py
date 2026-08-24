@@ -8,8 +8,8 @@ S(P,d) 并**复现 ingest 的缠绕安全外移三态**（D-028：丢 flipped、
 并列同一批件上的计数代理 ρ 供直接对照。产出入 results.md 后供论文局限（面积口径）引用。self-add src。
 
 用法：
-  conda run -n saf python tools/eval_true_area.py --data data/processed/fusion360_full \
-    --root E:/Fusion360Gallery/reconstruction
+  conda run -n saf python tools/eval_true_area.py --data ${SAF_TEMPORARY_ROOT}/SAF/fusion360_full/latest \
+    --root E:/Work/Data/Fusion360Gallery/reconstruction
 """
 import argparse
 import os
@@ -20,6 +20,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import logical_data_ref, resolve_data_paths
+except ImportError:
+    from tools.data_paths import logical_data_ref, resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -30,8 +34,9 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="H1 真面积对照（面积加权；复现 D-028 三态剔除以对齐 npz 点序）")
-    ap.add_argument("--data", default="data/processed/fusion360_full")
-    ap.add_argument("--root", required=True, help="Fusion reconstruction 原网格根")
+    paths = resolve_data_paths()
+    ap.add_argument("--data", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--root", default=str(paths.fusion360_root), help="Fusion reconstruction 原网格根")
     ap.add_argument("--resolution", type=int, default=48)      # 须与 ingest 一致（否则对齐校验会拒）
     ap.add_argument("--overhang-deg", type=float, default=45.0)
     ap.add_argument("--nudge-voxels", type=float, default=2.0)
@@ -105,7 +110,9 @@ def main():
     both_a = (area_frac > 0) & (area_frac < 1)
     both_c = (cnt_frac > 0) & (cnt_frac < 1)
     out = {
-        "data": a.data, "models_used": done, "skipped_no_mesh": miss,
+        "data": logical_data_ref(a.data, paths),
+        "source_root": logical_data_ref(a.root, paths),
+        "models_used": done, "skipped_no_mesh": miss,
         "skipped_align_mismatch": mismatch, "skipped_bad": bad,
         "true_area": {
             "spearman_all": round(E.spearman(area_tot, area_frac), 4),

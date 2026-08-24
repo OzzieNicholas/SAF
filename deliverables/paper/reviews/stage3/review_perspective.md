@@ -123,7 +123,7 @@ Thingi10K 被完全留作测试而非训练，提供了一个工程上有意义�
 
 **Problem:** 证据清单给出了本地运行命令和哈希，但 Fusion 360 真实数据路径为本地私有路径，稿件没有给出公开下载、版本、许可和再物化步骤的最小说明；E5 还缺少统一 run envelope。
 
-**Evidence Anchor:** `dataset: evidence_manifest.md — local source roots and E5 legacy provenance note`
+**Evidence Anchor:** `dataset: evidence/manifest.md — logical source roots and E5 legacy provenance note`
 
 **Why it matters:** 研究可审计不等于工程可复现。没有公开数据获取和许可说明，外部读者只能核对脚本结构，不能重建主数字。
 

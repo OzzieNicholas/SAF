@@ -3,7 +3,7 @@
 self-add src → thingi.build_thingi（同 tools/build_fusion360.py 模式，免 editable 安装、跨平台）。
 
 用法：
-  conda run -n saf python tools/build_thingi.py --root E:/Thingi10K/raw_meshes --out data/processed/thingi_v1
+  conda run -n saf python tools/build_thingi.py --root E:/Work/Data/Thingi10K/raw_meshes
   （壳内激活亦可：source .../conda.sh && conda activate saf && python tools/build_thingi.py ...）
 
 Thingi = **跨域鲁棒性测试源**（H5），**恒 split=test、绝不进训练**（D-016/docs §4.6）。野网格：缠绕不一致/
@@ -19,6 +19,11 @@ _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
 
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
+
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
         _s.reconfigure(encoding="utf-8")
@@ -28,8 +33,11 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="Thingi10K 跨域测试子集物化（H5，D-022）")
-    ap.add_argument("--root", default="", help="Thingi raw_meshes 目录（含 .stl/.obj）")
-    ap.add_argument("--out", default="data/processed/thingi_v1")
+    ap.add_argument("--root", default="", help="Thingi raw_meshes 目录；空则使用外部数据根布局")
+    ap.add_argument("--out", default=None, help="输出目录；默认外部 Temporary/SAF/thingi_v1/<run>")
+    ap.add_argument("--data-root", default=None)
+    ap.add_argument("--temporary-root", default=None)
+    ap.add_argument("--run-id", default=None)
     ap.add_argument("--max-models", type=int, default=300)
     ap.add_argument("--max-points", type=int, default=400, help="每模型接触点上限（密扫描件封顶，确定性无放回）")
     ap.add_argument("--max-faces", type=int, default=80000, help="面数上限（超高面 res 下已降采样、跳过控剪枝成本）")
@@ -40,12 +48,15 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
 
-    if not a.root or not os.path.isdir(a.root):
-        sys.stderr.write(f"Thingi root 无效：{a.root!r}\n  → 传 --root 指向 Thingi10K raw_meshes 目录\n")
+    paths = resolve_data_paths(a.data_root, a.temporary_root, a.run_id)
+    root = a.root or str(paths.thingi_root)
+    out_dir = a.out or str(paths.processed_root("thingi_v1", a.run_id))
+    if not root or not os.path.isdir(root):
+        sys.stderr.write(f"Thingi root 无效：{root!r}\n  → 传 --root 或配置 SAF_THINGI_ROOT\n")
         sys.exit(2)
 
     from support_accessibility.data.thingi import build_thingi
-    out = build_thingi(a.root, a.out, max_models=a.max_models, resolution=a.resolution,
+    out = build_thingi(root, out_dir, max_models=a.max_models, resolution=a.resolution,
                        radius_world=a.radius_world, overhang_deg=a.overhang_deg,
                        n_directions=a.n_directions, max_points=a.max_points,
                        max_faces=a.max_faces, seed=a.seed)

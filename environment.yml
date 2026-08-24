@@ -21,7 +21,6 @@ dependencies:
   - pip:
     - --extra-index-url https://download.pytorch.org/whl/cu124
     - torch==2.6.0+cu124
-    - dvc==3.67.1                # 数据流水线：dvc repro 复现可复现阶段（dvc.yaml）；实测装后不动 numpy/scipy/torch/igl
-    - matplotlib==3.11.1         # 论文图件（统计图/示意图，tools/figures/）；pip 装避免 conda 重解动 numpy 2.x（同 torch/dvc）
+    - matplotlib==3.11.1         # 论文图件（统计图/示意图，deliverables/paper/pipeline/figures/）
     - pyvista==0.48.4            # 论文图件（3D 网格渲染，拉 vtk 9.6.2）；Windows 离屏渲染实测可用（需 GPU/OpenGL 上下文）
     - pypdf==6.1.1               # 图件 QA：PDF 页面尺寸、字体嵌入与 Type 3 检查

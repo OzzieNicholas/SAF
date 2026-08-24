@@ -19,7 +19,8 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")  # torch+scipy OMP 重复�
 
 _HERE = os.path.dirname(os.path.abspath(__file__))     # tests/
 _ROOT = os.path.dirname(_HERE)                          # repo root
-for _p in (os.path.join(_ROOT, "src"), _HERE):
+_TOOLS = os.path.join(_ROOT, "tools")
+for _p in (os.path.join(_ROOT, "src"), _HERE, _TOOLS):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
@@ -75,8 +76,22 @@ def regression_gate():
                 "detail": "回归产出无 data_digest（旧产物）——重跑 `tools/regression_check.py` 补新鲜度戳（D-026）"}
     try:
         from support_accessibility.eval import data_digest
-        roots = r.get("data_roots") or ["data/processed/fusion360_full", "data/processed/procedural_v1"]
-        cur = data_digest(*[os.path.join(_ROOT, rt) for rt in roots])
+        from data_paths import resolve_data_paths, resolve_logical_data_ref
+        paths = resolve_data_paths()
+        roots = r.get("data_roots") or [
+            "dataset://fusion360_full/latest",
+            "dataset://procedural_v1/latest",
+        ]
+        resolved = []
+        for reference in roots:
+            local = resolve_logical_data_ref(reference, paths)
+            if local is None:
+                if isinstance(reference, str) and os.path.isabs(reference):
+                    return {"name": "regression", "status": PENDING,
+                            "detail": "回归产出仍含本机绝对数据路径——重跑 regression_check 生成逻辑数据集引用（D-026）"}
+                local = os.path.join(_ROOT, str(reference))
+            resolved.append(str(local))
+        cur = data_digest(*resolved)
         if stamp != cur:
             return {"name": "regression", "status": PENDING,
                     "detail": f"回归产出陈旧（数据摘要 {stamp}≠当前 {cur}）——重跑 `tools/regression_check.py`（D-026）"}
@@ -92,7 +107,8 @@ def label_audit_gate():
     """真实标签有效性**命门门**（D-025 / 铁律#7）：机械复核 fusion360_full 的 label_audit 裁定，而非只靠散文。
     verdict_pass 且 human_signoff → PASS；未过 → FAIL；无产物（裸克隆/未跑审核）→ PENDING（诚实活检，同 regression）。
     数据集 gitignore（机器 emit），跑 `tools/audit_labels.py --write` 后棘轮。"""
-    path = os.path.join(_ROOT, "data", "processed", "fusion360_full", "dataset.json")
+    from data_paths import resolve_data_paths
+    path = os.path.join(str(resolve_data_paths().processed_root("fusion360_full")), "dataset.json")
     if not os.path.exists(path):
         return {"name": "label_audit", "status": PENDING,
                 "detail": "未见真实数据集 dataset.json——跑 `tools/audit_labels.py --write` 生成 label_audit（D-025）"}
@@ -113,18 +129,34 @@ def label_audit_gate():
                       f"robust 差分 {diff.get('robust_mismatch_rate')} / res稳定 {stab.get('res48_vs_res96_agreement')}（D-025）"}
 
 
-def build_verdict():
+def build_verdict(include_external=False):
     acceptance = []
     # test_env / test_governance 在前：它们现在就应绿，其余几何性质 PENDING
     for mod in (test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_data, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_figure_face_mapping, test_deferred):
         acceptance += mod.checks()
-    gates = [budget_gate(), regression_gate(), label_audit_gate()]
-    # GREEN = 无 FAIL 且无 PENDING（N/A 是终态、非待办、不阻塞——决定为非不变量/已覆盖，见 D-027）
+    core_gates = [budget_gate()]
+    # Keep the default engineering gate hermetic: external-data gates are only
+    # evaluated when the caller explicitly opts into the paper envelope.
+    external_gates = (
+        [regression_gate(), label_audit_gate()]
+        if include_external
+        else [
+            {"name": "regression", "status": NA, "detail": "论文门专属：使用 `tests/gate.py --paper` 才检查外部回归产物"},
+            {"name": "label_audit", "status": NA, "detail": "论文门专属：使用 `tests/gate.py --paper` 才检查外部标签审核"},
+        ]
+    )
+    gates = core_gates + external_gates
+    # The engineering gate is intentionally independent of external datasets.
+    # --paper opts into the stricter evidence gates.
     ok_states = (PASS, NA)
     all_pass = (all(c["status"] in ok_states for c in acceptance)
-                and all(g["status"] in ok_states for g in gates))
+                and all(g["status"] in ok_states for g in core_gates))
+    paper_pass = all_pass and all(g["status"] in ok_states for g in external_gates)
     return {
-        "overall": "GREEN" if all_pass else "RED",
+        "overall": "GREEN" if (paper_pass if include_external else all_pass) else "RED",
+        "engineering_overall": "GREEN" if all_pass else "RED",
+        "paper_overall": "GREEN" if include_external and paper_pass else ("RED" if include_external else "NOT_RUN"),
+        "include_external": bool(include_external),
         "oracle_implemented": bool(oracle and getattr(oracle, "IMPLEMENTED", False)),
         "summary": dict(Counter(x["status"] for x in acceptance + gates)),
         "acceptance": acceptance,
@@ -155,7 +187,7 @@ def main():
     if "--format" in argv:
         j = argv.index("--format")
         fmt = argv[j + 1] if j + 1 < len(argv) else "json"
-    verdict = build_verdict()
+    verdict = build_verdict(include_external="--paper" in argv)
     print(render_markdown(verdict) if fmt == "md" else json.dumps(verdict, ensure_ascii=False, indent=2))
     sys.exit(0 if verdict["overall"] == "GREEN" else 1)
 

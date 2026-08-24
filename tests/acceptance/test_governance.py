@@ -52,7 +52,7 @@ def check_reference_docs():
     has_literature = False
     if os.path.isdir(literature):
         with os.scandir(literature) as entries:
-            has_literature = any(entry.is_file() for entry in entries)
+            has_literature = any(entry.is_file() and entry.name == "README.md" for entry in entries)
     if not has_literature:
         missing.append("references/literature")
     return result("reference_docs_exist", not missing,
@@ -78,6 +78,23 @@ def check_asset_boundaries():
     return result("asset_boundaries", not missing,
                   "研究输入、交付物和临时目录边界清晰" if not missing
                   else "边界漂移:" + ",".join(missing))
+
+
+def check_retired_data_and_dvc():
+    """The active tree cannot silently regain repository data or DVC control files."""
+    forbidden = [
+        "data",
+        ".dvcignore",
+        "dvc.yaml",
+        "dvc.lock",
+        os.path.join("artifacts", "archive"),
+        os.path.join("deliverables", "archive"),
+    ]
+    found = [rel.replace(os.sep, "/") for rel in forbidden
+             if os.path.exists(os.path.join(_ROOT, rel))]
+    return result("retired_data_and_dvc", not found,
+                  "仓库内数据、DVC 和旧 archive 均未复活" if not found
+                  else "禁止的旧资产:" + ",".join(found))
 
 
 def check_retired_roots():
@@ -163,18 +180,18 @@ def check_project_manifest():
     }
     missing += [f"roots.{key}" for key, value in expected_roots.items()
                 if roots.get(key) != value]
-    control = manifest.get("control_plane", {})
-    if control.get("spec_root") != "docs/other/project-control-plane":
-        missing.append("control_plane.spec_root")
-    if control.get("adapter_root") != "governance":
-        missing.append("control_plane.adapter_root")
+    external = manifest.get("external_data", {})
+    if external.get("default_root") != "E:/Work/Data":
+        missing.append("external_data.default_root")
+    if external.get("temporary_root") != "E:/Work/Data/Temporary/SAF":
+        missing.append("external_data.temporary_root")
     lifecycle = manifest.get("artifact_lifecycle", {})
     for key, value in {"evidence_root": "artifacts/runs", "cache_root": "artifacts/cache",
                        "cache_ttl_days": 7, "latest_compatibility_file": "latest.json"}.items():
         if lifecycle.get(key) != value:
             missing.append(f"artifact_lifecycle.{key}")
     adapters = manifest.get("adapters", {})
-    for key in ("pytest", "gate", "dvc", "evaluation", "figures", "latex"):
+    for key in ("pytest", "gate", "evaluation", "figures", "latex", "paper"):
         if key not in adapters or not isinstance(adapters[key], dict):
             missing.append(f"adapters.{key}")
     return result("project_manifest", not missing,
@@ -182,17 +199,8 @@ def check_project_manifest():
 
 
 def check_control_plane_spec():
-    """通用控制平面规范的文件集合必须完整，避免适配层引用半套规范。"""
-    names = ("README.md", "architecture.md", "contracts-and-events.md",
-             "workflow-and-recovery.md", "policies-and-human-gates.md",
-             "adapters-and-capabilities.md", "evidence-and-observability.md",
-             "improvement-and-deletion.md", "migration-guide.md")
-    root = os.path.join(_ROOT, "docs", "other", "project-control-plane")
-    missing = [name for name in names
-               if not os.path.isfile(os.path.join(root, name))
-               or os.path.getsize(os.path.join(root, name)) == 0]
-    return result("control_plane_spec", not missing,
-                  "通用控制平面规范完整" if not missing else "缺失:" + ",".join(missing))
+    """SAF governance is self-contained; no external control-plane bundle is required."""
+    return result("control_plane_spec", True, "SAF 自包含治理，不依赖 docs/other/project-control-plane")
 
 
 def check_path_consistency():
@@ -203,9 +211,9 @@ def check_path_consistency():
         "tests/acceptance/test_deferred.py": ("governance", "deferred.md"),
         "tools/check_conventions.py": ("governance/conventions.md", "tools/hooks/"),
         "tools/check_structure.py": ("AGENTS.md", "artifacts/cache"),
-        "governance/README.md": ("project.json", "project-control-plane"),
+        "governance/README.md": ("project.json", "governance"),
         "AGENTS.md": ("governance/README.md", "artifacts/cache/"),
-        "docs/README.md": ("docs/references", "project-control-plane"),
+        "docs/README.md": ("docs/references", "governance"),
     }
     missing = []
     for rel, tokens in checks.items():
@@ -233,7 +241,7 @@ def check_params_keys():
 def check_decisions_covered():
     """完整性：每条 decisions.md 的 D-0NN 都被验收层**作为 decisions= 标注**交代（非仅 docstring/detail 裸提及），
     或在结构 allowlist——杜绝孤儿决策。语义化：只认 result()/na()/pending() 的决策标签字面量 "D-NNN"（可斜杠联合，如 "D-007/D-009"）。"""
-    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014", "D-015", "D-018", "D-021", "D-023", "D-025", "D-026", "D-027", "D-029", "D-030", "D-031"}   # 结构/标注/布局/治理/规范/台账策展/主线/命门签收/参数冻结/数据源范围/标签审核机制/门激活/终态DoD/控制平面迁移/资产边界/生命周期：无专属性质，由结构检查守护
+    STRUCTURAL = {"D-000", "D-004", "D-006", "D-012", "D-013", "D-014", "D-015", "D-018", "D-021", "D-023", "D-025", "D-026", "D-027", "D-029", "D-030", "D-031", "D-032"}   # 结构/标注/布局/治理/规范/台账策展/主线/命门签收/参数冻结/数据源范围/标签审核机制/门激活/终态DoD/控制平面迁移/资产边界/生命周期/外部数据与论文包：无专属性质，由结构检查守护
     try:
         dtxt = _read("governance/decisions.md")
     except OSError as e:
@@ -278,7 +286,7 @@ def check_roadmap():
 
 def checks():
     return [check_decisions_schema(), check_reference_docs(),
-            check_asset_boundaries(), check_retired_roots(), check_no_stale_paths(),
+            check_asset_boundaries(), check_retired_data_and_dvc(), check_retired_roots(), check_no_stale_paths(),
             check_params_keys(), check_decisions_covered(),
             check_conventions_present(), check_roadmap(), check_project_manifest(),
             check_control_plane_spec(), check_path_consistency()]
@@ -322,6 +330,11 @@ def test_roadmap():
 
 def test_asset_boundaries():
     r = check_asset_boundaries()
+    assert r["status"] == "PASS", r["detail"]
+
+
+def test_retired_data_and_dvc():
+    r = check_retired_data_and_dvc()
     assert r["status"] == "PASS", r["detail"]
 
 

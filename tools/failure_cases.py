@@ -7,7 +7,7 @@
 + 误判最多的几件审计 PNG（occ 剪影 + 误判掩码）。self-add src。
 
 用法：
-  conda run -n saf python tools/failure_cases.py --fusion data/processed/fusion360_full --max-models 400
+  conda run -n saf python tools/failure_cases.py --fusion ${SAF_TEMPORARY_ROOT}/SAF/fusion360_full/latest --max-models 400
 """
 import argparse
 import os
@@ -18,6 +18,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -33,8 +37,9 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="失败案例分析（阶段8）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_full")
-    ap.add_argument("--procedural", default="data/processed/procedural_v1")
+    paths = resolve_data_paths()
+    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--procedural", default=str(paths.processed_root("procedural_v1")))
     ap.add_argument("--max-models", type=int, default=400, help="截取 fusion both-class 前 N 件（可解性）")
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--seed", type=int, default=0)
@@ -150,7 +155,7 @@ def main():
     }
     print("FAILURE_ANALYSIS " + json.dumps(rep))
 
-    # —— 图件数据落盘（附加，不改判定口径）：聚合 rep + 首种子最糟件逐点 FP/FN/n_viable，供 tools/figures/fig10 ——
+    # —— 图件数据落盘（附加，不改判定口径）：聚合 rep + 首种子最糟件逐点 FP/FN/n_viable，供 deliverables/paper/pipeline/figures/fig10 ——
     evidence_path = os.path.join(outdir, "failure.json")
     written = False
     try:

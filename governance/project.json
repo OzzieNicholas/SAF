@@ -1,11 +1,6 @@
 {
   "schema_version": "1.1",
   "project": "SAF",
-  "control_plane": {
-    "spec_root": "docs/other/project-control-plane",
-    "adapter_root": "governance",
-    "manifest": "governance/project.json"
-  },
   "roots": {
     "governance": "governance",
     "source": "src",
@@ -16,9 +11,13 @@
     "runs": "artifacts/runs",
     "deliverables": "deliverables",
     "paper": "deliverables/paper",
-    "references": "docs/references",
-    "data": "data",
-    "dvc": ".dvc"
+    "references": "docs/references"
+  },
+  "external_data": {
+    "default_root": "E:/Work/Data",
+    "temporary_root": "E:/Work/Data/Temporary/SAF",
+    "override_env": ["SAF_DATA_ROOT", "SAF_TEMPORARY_ROOT", "SAF_FUSION360_ROOT", "SAF_THINGI_ROOT"],
+    "policy": "datasets and processed runs never live in the repository"
   },
   "artifact_lifecycle": {
     "evidence_root": "artifacts/runs",
@@ -31,8 +30,8 @@
     "test": "python -m pytest tests -q",
     "gate": "python tests/gate.py",
     "conventions": "python tools/check_conventions.py",
-    "dvc_dag": "dvc dag",
-    "dvc_status": "dvc status"
+    "paper_gate": "python deliverables/paper/pipeline/paper_gate.py --strict",
+    "paper_build": "python deliverables/paper/pipeline/build_paper.py --strict-zotero"
   },
   "checks": {
     "governance": "tests/acceptance/test_governance.py",
@@ -55,23 +54,23 @@
       "entrypoint": "python tests/gate.py",
       "output": "stdout"
     },
-    "dvc": {
-      "kind": "data_pipeline",
-      "definition": "dvc.yaml",
-      "metadata": ".dvc"
-    },
     "evaluation": {
       "kind": "experiment_tools",
       "root": "tools"
     },
     "figures": {
       "kind": "deliverable_generator",
-      "root": "tools/figures",
+      "root": "deliverables/paper/pipeline/figures",
       "output": "deliverables/paper/figures"
     },
     "latex": {
       "kind": "deliverable_builder",
-      "root": "deliverables/paper/latex",
+      "root": "deliverables/paper/pipeline",
+      "output": "deliverables/paper/outputs"
+    },
+    "paper": {
+      "kind": "paper_gate",
+      "root": "deliverables/paper/pipeline",
       "output": "deliverables/paper"
     }
   },

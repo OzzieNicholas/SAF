@@ -10,7 +10,7 @@
 """
 
 
-def ray_visibility(occ, points, n_directions=32):
+def ray_visibility(occ, points, n_directions=128):
     """无工具半径射线可见性基线 = oracle@r=0。返回 bool[K]，True=不可达（无方向射线可逃逸）。"""
     import numpy as np
     from support_accessibility.oracle import SupportAccessibilityOracle

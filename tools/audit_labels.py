@@ -10,7 +10,7 @@
 细化层由 test_capsule（精确几何原语）守护。本工具在真实数据上给客观数字，替代易错的人工视觉审核。self-add src。
 
 用法：
-  conda run -n saf python tools/audit_labels.py --data data/processed/fusion360_full --root E:/Fusion360Gallery/reconstruction
+  conda run -n saf python tools/audit_labels.py --data ${SAF_TEMPORARY_ROOT}/SAF/fusion360_full/latest --root E:/Work/Data/Fusion360Gallery/reconstruction
 """
 import argparse
 import os
@@ -21,6 +21,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -31,8 +35,9 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="量化标签有效性审核（D-018 客观化）")
-    ap.add_argument("--data", default="data/processed/fusion360_full")
-    ap.add_argument("--root", default=None, help="原网格根（给定则跑 res-稳定审核）")
+    paths = resolve_data_paths()
+    ap.add_argument("--data", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--root", default=str(paths.fusion360_root), help="原网格根（给定则跑 res-稳定审核）")
     ap.add_argument("--sample-points", type=int, default=160, help="差分审核采样点数（暴力参考较慢）")
     ap.add_argument("--stability-models", type=int, default=10)
     ap.add_argument("--n-directions", type=int, default=128)

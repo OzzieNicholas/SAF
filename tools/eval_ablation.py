@@ -18,6 +18,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -33,8 +37,9 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="消融：形状上下文价值（四变体 F1）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_full")
-    ap.add_argument("--procedural", default="data/processed/procedural_v1")
+    paths = resolve_data_paths()
+    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--procedural", default=str(paths.processed_root("procedural_v1")))
     ap.add_argument("--max-models", type=int, default=400)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--seed", type=int, default=0)

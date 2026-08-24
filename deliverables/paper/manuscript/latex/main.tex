@@ -1,0 +1,105 @@
+% !TEX program = xelatex
+\documentclass[UTF8,a4paper,twocolumn,zihao=5,fontset=fandol]{ctexart}
+
+\usepackage[top=18mm,bottom=20mm,left=18mm,right=18mm,columnsep=7mm]{geometry}
+\usepackage{fontspec}
+\IfFontExistsTF{TeX Gyre Termes}
+  {\setmainfont{TeX Gyre Termes}}
+  {\setmainfont{Times New Roman}}
+\IfFontExistsTF{TeX Gyre Heros}
+  {\setsansfont{TeX Gyre Heros}}
+  {\setsansfont{Arial}}
+\IfFontExistsTF{TeX Gyre Cursor}
+  {\setmonofont{TeX Gyre Cursor}}
+  {\setmonofont{Consolas}}
+
+\usepackage{amsmath,amssymb,bm,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,multirow}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{dblfloatfix}
+\usepackage{placeins}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\usepackage{xurl}
+
+\graphicspath{{../../figures/}}
+\DeclareGraphicsExtensions{.pdf,.png}
+\hypersetup{
+  unicode=true,
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue,
+  pdfauthor={},
+  pdftitle={金属增材制造潜在支撑接触区的有限球工具几何可达性代理与形状条件预测}
+}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\linespread{1.05}
+\setlength{\emergencystretch}{2em}
+\setlist[enumerate]{leftmargin=2em,itemsep=0.15em,topsep=0.3em}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,justification=justified,singlelinecheck=false}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\algorithmcfname}{算法}
+\renewcommand{\refname}{参考文献}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\ctexset{
+  section={format=\zihao{4}\bfseries,beforeskip=0.8em,afterskip=0.35em},
+  subsection={format=\zihao{-4}\bfseries,beforeskip=0.55em,afterskip=0.25em}
+}
+
+\begin{document}
+
+\twocolumn[
+\begin{@twocolumnfalse}
+\begin{center}
+  {\zihao{2}\bfseries 金属增材制造潜在支撑接触区的有限球工具几何可达性代理与形状条件预测\par}
+  \vspace{0.45em}
+  {\large\bfseries A Finite-Spherical-Tool Accessibility Proxy and Shape-Conditioned Prediction for Potential Support-Contact Regions in Metal Additive Manufacturing\par}
+\end{center}
+
+\vspace{0.5em}
+\begin{minipage}{\textwidth}
+\zihao{-5}
+\noindent\textbf{摘要：}
+金属增材制造中，下朝悬垂面并不必然是真实支撑--零件界面，但可作为可复核的潜在支撑接触区代理。本文在固定构建方向、工具半径和离散方向集下定义有限球工具几何可达性代理，并采用形状条件神经网络预测未见零件上的该属性。
+若存在一个离散逼近方向，使半径为 $r$ 的球工具可沿直线无碰撞到达代理查询点，则该点可达。
+标签生成由体素距离场筛选与边界带连续胶囊--网格距离细化组成，并通过差分、跨分辨率和原始网格质量审计披露数值与数据边界。
+以 8,590 个公开 CAD 零件为主数据源，网络分别输出点级不可达概率和 64 个固定方向的被挡概率；网络不接收工具半径、构建方向或方向向量作为条件。
+结果表明，Fusion 与程序化数据中分别有 4.86\% 和 29.25\% 的接触点射线可见但有限工具不可达；五次重复模型级随机留出（每次按零件 60/20/20 切分）得到零件等权 F1 $0.793\pm0.022$、IoU $0.737\pm0.025$，每次零件 F1 的中位数均值和 IQR 均值分别为 $0.948\pm0.029$ 与 $0.313\pm0.032$。
+在固定 80 件留出集上，shape-conditioned surrogate 的点池 F1 为 0.920，高于零半径射线的 0.676 和 16 全局方向粗有限工具 proxy 的 0.853；相对射线的逐件配对差为 0.459，95\% 置信区间为 $\lbrack 0.372,0.545\rbrack$。方向级逐方向 F1 为 $0.901\pm0.004$，Top-1 推荐命中率为 0.959。
+该结果是仅考虑零件本体遮挡的固定代理配置 surrogate fidelity，不构成真实支撑接触或后处理认证，而是为面向增材制造的设计提供区别于支撑量的风险观察维度。
+
+\noindent\textbf{关键词：}增材制造；支撑结构；工具可达性；面向增材制造的设计；深度学习；几何代理评价
+
+\vspace{0.45em}
+\noindent\textbf{Abstract:}
+In metal additive manufacturing, a downward-facing surface is not necessarily a realized support--part interface, but it can serve as a reproducible proxy for a potential support-contact region.
+We define a finite-spherical-tool accessibility proxy under a fixed build direction, tool radius, and discrete approach set, and predict it on unseen parts with a shape-conditioned neural network.
+A point is accessible if a spherical tool of radius $r$ reaches the proxy query point along at least one collision-free discrete straight approach.
+Label generation combines voxel distance-field screening with continuous capsule--mesh distance refinement in a boundary band; differential, cross-resolution, and raw-mesh-quality audits disclose the numerical and data boundaries.
+On a materialized corpus of 8,590 public CAD parts, contact amount is only weakly associated with inaccessibility.
+In the Fusion and procedural sets, 4.86\% and 29.25\% of contacts, respectively, are ray-visible but unreachable by the finite tool.
+Five repeated model-level holdouts (60/20/20 part splits, with possible test-set overlap) yield equal-part inaccessible-class F1 $0.793\pm0.022$ and IoU $0.737\pm0.025$; the mean per-repeat median F1 and IQR are $0.948\pm0.029$ and $0.313\pm0.032$.
+On a fixed 80-part holdout, the shape-conditioned surrogate has pooled F1 0.920, compared with 0.676 for zero-radius ray visibility and 0.853 for a 16-global-direction coarse finite-tool proxy; the paired difference over ray visibility is 0.459 with a 95\% confidence interval of $\lbrack 0.372,0.545\rbrack$. The directional field reaches per-direction F1 $0.901\pm0.004$ and a Top-1 recommendation hit rate of 0.959.
+These results establish surrogate fidelity for the stated frozen proxy under part-body occlusion only, not physical post-processing feasibility or a continuous toolpath.
+
+\noindent\textbf{Key words:} additive manufacturing; support structures; tool accessibility; design for additive manufacturing; deep learning; geometric proxy evaluation
+\end{minipage}
+\vspace{0.7em}
+\end{@twocolumnfalse}
+]
+
+\input{body}
+
+\bibliographystyle{gbt7714-numerical}
+\bibliography{../../build/references}
+
+\end{document}

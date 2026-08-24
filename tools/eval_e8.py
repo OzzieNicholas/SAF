@@ -15,6 +15,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -25,7 +29,7 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="E8 神经推理 vs oracle 打标 每点耗时比")
-    ap.add_argument("--data", default="data/processed/fusion360_full")
+    ap.add_argument("--data", default=str(resolve_data_paths().processed_root("fusion360_full")))
     ap.add_argument("--n-directions", type=int, default=128)
     ap.add_argument("--models", type=int, default=30)
     a = ap.parse_args()

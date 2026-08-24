@@ -13,6 +13,10 @@ import sys
 _SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -28,8 +32,9 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="ConvONet-lite 跨模型可达性预测（H3）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_full")   # headline 源（全量 8590/1621 两类）；旧 fusion360_v1=1000 件探索集
-    ap.add_argument("--procedural", default="data/processed/procedural_v1")
+    paths = resolve_data_paths()
+    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--procedural", default=str(paths.processed_root("procedural_v1")))
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--lr", type=float, default=1e-3)

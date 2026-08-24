@@ -1,6 +1,7 @@
 """统一 processed 数据集：物化器 + 载入器（D-016）。
 
-把可信的**程序化源**（make_dataset）物化成统一 on-disk 记录，落 data/processed/：
+把可信的**程序化源**（make_dataset）物化成统一 on-disk 记录；具体输出位置由
+``tools/data_paths.py`` 解析到外部 ``E:/Work/Data/Temporary/SAF``，本包不决定仓库内路径：
   <out>/models/<name>.npz   每模型 np.savez_compressed{occ(bool 3D), points(f4 (K,3)), labels(bool (K,))}
   <out>/manifest.csv        每模型一行全部标量元数据（单一之家；含 split/radius 供复原）
   <out>/dataset.json        数据集级 provenance（build 参数 + 切分统计；无时间戳→ manifest/json 字节可复现）
@@ -48,7 +49,7 @@ def load_model(path, name, radius):
 
 
 def build_procedural(out_dir, n_models=16, N=28, max_points=24, radius=3.0,
-                     n_directions=32, seed=0, frac_train=0.6, frac_val=0.2):
+                     n_directions=128, seed=0, frac_train=0.6, frac_val=0.2):
     """程序化件 → 物化统一数据集（幂等：清 out_dir/models 旧 .npz 后重写 + manifest + dataset.json）。返回 out_dir。
 
     按模型三切 train/val/test（D-016 切分 {train,val,test}）。val 为预留 held-out：超参先验固定、当前工具未在 val 上调参。

@@ -4,8 +4,8 @@
 不可达 F1 → 跨域掉幅。域内应复现 ~0.91（一致性自检）。self-add src（同其它 tool，免 editable 安装）。
 
 用法：
-  conda run -n saf python tools/eval_h5.py --fusion data/processed/fusion360_full \\
-    --procedural data/processed/procedural_v1 --thingi data/processed/thingi_v1 --seeds 3
+  conda run -n saf python tools/eval_h5.py --fusion ${SAF_TEMPORARY_ROOT}/SAF/fusion360_full/latest \\
+    --procedural ${SAF_TEMPORARY_ROOT}/SAF/procedural_v1/latest --thingi ${SAF_TEMPORARY_ROOT}/SAF/thingi_v1/latest --seeds 3
 """
 import argparse
 import os
@@ -16,6 +16,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -31,9 +35,10 @@ def both_class(ms):
 
 def main():
     ap = argparse.ArgumentParser(description="H5 跨域鲁棒性（Fusion 域内 vs Thingi OOD，D-022）")
-    ap.add_argument("--fusion", default="data/processed/fusion360_full")
-    ap.add_argument("--procedural", default="data/processed/procedural_v1")
-    ap.add_argument("--thingi", default="data/processed/thingi_v1")
+    paths = resolve_data_paths()
+    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360_full")))
+    ap.add_argument("--procedural", default=str(paths.processed_root("procedural_v1")))
+    ap.add_argument("--thingi", default=str(paths.processed_root("thingi_v1")))
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--lr", type=float, default=1e-3)

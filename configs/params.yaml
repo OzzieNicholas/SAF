@@ -1,9 +1,8 @@
-# params.yaml — 几何 oracle / 采样 / 标签 的**冻结口径文档（D-021 台账镜像）**。
+# params.yaml — 几何 oracle / 采样 / 标签 的冻结口径文档（D-021 台账镜像）。
 #
-# ⚠️ 本文件当前**非加载配置**（无 Hydra/OmegaConf 接线）：代码里只有 tools/build_fusion360.py 的 _root_from_params()
-#    读 `data.fusion360_root`；其余数值均在 src/tools 里**硬编为默认值**（如 n_directions=128 / resolution=48 /
-#    radius_world=0.05）。**改此处不改 runtime**——要改冻结值须同时改代码默认，并在 governance/decisions.md 新增
-#    supersede 条目（D-021 / D-003 连续数值条款）。本文件作口径的单一登记之家（读者语言）。
+# 外部数据根默认由 tools/data_paths.py 解析为 E:\Work\Data，也可由 SAF_DATA_ROOT、
+# SAF_TEMPORARY_ROOT、SAF_FUSION360_ROOT、SAF_THINGI_ROOT 或 CLI 覆盖。
+# 本文件仍是冻结口径的单一登记之家；连续数值变更须同步 decisions.md supersede。
 # 离散选择（语义C / 球模型 / 基板不建模+下半球 / 体素腐蚀口径 / 二分类）已冻结，见 D-001..D-005。
 
 oracle:
@@ -30,9 +29,14 @@ split:
   frac_val: 0.2                  # val 为**预留 held-out**：超参先验固定、当前工具未在 val 上调参（见各 tool 的 _fva）；余为 test（Thingi10K 恒 test）
 
 data:
-  # 公开 CAD 主源 = Fusion 360 Gallery reconstruction 网格（D-017）；只用最终零件 .obj，不碰构造序列/B-Rep。
+  # 公开 CAD 主源 = Fusion 360 Gallery reconstruction 网格（D-017）。
   source: fusion360              # {procedural, fusion360, thingi10k(恒 test)}（ABC 已弃用，D-023）
-  fusion360_root: ""             # 本地 reconstruction 目录（gitignore；仅本键被代码消费，未决 fusion360-ingest）
+  data_root: "E:/Work/Data"       # 外部共享数据根（不在 SAF 仓库）
+  temporary_root: "E:/Work/Data/Temporary"
+  fusion360_root: "E:/Work/Data/Fusion360Gallery/reconstruction"
+  thingi_root: "E:/Work/Data/Thingi10K/raw_meshes"
+  processed_root: "E:/Work/Data/Temporary/SAF"
+  run_id: "latest"
   resolution: 48                 # 冻结 D-021 + 精确细化开（D-020：低 res 即 res-稳定训练级）
   radius_world: 0.05             # 冻结 D-021（主工具半径；H2 验证工具尺寸要紧）
 

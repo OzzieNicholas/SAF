@@ -124,8 +124,8 @@
 - **环境**：conda env `saf`（py3.12，conda-forge + torch cu124）——`conda env create -f environment.yml`。
 - **复现**：
   - 验收门：`python tests/gate.py`
-  - 数据流水线（可复现阶段）：`dvc repro`
-  - 每个结果：见 `governance/results.md` 对应行的复现命令（如 `tools/train_convonet.py --fusion data/processed/fusion360_full --seeds 5` 重生 H3）。
+  - 数据构建：`tools/build_dataset.py` 等 CLI；数据写入外部 `E:\Work\Data\Temporary\SAF`，不进入仓库
+  - 每个结果：见 `governance/results.md` 对应行的复现命令，并通过 `tools/data_paths.py` 指向外部数据。
   - 非交互跑法注意（壳内激活、勿裸调 python.exe）见 [`AGENTS.md`](AGENTS.md)「怎么跑」。
 
 ---
@@ -139,7 +139,7 @@
 4. **数据代表性**：Fusion 棱柱/拉伸几何为主、无自由曲面；8625 设计中成功物化 8590 件。
 5. **跨域子采样**：Thingi 每件设采样上限，跨域指标为无偏子采样估计。
 6. **E5 口径**：方向标签用占据口径（无 D-020 细化）；方向级标签若作 headline 训练源尚待作者签收。
-7. **辅助信号口径**：程序化件用 32 方向（粗口径辅助信号）；所有 headline 指标皆在 128 口径测试集评估。
+7. **辅助信号口径**：程序化件已与冻结配置统一采用 128 方向；所有 headline 指标均在 128 口径测试集评估。
 
 ---
 
@@ -153,7 +153,7 @@ SAF 用一套**可执行治理**保证"说到做到、不造假绿"：
   门是**棘轮**——绿了不许静默退绿，真 FAIL/新 PENDING 即 RED。
 - **命门人签收**：真实网格标签有效性等"命门"由**客观量化审核**裁定并进门棘轮（D-025），杜绝假绿。
 - **状态看门、地图看 README**：现状不手写、跑门实时裁决；"一个事实一个家、指针不复制"。
-- **通用控制平面**（`docs/other/project-control-plane/`）：把契约、策略、工作流、执行、检查、评审和证据定义为可复用规范；SAF 的路径和能力由 `governance/project.json` 适配声明，论文与图件只是项目能力，不进入通用内核。
+- **治理**（`governance/`）：SAF 自包含地管理契约、决策、证据和工程门；论文与图件是工程下游发布包，不反向定义工程语义。
 
 治理地图（决策↔性质映射、修改触发）见 [`governance/README.md`](governance/README.md)。
 
@@ -169,11 +169,11 @@ SAF 用一套**可执行治理**保证"说到做到、不造假绿"：
 | 结果账本（权威数字+复现命令） | `governance/results.md` |
 | 研发弧位置 | `governance/roadmap.md` |
 | 文献证据 | `governance/evidence.md`；富矩阵 `docs/2_文献矩阵与相关工作.md` |
-| 文献输入 | `docs/references/`（PDF/候选书目，只读；不属于论文交付物） |
+| 文献输入 | `docs/references/`（Zotero 指针与候选书目；PDF 由 Zotero 管理） |
 | 实现代码 | `src/support_accessibility/{oracle,data,eval,models,baselines,viz}/` |
 | 验收性质 + 门 | `tests/acceptance/` + `tests/gate.py` |
 | 实验/复现 CLI | `tools/` |
-| 通用控制平面规范 | `docs/other/project-control-plane/`；SAF 适配 `governance/project.json` |
+| 论文下游包 | `deliverables/paper/`；文献 PDF 由 Zotero 集合 `F5ITM9M6` 提供 |
 | 退役富文档（全本，只读） | `docs/` |
 
 ---

@@ -59,7 +59,7 @@ Peer Reviewer 1 — Methodology
 
 基线、回归、消融、跨域和方向场分别保留运行命令、样本数和摘要，避免把 0.893、0.930、0.886 和 0.463 写成同一统计量。
 
-**Evidence Anchor:** `dataset: evidence_manifest.md — canonical run IDs and metric definitions`
+**Evidence Anchor:** `dataset: evidence/manifest.md — canonical run IDs and metric definitions`
 
 ## Weaknesses
 

@@ -217,3 +217,9 @@
 - 裁决：删除仓库内未跟踪的个人 `method/` 目录；根级 Agent 规则统一为 `AGENTS.md`；`CLAUDE.md` 不再作为活动入口。运行产物按生命周期分为 retained evidence（`artifacts/runs/`）与可清理 cache（`artifacts/cache/`），结果写入 run envelope（run_id、输入摘要、工具版本、命令），缓存由受边界保护的 TTL 清理器管理。
 - 依据：个人备忘不是项目控制平面资产，保留专用目录会形成第二套不可验证入口；运行结果既需要复现和审计，又不能让检查点、日志和候选图片无限积累。证据与缓存分离后，删除动作可以机械化而不影响 gate、论文和失败审计。
 - 状态：接受（不改变 `support_accessibility` 业务语义、冻结参数、数据标签或实验结论；`test_governance`、结构检查器、artifact helper/prune 和 CI 共同守护）。
+
+## D-032  工程中心、外部数据与论文下游包重构
+
+- 裁决：SAF 工程保持绝对中心，工程入口固定为 `src/`、`tests/`、`tools/`、`configs/`、`governance/`；论文作为下游发布包聚合在 `deliverables/paper/`，分为 manuscript、pipeline、figures、outputs、evidence、reviews、zotero 和 ignored build。公共原始数据与 SAF 生成的 processed 数据全部移出仓库，默认布局为 `E:/Work/Data/{Fusion360Gallery,Thingi10K,Temporary/SAF}`，由 `tools/data_paths.py` 统一解析并可环境变量覆盖。DVC 元数据与仓库内数据阶段删除，论文文献 PDF改由 Zotero 集合 `几何可达与神经预测`（`F5ITM9M6`）只读提供；构建时生成 ignored BibTeX，Zotero 缺失或 citation key 不完整时论文门失败，工程门不受影响。工程 gate 与论文 gate 分离，canonical 论文图/PDF和轻量 evidence 可追踪，原始 run/cache、旧 archive、文献附件和临时编译物不追踪。
+- 依据：工程代码需要在无论文资料、无外部数据和无 Zotero 的新克隆中独立测试；论文又需要一个聚合的下游事实源和可复核引用入口。把共享数据与文献附件留在项目外可避免跨项目重复、仓库膨胀和资料误发布；把论文 pipeline 放在 deliverables 下可集中管理而不让论文反向污染产品模块。Git 历史保留旧论文版本，不在当前树重复保留 archive 二进制。
+- 状态：接受（只改变工程/论文/数据/文献资产边界与门职责，不改变 D-001..D-005 几何语义、冻结参数、标签定义或实验结论；由 `tools/data_paths.py`、`tests/gate.py`、论文 gate、Zotero contract 和结构/论文测试共同守护）。

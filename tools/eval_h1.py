@@ -5,7 +5,7 @@
 |ρ| 越小→支撑面积越不预示可达性（H1 立论）。实测 |ρ|≤0.27=**弱相关**（弱预测因子，非严格独立）；
 补 flagship_pair 存在性证据的**统计**半。self-add src。
 
-用法：conda run -n saf python tools/eval_h1.py --data data/processed/fusion360_full
+用法：conda run -n saf python tools/eval_h1.py
 """
 import argparse
 import os
@@ -15,6 +15,10 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _SRC = os.path.join(os.path.dirname(_ROOT), "src")
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)
+try:
+    from data_paths import resolve_data_paths
+except ImportError:
+    from tools.data_paths import resolve_data_paths
 
 for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：⟹/⟺ 等非 GBK 字符（仿 tests/gate.py）
     try:
@@ -25,7 +29,7 @@ for _s in (sys.stdout, sys.stderr):            # Windows GBK 控制台防崩：�
 
 def main():
     ap = argparse.ArgumentParser(description="H1 支撑面积⊥可达 Spearman ρ")
-    ap.add_argument("--data", default="data/processed/fusion360_full")
+    ap.add_argument("--data", default=str(resolve_data_paths().processed_root("fusion360_full")))
     ap.add_argument("--max-models", type=int, default=None, help="截取前 N 件（None=全部）")
     a = ap.parse_args()
 
