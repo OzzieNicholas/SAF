@@ -1,10 +1,10 @@
-"""形状条件预测验收（Phase-1 薄纵切端到端）：在**未见模型**上预测支撑接触点可达性。
+"""形状条件预测验收（薄纵切端到端）：在**未见模型**上预测支撑接触点可达性。
 
-守护论文头号命题 H3（跨模型预测成立）的可行性：程序化件 → oracle 打标 → 训 tiny 模型 →
+守护论文头号命题跨模型预测（跨模型预测成立）的可行性：程序化件 → oracle 打标 → 训 tiny 模型 →
 在**按模型切分的留出件**上评分，须显著胜过多数类基线。saf 内真跑；缺依赖 → PENDING/skip。
 
-注：tiny numpy 模型只为 derisk 管线（云端无 torch）；真实 ConvONet/PyTorch 属 Phase-3。
-留出 F1 实测稳定 ≈1.0（见提交说明），故 0.9 是紧贴实测的下限——能抓住真回归（如崩到 0.65），仍留 ~0.1 余量抗跨平台数值差。
+注：tiny numpy 模型用于打通管线（不依赖 torch）；真实 ConvONet/PyTorch 模型由 experiments/cross_model_prediction.py 评测。
+留出 F1 实测稳定 ≈1.0，故 0.9 是紧贴实测的下限——能抓住真回归（如崩到 0.65），仍留 ~0.1 余量抗跨平台数值差。
 """
 
 from unittest import SkipTest
@@ -54,7 +54,7 @@ def checks():
 
 
 def test_model_generalizes_cross_model():
-    """未见模型上不可达 F1 达标且胜过多数类基线（H3 可行性）。"""
+    """未见模型上不可达 F1 达标且胜过多数类基线（跨模型预测可行性）。"""
     try:
         _deps()
     except ImportError as e:

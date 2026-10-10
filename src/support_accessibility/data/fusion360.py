@@ -7,7 +7,7 @@
   → oracle 打标（语义 C, D-001..D-003）→ 物化 D-016 记录（source=fusion360）+ viz 审计图。
 
 铁律 #6 / D-018（发放机制经 D-025 客观化）：真实网格 oracle 有效性**未过审核**前，本 ingest 记
-`human_signoff=false`，不得直接进训练集。**验证由量化审核** `tools/audit_labels.py`（差分/res-稳定/分布，
+`human_signoff=false`，不得直接进训练集。**验证由量化审核** `experiments/label_audit.py`（差分/res-稳定/分布，
 D-025）裁定并写 `label_audit` + 置 human_signoff——**非人工视觉审图**（视觉主观、不可复现、易造假绿）。
 
 模块级只 stdlib（os）；numpy/igl/trimesh/oracle 在函数内 import（沿袭 data 包约定，裸 py 仍可 import）。
@@ -15,6 +15,8 @@ D-025）裁定并写 `label_audit` + 置 human_signoff——**非人工视觉审
 """
 
 import os
+
+from support_accessibility.runtime.frozen_params import FROZEN
 
 
 # ————— 纯 stdlib：OBJ 解析 + 目录遍历（裸环境可执行自检） —————
@@ -61,7 +63,7 @@ def load_obj(path):
 
 
 def normalize(V):
-    """归一到最长包围盒边 = 1（configs/params.yaml geometry.normalize）：居中 + 除以最长边。返回 (V_norm, scale)。"""
+    """归一到最长包围盒边 = 1（configs/oracle_params.yaml geometry.normalize）：居中 + 除以最长边。返回 (V_norm, scale)。"""
     import numpy as np
     V = np.asarray(V, float)
     lo, hi = V.min(0), V.max(0)
@@ -69,8 +71,8 @@ def normalize(V):
     return (V - (lo + hi) / 2.0) / scale, scale
 
 
-def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg=45.0):
-    """§4.8 几何轻筛（非 oracle 判定）。返回 (ok, reason)：面数非退化区间 + 存在下朝悬垂面（否则无接触区可评）。"""
+def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg=FROZEN.overhang_deg):
+    """几何轻筛（非 oracle 判定）。返回 (ok, reason)：面数非退化区间 + 存在下朝悬垂面（否则无接触区可评）。"""
     import numpy as np
     from support_accessibility.data.overhang import support_contact_faces
     F = np.asarray(F)
@@ -84,13 +86,13 @@ def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg
     return True, f"面数{F.shape[0]}、悬垂面{len(sc.centroids)}"
 
 
-def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_world=0.05,
-                      overhang_deg=45.0, n_directions=128, nudge_voxels=2.0,
+def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=FROZEN.resolution, radius_world=FROZEN.radius_world,
+                      overhang_deg=FROZEN.overhang_deg, n_directions=FROZEN.n_directions, nudge_voxels=2.0,
                       max_models=None, emit_audit=True, frac_train=0.6, frac_val=0.2, seed=0):
     """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）+ viz 审计图。
 
     radius_world 在归一尺度（最长边=1）下。支撑接触点 = 下朝悬垂面质心沿外法向外移 nudge_voxels 体素到自由侧。
-    D-018/D-025：本 ingest 记 human_signoff=false；有效性由量化审核 `tools/audit_labels.py` 裁定后置真。返回 out_dir。
+    D-018/D-025：本 ingest 记 human_signoff=false；有效性由量化审核 `experiments/label_audit.py` 裁定后置真。返回 out_dir。
     """
     os.makedirs(out_dir, exist_ok=True)                 # models/、audit/ 由 save_model / montage 各自建
     audit_dir = os.path.join(out_dir, "audit")
@@ -116,11 +118,11 @@ def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=48, radius_
 
 
 def build_from_root(out_dir, root, **kw):
-    """便捷入口：从 reconstruction 目录读真实网格再物化。root 缺失 → FileNotFoundError（deferred: fusion360-ingest）。"""
+    """便捷入口：从 reconstruction 目录读真实网格再物化。root 缺失 → FileNotFoundError。"""
     if not root or not os.path.isdir(root):
         raise FileNotFoundError(
             f"Fusion360 reconstruction 目录不存在：{root!r}"
-            "（见 tools/data_paths.py 或 SAF_FUSION360_ROOT）"
+            "（见 src/support_accessibility/runtime/data_paths.py 或 SAF_FUSION360_ROOT）"
         )
     return build_from_meshes(_meshes_from_root(root), out_dir, **kw)
 
@@ -130,7 +132,7 @@ def _meshes_from_root(root):
     for name, path in iter_final_designs(root):
         try:
             V, F = load_obj(path)
-        except Exception:                       # 坏 obj 跳过（失败计入 §4.8 排除，不中断批处理）
+        except Exception:                       # 坏 obj 跳过（失败计入合格性筛选的排除，不中断批处理）
             continue
         yield name, V, F
 
@@ -153,7 +155,7 @@ def _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directi
         if status == "flipped":             # 法向翻转、非真下朝面 → 丢弃并计数
             n_flip += 1
             continue
-        pts.append(q)                        # "free"/"confined"：同旧 +n 口径（confined 保留稀有不可达正类）
+        pts.append(q)                        # "free"/"confined"：保留 +n 点（confined 保留稀有不可达正类）
         labs.append(o.label(q, r).value == "inaccessible")
     if not pts:
         return None, n_flip

@@ -1,26 +1,32 @@
-"""验收层（原"harness"概念溶于此）：把 governance/decisions.md 的冻结决策翻成会跑的性质。
+"""验收性质：把 governance/ 中的冻结决策翻译成会运行的检查。
 
-每个子模块暴露 checks() -> list[dict(name,status,detail)]，由 tests/gate.py 汇总成裁决：
-  test_env            ——          环境自检（igl/numpy/scipy/trimesh + py≥3.12）
-  test_known_answers  D-001,D-002  盲腔=不可达 / 开阔下朝面=可达
-  test_properties     D-003,D-005  变形:联合旋转等变 / 尺度不变 / 半径单调 / 方向单调
-  test_differential   D-003        体素 vs 暴力胶囊对拍
-  test_invariants     ——          网格 sanity
-  test_governance        ——          文档断言机检（现在就真跑变绿）
-  test_mesh_frontend  D-007        网格前端（igl solidify→occupancy）复现已知答案 + IoU
-  test_support_contact D-010       支撑接触区提取（下朝悬垂面 S(P,d)：提取/方向/阈值/端到端）
-  test_eval           ——          指标（不可达 F1 / 区域 IoU / 面积比例误差）已知答案锚定
-  test_data           ——          程序化标签数据集（oracle 自动打标、两类俱在、按模型切分）
-  test_model          H3          形状条件预测：留出(未见)模型上不可达 F1 胜基线（跨模型可行性）
-  test_baselines      H2,E4       基线对照：工具尺寸不可忽略(r=0 vs r>0) + 神经胜射线可见性/多数类
-  test_label_quality  D-008,D-004 标签质量审核门（六项趋势）：受限盲腔半径单调非减 + 批量分布合理
-  test_dataset        D-016       物化数据集：build→load round-trip·两类·按模型切分·标签=oracle·manifest 良构
-  test_fusion360      D-017       Fusion360 网格 ingest：OBJ 解析/final 过滤（纯 stdlib）+ box 端到端物化（source=fusion360）
-  test_viz            D-018       viz 审计仪器：可达性 montage 出合法 PNG（尺寸符几何 + 红/绿像素在位；命门签收之图）
-  test_figure_face_mapping D-028  出版物样本与原始网格面映射可加载；外部数据缺失时 PENDING/skip
+每个子模块暴露 checks() -> list[dict(name, status, detail)]，由 tests/gate.py 汇总；
+pytest 直接运行其中的 test_* 函数。状态取值：PASS、FAIL、PENDING（所需外部输入缺失）、
+N/A（经检验判定为非不变量，或已被他处覆盖，附理由）。
 
-决策↔性质映射见 governance/README.md。几何性质在 oracle 实现 + 依赖安装前保持 PENDING；
-pytest 下相应 test_* 抛 unittest.SkipTest。
+模块与守护内容：
+  test_env                  环境：igl、numpy、scipy、trimesh 可导入，Python ≥ 3.12
+  test_known_answers        判定语义：盲腔不可达、开阔下朝面可达
+  test_capsule              边界带精确胶囊细化与三态判定
+  test_differential         体素腐蚀与暴力参考对拍
+  test_properties           变形与单调性性质（已证伪的不变量跳过或判 N/A，理由见模块）
+  test_invariants           网格健全性检查
+  test_mesh_frontend        网格前端（缠绕数占据、缠绕安全外移）的已知答案
+  test_support_contact      支撑接触区提取（下朝悬垂面）
+  test_eval                 指标的已知答案锚定
+  test_procedural_cases     程序化已知答案件：两类俱在、按模型切分
+  test_dataset              物化数据集的往返读写、标签与 oracle 一致、manifest 良构
+  test_fusion360            Fusion 360 网格解析与端到端物化
+  test_thingi               Thingi10K 确定性子采样
+  test_model                形状条件预测在未见模型上胜过多数类基线
+  test_direction_field      方向级可达性场：逐方向判定与模型输出头
+  test_baselines            工具尺寸效应与基线对照
+  test_label_quality        标签质量趋势（六项）
+  test_viz                  审计图：合法 PNG、尺寸与颜色在位
+  test_figure_face_mapping  论文样本的面映射（外部数据缺失时 PENDING）
+  test_governance           决策台账格式与覆盖、参考文档、路线图、仓库布局
+
+决策与性质的对应见 governance/README.md。
 """
 
 PASS, FAIL, PENDING, NA = "PASS", "FAIL", "PENDING", "N/A"

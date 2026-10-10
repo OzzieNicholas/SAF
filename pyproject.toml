@@ -7,16 +7,16 @@ name = "support-accessibility"
 version = "0.0.0"
 description = "Support Accessibility Field — 金属AM支撑接触区几何可达性代理评价与神经预测"
 requires-python = ">=3.12"
-dependencies = ["numpy", "scipy", "trimesh"]
+dependencies = ["numpy", "scipy", "trimesh", "pyyaml"]
 
 [project.optional-dependencies]
 dev = ["pytest", "hypothesis"]
 
-# igl 走 conda-forge（environment.yml 为环境唯一权威源）；此处不列 igl 以免 igl/libigl 漂移。
-# 神经栈(torch 等)后续批次补。
+# igl、torch、matplotlib 等重依赖以 environment.yml 为唯一权威源；此处只列纯 Python 的最小集。
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

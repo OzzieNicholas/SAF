@@ -4,17 +4,16 @@ import sys
 from unittest import SkipTest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(ROOT, "tools"))
-from data_paths import resolve_data_paths
-FIGURE_TOOLS = os.path.join(ROOT, "deliverables", "paper", "pipeline", "figures")
+from support_accessibility.runtime.data_paths import resolve_data_paths
+FIGURE_TOOLS = os.path.join(ROOT, "paper", "pipeline", "figures")
 if FIGURE_TOOLS not in sys.path:
     sys.path.insert(0, FIGURE_TOOLS)
 
 from . import pending, result
 
 try:
-    import _data as D  # noqa: E402
-    import examples as X  # noqa: E402
+    from paper.pipeline.figure_scripts import figure_data as D  # noqa: E402
+    from paper.pipeline.figure_scripts import figure_cases as X  # noqa: E402
     _IMPORT_ERROR = None
 except ImportError as exc:  # pragma: no cover - exercised by bare interpreters
     D = X = None
@@ -42,8 +41,8 @@ def _datasets():
     from support_accessibility.data.dataset import load_dataset
 
     paths = resolve_data_paths()
-    fusion_path = str(paths.processed_root("fusion360_full"))
-    thingi_path = str(paths.processed_root("thingi_v1"))
+    fusion_path = str(paths.processed_root("fusion360"))
+    thingi_path = str(paths.processed_root("thingi10k"))
     _require(fusion_path, "processed Fusion data")
     _require(thingi_path, "processed Thingi data")
     fusion, _ = load_dataset(fusion_path)
@@ -67,7 +66,7 @@ def _assert_mapping(mapping, points, labels, lo, pitch):
 
 def test_fixed_fusion_face_mapping_order_and_world_coordinates():
     fusion, _ = _datasets()
-    model = fusion[X.FIG01_LABEL.name]
+    model = fusion[X.FRAMEWORK_LABEL.name]
     loaded = D.load_fusion_mesh(model.name, X.FUSION_ROOT)
     if loaded is None:
         raise SkipTest(f"Fusion raw mesh is not available: {model.name}")
@@ -78,7 +77,7 @@ def test_fixed_fusion_face_mapping_order_and_world_coordinates():
 
 def test_fixed_thingi_face_mapping_uses_stored_normals():
     _, thingi = _datasets()
-    example = X.FIG07[1]
+    example = X.PREDICTION_HEATMAP[1]
     model = thingi[example.name]
     _require(X.THINGI_ROOT, "Thingi raw mesh root")
     vertices, faces, occupancy, lo, pitch, normals = D.load_thingi_mesh(
@@ -96,13 +95,13 @@ def test_fixed_failure_case_mapping_and_mismatch_fail_closed():
     import pytest
 
     _require_modules()
-    artifact_path = os.path.join(ROOT, "artifacts", "runs", "failure_audit", "fig10_case.npz")
+    artifact_path = os.path.join(ROOT, "artifacts", "runs", "failure_analysis", "error_boundary_case.npz")
     _require(artifact_path, "Figure 10 failure artifact")
     artifact = np.load(artifact_path, allow_pickle=True)
-    assert str(artifact["name"]) == X.FIG10.name
-    loaded = D.load_fusion_mesh(X.FIG10.name, X.FUSION_ROOT)
+    assert str(artifact["name"]) == X.ERROR_BOUNDARY.name
+    loaded = D.load_fusion_mesh(X.ERROR_BOUNDARY.name, X.FUSION_ROOT)
     if loaded is None:
-        raise SkipTest(f"Fusion raw mesh is not available: {X.FIG10.name}")
+        raise SkipTest(f"Fusion raw mesh is not available: {X.ERROR_BOUNDARY.name}")
     vertices, faces, occupancy, lo, pitch = loaded
     gold = np.asarray(artifact["gold"], bool)
     mapping = D.map_processed_faces(

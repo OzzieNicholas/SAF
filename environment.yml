@@ -1,11 +1,10 @@
-# SAF 开发环境（canonical 源；理由见 governance/decisions.md D-007）
-# 建/复现：conda env create -f environment.yml   （已存在则 conda env update -f environment.yml --prune）
-# 本次实测版本：igl 2.6.1 / numpy 2.5.1 / scipy 1.18.0(本次自 pypi) / trimesh 4.12.2 / pytest 9.1.1 / hypothesis 6.156.5
-# 神经栈（Phase-3，D-020 后）：torch 2.6.0+cu124（CUDA 12.4 轮子，RTX 4060 Ti 实测；装后 numpy 未变、几何栈 45 passed 不退绿）。
-#   其它机复现：CUDA 12.x GPU 直接 create；无 GPU 或其它 CUDA 版本改下方 pip extra-index-url（cpu / cu121 / cu126）。
-#   注：torch(Intel OMP) + numpy/scipy(LLVM OMP) 同进程撞 OMP#15，或 torch fbgemm.dll 满载进程加载 WinError 127；
-#       E5/方向场 + 验收门确会混用，已由 tests/conftest.py + tests/gate.py 置 KMP_DUPLICATE_LIB_OK=TRUE 兜底。
-#       非交互跑法（壳内激活，勿裸调 python.exe / 勿并发 conda run）见 AGENTS.md「怎么跑」。
+# SAF 开发环境（环境依赖的唯一权威源）
+# 创建：conda env create -f environment.yml            （在仓库根目录运行；会以可编辑方式安装本包）
+# 更新：conda env update -f environment.yml --prune
+#
+# 神经栈默认使用 CUDA 12.4 轮子；无 GPU 或其他 CUDA 版本时，改下面的 extra-index-url（cpu / cu121 / cu126）。
+# torch（Intel OpenMP）与 numpy/scipy（LLVM OpenMP）同进程可能触发重复加载中止，
+# 由 support_accessibility.runtime.console.setup_console() 与 tests/conftest.py 统一设置 KMP_DUPLICATE_LIB_OK 兜底。
 name: saf
 channels:
   - conda-forge
@@ -15,12 +14,15 @@ dependencies:
   - numpy
   - scipy
   - trimesh
+  - pyyaml
   - pytest
   - hypothesis
+  - tectonic=0.17.0            # 论文 PDF 编译：paper/pipeline/build_paper.py 调用
   - pip
   - pip:
     - --extra-index-url https://download.pytorch.org/whl/cu124
     - torch==2.6.0+cu124
-    - matplotlib==3.11.1         # 论文图件（统计图/示意图，deliverables/paper/pipeline/figures/）
-    - pyvista==0.48.4            # 论文图件（3D 网格渲染，拉 vtk 9.6.2）；Windows 离屏渲染实测可用（需 GPU/OpenGL 上下文）
+    - matplotlib==3.11.1         # 论文图件：统计图与示意图
+    - pyvista==0.48.4            # 论文图件：3D 网格离屏渲染（需 OpenGL 上下文）
     - pypdf==6.1.1               # 图件 QA：PDF 页面尺寸、字体嵌入与 Type 3 检查
+    - -e .                       # 本包（support_accessibility），源码在 src/

@@ -1,0 +1,88 @@
+% !TEX program = xelatex
+% 论文外壳模板：题目、摘要、关键词由 paper/pipeline/markdown_to_latex.py 从「论文正文.md」填入（%%…%% 处），
+% 正文生成为 body.tex；渲染结果写入 paper/build/，不入库。
+\documentclass[UTF8,a4paper,twocolumn,zihao=5,fontset=fandol]{ctexart}
+
+\usepackage[top=18mm,bottom=20mm,left=18mm,right=18mm,columnsep=7mm]{geometry}
+% 西文字体按文件名加载 TeX Gyre（tectonic 与 TeX Live 都提供），不依赖本机安装的字体。
+\usepackage{fontspec}
+\setmainfont{texgyretermes-regular.otf}[BoldFont=texgyretermes-bold.otf,ItalicFont=texgyretermes-italic.otf,BoldItalicFont=texgyretermes-bolditalic.otf]
+\setsansfont{texgyreheros-regular.otf}[BoldFont=texgyreheros-bold.otf,ItalicFont=texgyreheros-italic.otf,BoldItalicFont=texgyreheros-bolditalic.otf]
+\setmonofont{texgyrecursor-regular.otf}[BoldFont=texgyrecursor-bold.otf,ItalicFont=texgyrecursor-italic.otf,BoldItalicFont=texgyrecursor-bolditalic.otf]
+
+\usepackage{amsmath,amssymb,bm,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,multirow}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{dblfloatfix}
+\usepackage{placeins}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\usepackage{xurl}
+
+% 图件与参考文献由 paper/pipeline/build_paper.py 暂存到构建目录（figures/、references.bib）后再编译。
+\graphicspath{{figures/}}
+\DeclareGraphicsExtensions{.pdf,.png}
+\hypersetup{
+  unicode=true,
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue,
+  pdfauthor={},
+  pdftitle={%%TITLE%%}
+}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\linespread{1.05}
+\setlength{\emergencystretch}{2em}
+\setlist[enumerate]{leftmargin=2em,itemsep=0.15em,topsep=0.3em}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,justification=justified,singlelinecheck=false}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\algorithmcfname}{算法}
+\renewcommand{\refname}{参考文献}
+
+\ctexset{
+  section={format=\zihao{4}\bfseries,beforeskip=0.8em,afterskip=0.35em},
+  subsection={format=\zihao{-4}\bfseries,beforeskip=0.55em,afterskip=0.25em}
+}
+
+\begin{document}
+
+% 顶部内容整体包进花括号：摘要中的 $[0.302,0.488]$ 等方括号不会提前结束 \twocolumn 的可选参数。
+\twocolumn[{%
+\begin{@twocolumnfalse}
+\begin{center}
+  {\zihao{2}\bfseries %%TITLE%%\par}
+  \vspace{0.45em}
+  {\large\bfseries %%TITLE_EN%%\par}
+\end{center}
+
+\vspace{0.5em}
+\begin{minipage}{\textwidth}
+\zihao{-5}
+\noindent\textbf{摘要：}
+%%ABSTRACT_ZH%%
+
+\noindent\textbf{关键词：}%%KEYWORDS_ZH%%
+
+\vspace{0.45em}
+\noindent\textbf{Abstract:}
+%%ABSTRACT_EN%%
+
+\noindent\textbf{Key words:} %%KEYWORDS_EN%%
+\end{minipage}
+\vspace{0.7em}
+\end{@twocolumnfalse}
+}]
+
+\input{body}
+
+\bibliographystyle{gbt7714-numerical}
+\bibliography{references}
+
+\end{document}

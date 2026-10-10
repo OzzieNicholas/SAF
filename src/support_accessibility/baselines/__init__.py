@@ -1,7 +1,7 @@
-"""几何启发式对照基线（E4；对照位，非主线，见 D-015）。
+"""几何启发式对照基线（基线对照；对照位，非主线，见 D-015）。
 
-论文用它们证明"神经方法不是简单规则/纯可见性即可替代"（H2 / E4）：
-- `ray_visibility`：**无工具半径**的纯射线可见性 = oracle 在 r=0。H2 对照——工具尺寸不可忽略：
+论文用它们证明"神经方法不是简单规则/纯可见性即可替代"（工具尺寸效应 / 基线对照）：
+- `ray_visibility`：**无工具半径**的纯射线可见性 = oracle 在 r=0。工具尺寸效应对照——工具尺寸不可忽略：
   某点纯射线可见（r=0 可达），但工具有非零半径时可能进不去（r>0 不可达）。
 - `majority`：多数类（可达性问题里通常=全可达）——平凡下界。
 - `local_solid_rule`：局部几何规则（查询点 patch 内实体占比超阈→判不可达）——"简单局部启发式"对照。
@@ -9,8 +9,10 @@
 不可达=风险正类（与 eval / labels 一致）。numpy/oracle 在函数内 import（系统 py 仍可 import baselines）。
 """
 
+from support_accessibility.runtime.frozen_params import FROZEN
 
-def ray_visibility(occ, points, n_directions=128):
+
+def ray_visibility(occ, points, n_directions=FROZEN.n_directions):
     """无工具半径射线可见性基线 = oracle@r=0。返回 bool[K]，True=不可达（无方向射线可逃逸）。"""
     import numpy as np
     from support_accessibility.oracle import SupportAccessibilityOracle

@@ -3,39 +3,107 @@
 [![gate](https://github.com/OzzieNicholas/SAF/actions/workflows/gate.yml/badge.svg)](https://github.com/OzzieNicholas/SAF/actions/workflows/gate.yml)
 
 金属增材制造**支撑接触区**表面的几何可达性代理评价与**形状条件神经预测**。
-在单个公开三维零件上，识别构建方向决定的支撑接触区，评价其在简化工具条件下的几何可接近性，
-并用形状条件神经场在未见模型上预测——为 DfAM 预处理提供不同于支撑体积/过悬面积的后处理几何风险维度。
-（几何/AI 题，DfAM 前端；非材料/工艺实验，非生产认证。）
 
-> 📖 **想一篇读懂全项目、不必看代码？** → **[`OVERVIEW.md`](OVERVIEW.md)**（自足综述：需求·方法·关键决策·结果·状态·配置·局限·治理·复现）。
+给定一个公开三维零件和构建方向，SAF 先找出需要支撑的接触表面（用「下朝悬垂面」做代理），再用几何方法判断：球形工具能不能沿某个方向直线伸到这些点上去清理支撑；最后训练一个神经网络，在**没见过的零件**上直接预测这个结果。它给 DfAM（面向增材的设计）提供一个不同于「支撑体积 / 悬垂面积」的后处理风险维度。
 
-## 一句话现状
+这是几何 / AI 课题，不是材料或工艺实验，也不是生产认证：结果只是一个几何代理，不保证真实支撑一定可拆。
 
-尺子（几何 oracle）+ 三数据源（Fusion360/Thingi10K/程序化）+ 形状条件神经预测**全就位**；
-假设 **H1/H2/H3/H5 · E1/E4/E5/E8 + 消融** 全部坐实、**各有可复现器**（`tools/`）；验收门 **GREEN**（工程 DoD 达成，D-027）。
-论文写作中（`deliverables/paper/`）。权威结果数字见 **[`governance/results.md`](governance/results.md)**。
+## 方法一览
 
-## 从哪读起（按你想知道的）
-
-- **做什么 / 为什么 / 硬约束 / 非目标 / 指标**（需求）→ [`governance/problem.md`](governance/problem.md) + [`governance/constraints.md`](governance/constraints.md)（不可破铁律）
-- **做到哪了 / 有哪些结果**（完成情况）→ 跑 `python tests/gate.py`（现 **GREEN**：budget/regression/label_audit PASS + 4 项 N/A）｜**[`governance/results.md`](governance/results.md)**（结果账本：假设→指标→数值±std→样本→**复现命令** + 局限）｜[`governance/roadmap.md`](governance/roadmap.md)（研发弧位置）
-- **怎么判定 / 为什么这么设计**（决策）→ [`governance/decisions.md`](governance/decisions.md)（判定语义/口径 D-000..D-030，append-only 台账）+ [`governance/README.md`](governance/README.md)（决策↔性质映射 + 修改触发）
-- **当前配置 / 冻结口径** → [`configs/params.yaml`](configs/params.yaml)（**D-021 冻结**：n_dir=128 / res=48+细化 / radius=0.05 / overhang=45° / ε=1.5）+ [`environment.yml`](environment.yml)（conda env `saf`）
-- **怎么跑 / 复现** → 建环境 `conda env create -f environment.yml`；工程门 `python tests/gate.py`；实验 CLI 在 `tools/`（数据默认位于 `E:\Work\Data\Temporary\SAF`，可由 `SAF_DATA_ROOT`/CLI 覆盖）；论文门 `python deliverables/paper/pipeline/paper_gate.py --strict`；论文构建 `python deliverables/paper/pipeline/build_paper.py --strict-zotero`；非交互跑法注意见 [`AGENTS.md`](AGENTS.md)「怎么跑」。
-
-## 布局
-
-```
-governance/    治理散文 + 地图（problem/decisions/evidence/constraints/conventions/deferred）
-docs/       退役富参考（问题/文献/实验/执行路线全本，只读）
-docs/references/  只读文献入口（Zotero 指针/候选书目；PDF 不入仓库）
-deliverables/paper/      论文下游包（源稿、pipeline、canonical 图/PDF、证据与审稿）
-src/support_accessibility/   实现包（oracle/data/eval/models/baselines/viz）
-tests/      验收层（tests/acceptance/）+ 单元层（tests/unit/）+ 论文层（tests/paper/）+ gate.py（棘轮门）
-configs/       冻结口径与外部数据配置（params.yaml）
-E:\\Work\\Data/  外部原始网格与 processed 数据（由 tools/data_paths.py 解析，不入 SAF）
-artifacts/runs/ 机器运行证据（结果/审计/QA，含 run-id；gitignore）
-artifacts/cache/ 机器运行缓存（检查点/日志/候选图，可按 TTL 清理）
+```mermaid
+flowchart LR
+    A["公开网格<br/>Fusion360 · Thingi10K · 程序化"] --> B["归一化 + 占据栅格<br/>igl 广义缠绕数"]
+    B --> C["下朝悬垂面<br/>支撑接触区代理"]
+    C --> D["几何 oracle<br/>体素腐蚀 + 精确胶囊细化"]
+    D --> E[("可达 / 不可达标签")]
+    B --> F["ConvONet-lite<br/>3D-CNN + 点查询"]
+    E --> F
+    F --> G["未见零件上的可达性预测"]
+    E --> H["评测与基线对照"]
+    G --> H
+    H --> I["论文 paper/"]
 ```
 
-运行契约和外部运行时管理计划，不建立第二套 `plans/` 权威；artifact 生命周期见 [`artifacts/README.md`](artifacts/README.md)。
+- **判定语义**：存在某个下半球逼近方向，使半径 r 的球工具沿直线从无穷远到达该点而不碰撞，则该点可达。只计零件本体遮挡，因此是遮挡下界。
+- **标签**：先在占据栅格的距离场上做多方向 ray-march，处在边界带的点再用精确的胶囊-网格求交定夺，使低分辨率下的标签也稳定。
+- **模型**：整块占据经 3D-CNN 编码，在查询点采样局部特征并拼上坐标，MLP 输出不可达 logit；也可输出每个逼近方向的可达性（方向级场）。
+
+## 目录结构
+
+| 目录 | 内容 |
+|---|---|
+| `src/support_accessibility/` | 唯一的 Python 包：`oracle`（几何判定）、`data`（数据与网格前端）、`models`、`baselines`、`eval`（指标与运行报告）、`viz`、`runtime`（路径与运行记录） |
+| `experiments/` | 可复现实验脚本，每个对应结果账本里的一条结论 |
+| `tools/` | 数据集构建脚本、全量实验复现入口 `reproduce_experiments.py`、缓存清理 `prune_artifacts.py`、布局检查 `check_structure.py` |
+| `tests/` | `acceptance/` 验收性质（工程规格）、`unit/` 单元测试、`paper_pipeline/` 论文流水线测试、`gate.py` 验收门 |
+| `configs/` | `oracle_params.yaml` 冻结的标签口径；`paths.yaml` 唯一的路径配置 |
+| `governance/` | 问题定义、铁律、决策台账、文献证据、结果账本、研发路线、工程规范 |
+| `docs/` | 研究背景参考文档与文献入口（只读） |
+| `paper/` | 论文下游包：源稿、图件脚本、审计与构建流水线、成品图、证据清单 |
+| `data/` | 数据根（默认位置，不入库）：原始网格与处理后数据集，见 [data/README.md](data/README.md) |
+| `artifacts/` | 机器运行产物（不入库）：`runs/` 保留证据，`cache/` 可清理 |
+
+## 快速开始
+
+所有命令在仓库根目录、已激活 `saf` 环境下运行。
+
+```bash
+conda env create -f environment.yml      # 一次性：创建环境并以可编辑方式安装本包
+conda activate saf
+python -m pytest tests -q                # 测试
+python tests/gate.py                     # 工程验收门（加 --format md 输出表格，--paper 额外检查论文证据）
+```
+
+准备数据（下载两个公开数据集并构建，详见 [data/README.md](data/README.md)）：
+
+```bash
+python tools/build_procedural_dataset.py
+python tools/build_fusion360_dataset.py
+python tools/build_thingi10k_dataset.py
+```
+
+数据位置的优先级为：命令行参数 > 环境变量 `SAF_DATA_ROOT` > 不入库的 `configs/paths.local.yaml` > `configs/paths.yaml` 的默认值。
+
+### 实验脚本
+
+| 脚本 | 回答的问题 |
+|---|---|
+| `support_area_vs_accessibility.py` | 支撑面积（接触点计数代理）能否预示可达性（支撑面积与可达性） |
+| `true_triangle_area_check.py` | 换成真实三角面积后支撑面积与可达性的结论是否改变 |
+| `tool_radius_effect.py` | 有限工具半径是否改变可达性（工具尺寸效应） |
+| `cross_model_prediction.py` | 在未见零件上能否预测可达性（跨模型预测） |
+| `cross_domain_robustness.py` | 在野外网格上是否仍然成立（跨域鲁棒性） |
+| `direction_field_prediction.py` | 能否预测每个逼近方向的可达性（方向级场） |
+| `inference_speed.py` | 神经推理比逐点几何判定快多少（推理速度） |
+| `shape_context_ablation.py` | 形状上下文和感受野的价值 |
+| `baseline_comparison.py` | 与多数类、局部规则、射线可见性等基线的对照 |
+| `regression_check.py` | 神经预测是否显著不劣于最强几何基线 |
+| `failure_analysis.py` | 误判集中在哪里 |
+| `label_audit.py` | 真实网格标签是否可信（差分、跨分辨率稳定、分布） |
+| `oracle_differential_audit.py` | 快速判定器与精确参考在随机案例上是否一致（差分对拍） |
+| `mesh_quality_audit.py` | 原始网格是否可读、水密，有无非流形边（网格质量披露） |
+| `direction_field_audit.py` | 方向级 Top-k 指标的分母与排序基线 |
+
+脚本用法见各文件开头的说明；权威数值和复现命令见 [结果账本](governance/结果账本.md)。`python tools/reproduce_experiments.py --list` 列出全部规范运行，`--only 名称,名称` 选跑部分，不带参数则按顺序全部重跑。
+
+### 论文
+
+```bash
+python -m paper.pipeline.build_paper               # 构建：冻结证据、出图、审计、渲染并编译 PDF
+python -m paper.pipeline.paper_gate               # 论文门：源稿审计、证据、成品图、论文 PDF、外部数据
+```
+
+详见 [paper/README.md](paper/README.md)。
+
+## 文档导航
+
+| 想知道 | 去看 |
+|---|---|
+| 做什么、为什么、指标、非目标 | [问题定义](governance/问题定义.md) |
+| 不可违反的铁律 | [铁律约束](governance/铁律约束.md) |
+| 判定语义和冻结口径为什么这么定 | [决策台账](governance/决策台账.md) |
+| 做出了哪些结果、怎么复现 | [结果账本](governance/结果账本.md) |
+| 现在处在研发的哪个阶段 | [研发路线](governance/研发路线.md) |
+| 文献依据和相关工作 | [文献证据](governance/文献证据.md)、[文献矩阵](docs/文献矩阵与相关工作.md) |
+| 代码、测试、文档的编写规范 | [工程规范](governance/工程规范.md) |
+| 治理文件的整体地图与决策对应的验收性质 | [governance/README.md](governance/README.md) |

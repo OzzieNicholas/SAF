@@ -1,4 +1,4 @@
-"""Thingi10K STL ingest 验收（跨域 H5）：STL 解析（ascii + binary 已知答案）+ 端到端物化。
+"""Thingi10K STL ingest 验收（跨域鲁棒性，D-022）：STL 解析（ascii + binary 已知答案）+ 端到端物化。
 
 STL 存**每面法向**（stored normal）——Thingi 缠绕不一致，故下朝面提取用 stored normal（intended 外向），
 占据用 igl winding（对缠绕/非流形稳健）。纯 stdlib 段裸环境跑；几何段缺 numpy/igl → PENDING/skip。
@@ -32,7 +32,7 @@ def _check(fmt):
         ok = (V.shape == (3, 3) and F.shape == (1, 3)
               and np.allclose(V[0], [0, 0, 0]) and np.allclose(V[1], [1, 0, 0]) and np.allclose(V[2], [0, 1, 0])
               and np.allclose(N[0], [0, 0, 1]))
-        return result(f"stl_parse_{fmt}", ok, f"{fmt}: V{V.shape} F{F.shape} N0={N[0].tolist()}", "H5")
+        return result(f"stl_parse_{fmt}", ok, f"{fmt}: V{V.shape} F{F.shape} N0={N[0].tolist()}", "D-022")
     finally:
         os.unlink(p)
 
@@ -42,11 +42,11 @@ def checks():
         import numpy  # noqa: F401
         from support_accessibility.data import thingi  # noqa: F401
     except ImportError as e:
-        return [pending("stl_parse", f"依赖未就绪：{e}", "H5")]
+        return [pending("stl_parse", f"依赖未就绪：{e}", "D-022")]
     try:
         return [_check("ascii"), _check("binary")]
     except Exception as e:
-        return [result("stl_parse", False, f"异常：{e}", "H5")]
+        return [result("stl_parse", False, f"异常：{e}", "D-022")]
 
 
 def test_load_stl_ascii():
@@ -70,7 +70,7 @@ def test_load_stl_binary():
 
 
 def test_select_points_cap_deterministic():
-    """接触点子采样（D-022 H5 接入采样上限）：None/n<=cap → 全取(返回 None)；n>cap → 恰 cap 个无重复、确定性、界内。
+    """接触点子采样（D-022 接入采样上限）：None/n<=cap → 全取(返回 None)；n>cap → 恰 cap 个无重复、确定性、界内。
     密网格(Thingi 扫描)接触点上万，全标不可解；子采样有界 + 无偏（跨域 F1 的一致估计）。"""
     try:
         import numpy as np

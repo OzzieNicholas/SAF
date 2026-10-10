@@ -1,19 +1,20 @@
-"""支撑接触区提取验收：网格+d → 下朝悬垂面 S(P,d)（docs §9、D-010）。
+"""支撑接触区提取验收：网格+d → 下朝悬垂面 S(P,d)（D-010）。
 
-基于 box（外向缠绕明确）。四锚点：提取正确、方向依赖(§9.2)、阈值(θc=45)、端到端(接触区→可达)。
+基于 box（外向缠绕明确）。四锚点：提取正确、方向依赖、阈值(θc=45)、端到端(接触区→可达)。
 依赖缺失 → PENDING（checks）/ SkipTest（test_）。
 """
 
 from unittest import SkipTest
 
 from . import pending, result
+from tests.fixtures import known_answer_meshes as K
 
 _NDIR = 64
 
 
 def _box(extents=(6.0, 6.0, 4.0)):
     from support_accessibility.data import mesh as M
-    return M.box_vf(extents)
+    return K.box_vf(extents)
 
 
 def _extract(d, overhang_deg=45.0):
@@ -93,7 +94,7 @@ def test_box_overhang_extraction():
 
 
 def test_direction_dependence():
-    """box d=+x → 取 -x 面，不含底面（S 随 d 变，§9.2）。"""
+    """box d=+x → 取 -x 面，不含底面（S 随 d 变）。"""
     try:
         import numpy as np
         _, _, scx = _extract([1.0, 0, 0])

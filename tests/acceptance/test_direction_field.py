@@ -1,4 +1,4 @@
-"""方向级可达性场（E5 / D-024）——oracle 把点级二分扩为每逼近方向可达性向量。
+"""方向级可达性场（方向级场 / D-024）——oracle 把点级二分扩为每逼近方向可达性向量。
 
 冻结口径（D-024，extend D-004）：dir i 可达 ⟺ 工具球沿 dir i 能到 p（同 D-001..D-003 判据，只是不 OR 归约）。
 **核心不变量**：any(direction_labels) == (label == ACCESSIBLE) —— 二分口径 D-004 是本场的 any-归约，未变。
@@ -74,23 +74,23 @@ def test_direction_field_or_reduces_to_binary():
     _np()
     import numpy as np
     from support_accessibility.oracle import SupportAccessibilityOracle, Label
-    from support_accessibility.data import blind_cavity_case, open_downface_case, _slab_blind_hole, down_facing_points
+    from support_accessibility.data import blind_cavity_case, open_downface_case, slab_with_blind_hole, down_facing_points
     for cse in (blind_cavity_case(), open_downface_case()):
         o = SupportAccessibilityOracle(cse.occ, {"n_directions": 64})
         assert bool(o.direction_labels(cse.point, cse.radius).any()) == (o.label(cse.point, cse.radius) == Label.ACCESSIBLE)
     # 多点批量：混合腔（宽腔可达点 + 窄腔不可达点）逐点 OR-归约一致
-    occ = _slab_blind_hole(28, opening=3, depth=10)
+    occ = slab_with_blind_hole(28, opening=3, depth=10)
     o = SupportAccessibilityOracle(occ, {"n_directions": 64})
     for p in down_facing_points(occ):
         assert bool(o.direction_labels(p, 3.0).any()) == (o.label(p, 3.0) == Label.ACCESSIBLE)
 
 
 def test_convonet_out_dim_direction_head():
-    """ConvONet-lite 方向级输出头（E5）：out_dim=D → 每点 D 个 logit [N,D]；out_dim=1 → [N]（向后兼容 H3/H5）。
+    """ConvONet-lite 方向级输出头（方向级场）：out_dim=D → 每点 D 个 logit [N,D]；out_dim=1 → [N]（向后兼容跨模型预测/跨域鲁棒性）。
 
     验收层设计上无 torch（gate 零安装、torch 模型经 tools/ 验证）；本 torch 断言仅在能干净加载 torch 的
     进程跑（隔离/CI）。满载进程里 torch fbgemm.dll 偶发 WinError 127（Windows DLL 顺序脆性）→ 归为不可用而 skip；
-    out_dim 契约另由 tools/eval_e5.py 实跑（out_dim=64 出 [N,64]）覆盖。
+    out_dim 契约另由 experiments/direction_field_prediction.py 实跑（out_dim=64 出 [N,64]）覆盖。
     """
     try:
         import torch

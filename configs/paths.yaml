@@ -1,0 +1,16 @@
+# SAF 路径配置（唯一之家）。仓库内只写相对路径，不写任何机器相关的绝对路径。
+#
+# 解析优先级（高 → 低）：
+#   1. 命令行参数（各脚本的 --data / --root 等）
+#   2. 环境变量 SAF_DATA_ROOT / SAF_FUSION360_ROOT / SAF_THINGI_ROOT
+#   3. configs/paths.local.yaml（不入库；字段同本文件，可写绝对路径，用于本机覆盖）
+#   4. 本文件的默认值
+#
+# 相对路径以「仓库根目录」为基准；layout 下的子路径以「数据根」为基准。
+
+data_root: data                          # 数据根，默认为仓库内被 Git 忽略的 data/
+
+layout:
+  fusion360: raw/fusion360_gallery/reconstruction   # Fusion 360 Gallery 原始网格
+  thingi10k: raw/thingi10k/raw_meshes               # Thingi10K 原始网格
+  processed: processed                              # 构建产物：processed/<数据集>/

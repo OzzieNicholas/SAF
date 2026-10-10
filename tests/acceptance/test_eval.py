@@ -1,6 +1,6 @@
 """指标验收：不可达类 F1 / 区域 IoU / 面积比例误差 —— 已知输入→已知输出（评分 emitter 有牙）。
 
-守护 problem.md 指标口径（不可达=风险正类）。纯 numpy；缺依赖 → PENDING（gate）/ SkipTest（pytest）。
+守护 问题定义.md 指标口径（不可达=风险正类）。纯 numpy；缺依赖 → PENDING（gate）/ SkipTest（pytest）。
 """
 
 from unittest import SkipTest
@@ -16,7 +16,7 @@ def _cases():
     g = np.array([T, T, F, F, T])          # gold 正类(不可达) at 0,1,4
     p_mix = np.array([T, T, T, F, F])      # pred 正类 at 0,1,2 → tp{0,1}=2 fp{2}=1 fn{4}=1
     p_neg = np.array([F, F, F, F, F])
-    # 方向排序（E5 / D-024）：scores(N,D) 可达性打分（高=更可达），viable(N,D) oracle 可达方向
+    # 方向排序（方向级场 / D-024）：scores(N,D) 可达性打分（高=更可达），viable(N,D) oracle 可达方向
     scr = np.array([[3., 1, 2], [1, 3, 2]]); via = np.array([[T, F, F], [F, T, F]])   # 每点 top-1 即 viable
     scr1 = np.array([[3., 1, 2]]); via1 = np.array([[F, F, T]])                       # top-1 非 viable、top-2 含
     scrB = np.array([[1., 2, 3], [3, 2, 1]]); viaB = np.array([[F, F, F], [T, F, F]])  # point0 全挡→排除

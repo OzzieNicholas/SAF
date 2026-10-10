@@ -12,6 +12,7 @@
 from unittest import SkipTest
 
 from . import pending, result
+from tests.fixtures import known_answer_meshes as K
 
 _OBJ = "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nf 1 2 3 4\n"     # 单 quad → 扇形 2 三角
 
@@ -46,7 +47,7 @@ def _check_ingest_box():
     import os
     import tempfile
     from support_accessibility.data import mesh as M, fusion360 as F, dataset as DS
-    meshes = [(f"box_{i}", *M.box_vf((6.0, 6.0, 4.0 + i))) for i in range(3)]
+    meshes = [(f"box_{i}", *K.box_vf((6.0, 6.0, 4.0 + i))) for i in range(3)]
     with tempfile.TemporaryDirectory() as tmp:
         F.build_from_meshes(meshes, tmp, resolution=40, n_directions=32, emit_audit=True)
         models, rows = DS.load_dataset(tmp)

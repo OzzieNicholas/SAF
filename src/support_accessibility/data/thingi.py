@@ -1,11 +1,13 @@
-"""Thingi10K STL ingest（跨域 H5，deferred: thingi-ingest）：真实"野外"打印网格 → 统一 processed。
+"""Thingi10K STL ingest（跨域跨域鲁棒性）：真实"野外"打印网格 → 统一 processed。
 
-Thingi 缠绕不一致/非流形（docs §11.2）；故：占据用 igl winding（对缠绕稳健，D-009），下朝面提取用
-**STL stored normal**（每面 intended 外向，绕过缠绕修复）。source=thingi10k，split **恒 test**（docs §4.6，
-绝不进训练）。仅测跨域鲁棒性（H5），非主训练源。numpy/igl/oracle 在函数内 import（裸 py 仍可 import 本模块）。
+Thingi 缠绕不一致/非流形（研究背景与设计 §6.5）；故：占据用 igl winding（对缠绕稳健，D-009），下朝面提取用
+**STL stored normal**（每面 intended 外向，绕过缠绕修复）。source=thingi10k，split **恒 test**（研究背景与设计 §6.2，
+绝不进训练）。仅测跨域鲁棒性（跨域鲁棒性），非主训练源。numpy/igl/oracle 在函数内 import（裸 py 仍可 import 本模块）。
 """
 import os
 import struct
+
+from support_accessibility.runtime.frozen_params import FROZEN
 
 
 def load_stl(path):
@@ -89,8 +91,8 @@ def _outward_normals(V, F, N_stored):
     return Nn, c
 
 
-def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=48, radius_world=0.05,
-                 overhang_deg=45.0, n_directions=128, nudge_voxels=2.0, max_faces=200000,
+def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=FROZEN.resolution, radius_world=FROZEN.radius_world,
+                 overhang_deg=FROZEN.overhang_deg, n_directions=FROZEN.n_directions, nudge_voxels=2.0, max_faces=200000,
                  max_points=None, seed=0):
     """Thingi 子集 → 统一 processed（source=thingi10k，split 恒 test）。下朝面用 stored 法向、占据用 igl winding、
     oracle 打标（含 D-020 细化）。跨域鲁棒性测试用；返回 out_dir。

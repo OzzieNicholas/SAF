@@ -54,7 +54,7 @@ def _run(cases):
 
 
 def _audit_cases():
-    """包含已知反例，再接固定批量样本；未来修复反例时仍保持同一审核集。"""
+    """包含已知反例，再接固定批量样本；修复反例后仍使用同一审核集。"""
     from itertools import chain
     return chain(_gen_cases(1, seed=882), _gen_cases(_N_CASES - 1, seed=12345))
 

@@ -1,0 +1,103 @@
+{
+ "artifact_schema_version": 1,
+ "kind": "paper_evidence",
+ "scope": "potential support-contact proxy; part-body occlusion only; finite spherical tool; discrete straight approaches; fixed r=0.05, +z, 45 degrees, and 128/64 directions",
+ "canonical_runs": {
+  "support_area_vs_accessibility": {
+   "path": "artifacts/runs/support_area_vs_accessibility/result.json",
+   "sha256": "efa69b8d463bcbe909f0b88fe3fb9de5fd30b36cb0f2d193aad973562b1f9ceb",
+   "run_id": "20261009T055218.803036Z-23948-87bd35e5",
+   "command": "experiments\\support_area_vs_accessibility.py"
+  },
+  "true_triangle_area_check": {
+   "path": "artifacts/runs/true_triangle_area_check/result.json",
+   "sha256": "67b9a8eec3842b734d688f3ffcf003463039fcdb1456d33e7870823a9cc18fd0",
+   "run_id": "20261009T082845.505437Z-40912-e1db8d10",
+   "command": "experiments\\true_triangle_area_check.py"
+  },
+  "tool_radius_effect": {
+   "path": "artifacts/runs/tool_radius_effect/result.json",
+   "sha256": "6825461c0acc3f6440e76cd5298fc15cb61fd02acb30c20b44c146fb9676dbad",
+   "run_id": "20261009T055647.155841Z-29704-df2cd7aa",
+   "command": "experiments\\tool_radius_effect.py"
+  },
+  "label_audit": {
+   "path": "artifacts/runs/label_audit/result.json",
+   "sha256": "1efbc0dff9ae04069559977f683b149ce7a596a24973e3129d1d3b659346bc39",
+   "run_id": "20261009T055754.178555Z-25884-01e124b7",
+   "command": "experiments\\label_audit.py --write"
+  },
+  "oracle_differential_audit": {
+   "path": "artifacts/runs/oracle_differential_audit/result.json",
+   "sha256": "bfd610778260c004f67bf59eb0a61370015e49aa51d148f2e3caafe9aa70075b",
+   "run_id": "20261009T060432.869526Z-37072-e6b22ffb",
+   "command": "experiments\\oracle_differential_audit.py --cases 10000"
+  },
+  "mesh_quality_audit": {
+   "path": "artifacts/runs/mesh_quality_audit/result.json",
+   "sha256": "1c21acfe132f9b9442edcd759ccddb5906c992e0b755dd1687dcb7729f4e08c0",
+   "run_id": "20261009T060527.107644Z-19744-303a076f",
+   "command": "experiments\\mesh_quality_audit.py"
+  },
+  "cross_model_prediction": {
+   "path": "artifacts/runs/cross_model_prediction/result.json",
+   "sha256": "8602ded243f4003e2be76a4cdb912b29770000d6b2ff08ec3d06ee753aecd082",
+   "run_id": "20261009T064403.508196Z-24124-5fab584b",
+   "command": "experiments\\cross_model_prediction.py --seeds 5 --epochs 80"
+  },
+  "baseline_comparison": {
+   "path": "artifacts/runs/baseline_comparison/result.json",
+   "sha256": "ae4caae8492c8abd7747d980319e1c975ea234d9904e3940ac699ebfe0b1e0cc",
+   "run_id": "20261009T061651.558339Z-34964-5a8e1875",
+   "command": "experiments\\baseline_comparison.py --max-models 400 --epochs 80 --tiny-epochs 300 --seed 0"
+  },
+  "regression_check": {
+   "path": "artifacts/runs/regression_check/result.json",
+   "sha256": "b42d6b8b6ae5257e11523ccac4b8bf1267548bfae1fe2fc8408282edf468d2dd",
+   "run_id": "20261009T061855.253303Z-51164-b54e4ac6",
+   "command": "experiments\\regression_check.py --max-models 400 --epochs 80 --seed 0 --n-boot 2000"
+  },
+  "shape_context_ablation": {
+   "path": "artifacts/runs/shape_context_ablation/result.json",
+   "sha256": "26dbff12739de9dcbe37d897cb10ac74a9f30fa10a9069d40fdef2eb195bbc3f",
+   "run_id": "20261009T062129.434688Z-50540-1b4dd154",
+   "command": "experiments\\shape_context_ablation.py --max-models 400 --epochs 60 --seed 0"
+  },
+  "cross_domain_robustness": {
+   "path": "artifacts/runs/cross_domain_robustness/result.json",
+   "sha256": "35ed751b99811886d6634c35bbd0f0d8529e951604e52608868bf0ef2ad7bf2f",
+   "run_id": "20261009T065908.628559Z-35732-0b8f6bba",
+   "command": "experiments\\cross_domain_robustness.py --seeds 3 --epochs 80"
+  },
+  "direction_field_prediction": {
+   "path": "artifacts/runs/direction_field_prediction/result.json",
+   "sha256": "f6e65f0272c4185713f03e7949600383cfbd99be063051e2d8b88b474ce138d5",
+   "run_id": "20261009T081938.831740Z-10432-14480ac9",
+   "command": "experiments\\direction_field_prediction.py --max-models 500 --seeds 3 --epochs 100 --root <external-path>"
+  },
+  "direction_field_audit": {
+   "path": "artifacts/runs/direction_field_audit/result.json",
+   "sha256": "ea8016b932a4f54637dec4c337ea952222c204b30862002fc601117be75a809f",
+   "run_id": "20261009T073637.280056Z-49212-d6d61be4",
+   "command": "experiments\\direction_field_audit.py --max-models 500"
+  },
+  "inference_speed": {
+   "path": "artifacts/runs/inference_speed/result.json",
+   "sha256": "a1c2ec0afd20ae2075ae26f9664b1c96f159d116d0f79fdc6620c75e98249dc7",
+   "run_id": "20261009T055711.070723Z-34244-962a5148",
+   "command": "experiments\\inference_speed.py"
+  },
+  "failure_analysis": {
+   "path": "artifacts/runs/failure_analysis/result.json",
+   "sha256": "04904afe677dd3017da3489a69b46fd6edccf083b90d6113a004f6c79abe1a09",
+   "run_id": "20261009T072428.316176Z-39672-b31ed3d5",
+   "command": "experiments\\failure_analysis.py --max-models 400 --epochs 80 --seed 0 --seeds 5 --figure-case 116082_b59d8605_0002"
+  }
+ },
+ "statistical_rules": {
+  "positive_class": "inaccessible",
+  "split_unit": "model-level",
+  "repeat_holdout": "five repeated 0.6/0.2/0.2 random model holdouts; test sets may overlap",
+  "geometry_hierarchy": "full 128-global/64-lower-direction refined oracle supplies labels; the 16-global/8-lower-direction finite-tool result is a coarse proxy; the neural model is a shape-conditioned surrogate"
+ }
+}

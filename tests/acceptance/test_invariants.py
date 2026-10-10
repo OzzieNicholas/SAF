@@ -15,14 +15,14 @@ except ImportError:
 
 
 def _ready():
-    return oracle is not None and getattr(oracle, "IMPLEMENTED", False)
+    return oracle is not None
 
 
 def mesh_sanity():
     """网格 sanity（0 长边/非流形/自交/法向）——**已被他处覆盖**，判定 N/A（终态，D-027）：
     occ 正确性由 `test_mesh_frontend`（solidify IoU + 已知答案）守护；退化面由 D-022（胶囊跳过零面积）；
-    真实标签有效性由 D-025（差分/res-稳定/分布审核）；网格合格性由 ingest §4.8 筛选。无需独立冗余检。"""
-    return na("mesh_sanity", "已被 mesh_frontend(occ 正确) + D-022(退化面) + D-025(标签审核) + ingest §4.8 覆盖")
+    真实标签有效性由 D-025（差分/res-稳定/分布审核）；网格合格性由 ingest 的合格性筛选 筛选。无需独立冗余检。"""
+    return na("mesh_sanity", "已被 mesh_frontend(occ 正确) + D-022(退化面) + D-025(标签审核) + ingest 的合格性筛选 覆盖")
 
 
 def checks():
@@ -32,4 +32,4 @@ def checks():
 # —— pytest 入口（依赖就绪前 skip）——
 def test_mesh_sanity():
     raise SkipTest("网格 sanity 判定 N/A（终态，D-027）：occ 正确性由 test_mesh_frontend、退化面 D-022、"
-                   "标签审核 D-025、合格性 ingest §4.8 覆盖，无需独立冗余检")
+                   "标签审核 D-025、合格性 ingest 的合格性筛选 覆盖，无需独立冗余检")

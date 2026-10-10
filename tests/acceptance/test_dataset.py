@@ -1,7 +1,7 @@
 """物化数据集验收（D-016）：程序化件 build→落盘→load 复原，格式统一、非退化、标签=oracle。
 
 守护 D-016 的统一 processed 数据集：`build_procedural` 写每模型 `.npz`{occ,points,labels} + `manifest.csv`
-+ `dataset.json`；`load_dataset` 复原 `list[LabeledModel]` + manifest 行。区别于 test_data（守内存态
++ `dataset.json`；`load_dataset` 复原 `list[LabeledModel]` + manifest 行。区别于 test_procedural_cases（守内存态
 make_dataset），本模块守**物化后的产物**：round-trip 不损真值、按模型切分无泄漏、manifest 良构。
 hermetic：build 到 tempfile 临时目录（不污染仓库、无矩阵乘、本地/CI 皆可跑）。缺依赖 → PENDING/skip。
 """
@@ -106,7 +106,7 @@ def test_dataset_roundtrip_and_nondegenerate():
 
 
 def test_dataset_split_no_leakage():
-    """按模型三切，train/val/test 两两互斥（D-016 切分 {train,val,test} / H3 前提）。"""
+    """按模型三切，train/val/test 两两互斥（D-016 切分 {train,val,test} / 跨模型预测前提）。"""
     try:
         _deps()
     except ImportError as e:

@@ -1,7 +1,7 @@
 """ConvONet-lite：3D-CNN 全局编码器 + 点查询解码器（形状条件跨模型可达性预测；D-015 主线真模型）。
 
 对比 tiny numpy（仅局部 patch、无全局上下文）：整块 occ 经 3D-CNN → 特征体 → 在查询点 trilinear 采样
-局部特征 + 归一坐标 → MLP → 不可达 logit。深腔全局遮挡（docs §10 强调）由卷积感受野带入。
+局部特征 + 归一坐标 → MLP → 不可达 logit。深腔全局遮挡（研究背景与设计 §4.2）由卷积感受野带入。
 grid_sample 用归一坐标 [-1,1]，故不同尺寸 occ 无需 resize（逐模型前向）。需 torch（environment.yml，D-007）；
 GPU 可用则用。坐标序坑（grid 末维 = W,H,D 序）由 to_grid_coords 统一处理，须经 sanity（采样 occ 自身≈占据值）验证。
 """
@@ -25,8 +25,8 @@ def to_grid_coords(points, occ_shape):
 class ConvONetLite(nn.Module):
     """occ [1,1,nx,ny,nz] → 3D-CNN 特征体 → 查询点采样 + 坐标 → MLP → logit。
 
-    out_dim=1（默认）→ 点级不可达 logit [N]（H3/H5 二分主线，D-015）；
-    out_dim=D → 方向级可达性场 logit [N,D]（E5/D-024，每点对 D 个逼近方向各一 logit）。
+    out_dim=1（默认）→ 点级不可达 logit [N]（跨模型预测/跨域鲁棒性二分主线，D-015）；
+    out_dim=D → 方向级可达性场 logit [N,D]（方向级场/D-024，每点对 D 个逼近方向各一 logit）。
     """
 
     def __init__(self, feat=32, hidden=64, out_dim=1):

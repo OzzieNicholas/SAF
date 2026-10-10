@@ -1,112 +1,111 @@
 #!/usr/bin/env python3
-"""Mechanical repository layout, naming, dependency, and path checks.
+"""仓库布局守卫：目录白名单、命名、依赖方向、文档规范与可移植性（已入库文本不含绝对路径）。
 
-Canonical roots include ``AGENTS.md`` and ``artifacts/cache/``.
+只用标准库。由 ``tests/acceptance/test_governance.py`` 调用，也可直接运行：
+``python tools/check_structure.py``。
 """
 
 from __future__ import annotations
 
-import json
-import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+TOP_LEVEL_DIRS = {".git", ".github", "artifacts", "configs", "data", "docs", "experiments",
+                  "governance", "paper", "src", "tests", "tools"}
+TOP_LEVEL_CACHES = {".claude", ".pytest_cache", ".hypothesis", ".mypy_cache", ".ruff_cache"}
+TOP_LEVEL_FILES = {".gitignore", "AGENTS.md", "LICENSE", "README.md", "environment.yml", "pyproject.toml"}
+
 PY_NAME = re.compile(r"^[a-z_][a-z0-9_]*\.py$")
 DIR_NAME = re.compile(r"^[a-z_][a-z0-9_]*$")
-OLD_PATHS = {
-    "charter/": re.compile(r"(?<![A-Za-z0-9_/-])charter/"),
-    "conf/": re.compile(r"(?<![A-Za-z0-9_/-])conf/"),
-    "paper/": re.compile(r"(?<![A-Za-z0-9_/-])paper/"),
-    "runs/": re.compile(r"(?<![A-Za-z0-9_/-])runs/"),
-    "hooks/": re.compile(r"(?<![A-Za-z0-9_/-])hooks/"),
+PYTHON_ROOTS = ("src", "experiments", "tools", "tests", "paper/pipeline")
+FORBIDDEN_IN_SRC = re.compile(r"(?:^|\n)\s*(?:from|import)\s+(?:tools|experiments|tests|paper)(?:\.|\s|$)")
+
+# 盘符绝对路径（排除 URL 的 "https://"）；路径检测器与合成反例自身须豁免。
+DRIVE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:(?:\\|/(?!/))[A-Za-z0-9_.$\\{]")
+ABSOLUTE_PATH_EXEMPT = {
+    "tools/check_structure.py",
+    "paper/pipeline/paper_gate.py",
+    "src/support_accessibility/runtime/run_records.py",
+    "src/support_accessibility/runtime/data_paths.py",
+    "tests/paper_pipeline/test_paper_gate.py",
+    "tests/unit/test_run_records.py",
 }
+# 文档里的日期/运行时间戳（引用文献的年份不算）。
+DATE_TOKEN = re.compile(r"20\d\d-\d\d-\d\d|20\d\d年\d{1,2}月|\b20\d{6}T\d{6}")
+# 参考文献年份与按运行号固定的证据清单（运行号自带时间戳）不算文档日期
+DATE_EXEMPT_PREFIXES = ("paper/manuscript/", "paper/evidence/")
+CJK = re.compile(r"[一-鿿]")
+DOC_DIRS = ("governance", "docs", "paper")
 
 
-def rel(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
+def tracked_files() -> list[str]:
+    """git 跟踪（含未跟踪但未忽略）的文件；非 git 环境回落到遍历。"""
+    try:
+        out = subprocess.run(
+            ["git", "-c", "core.quotepath=false", "ls-files", "-co", "--exclude-standard"],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True,
+        ).stdout
+        return [line for line in out.splitlines() if line and (ROOT / line).is_file()]
+    except (OSError, subprocess.CalledProcessError):
+        return [p.relative_to(ROOT).as_posix() for p in ROOT.rglob("*") if p.is_file() and ".git" not in p.parts]
 
 
-def files():
-    excluded = {".git", ".pytest_cache", ".hypothesis", "__pycache__", "data", "artifacts", "tmp"}
-    for base, dirs, names in os.walk(ROOT):
-        dirs[:] = [name for name in dirs if name not in excluded]
-        for name in names:
-            yield Path(base) / name
+def _read(rel: str) -> str | None:
+    try:
+        return (ROOT / rel).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
 def check() -> list[str]:
     errors: list[str] = []
-    forbidden = ("charter", "conf", "paper", "runs", "hooks", "method", "data")
-    for name in forbidden:
-        if (ROOT / name).exists():
-            errors.append(f"forbidden root directory exists: {name}/")
-    for relative in ("artifacts/archive", "deliverables/archive"):
-        if (ROOT / relative).exists():
-            errors.append(f"retired archive must not exist in the active tree: {relative}/")
-    for relative in (".dvcignore", "dvc.yaml", "dvc.lock"):
-        if (ROOT / relative).exists():
-            errors.append(f"retired DVC metadata must not exist: {relative}")
-    if not (ROOT / "AGENTS.md").is_file():
-        errors.append("AGENTS.md is missing")
-    if (ROOT / "CLAUDE.md").exists():
-        errors.append("CLAUDE.md must not be an active root entrypoint")
+    files = tracked_files()
 
-    try:
-        manifest = json.loads((ROOT / "governance" / "project.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        errors.append(f"project manifest unreadable: {exc}")
-        manifest = {}
-    for key, value in manifest.get("roots", {}).items():
-        if key == "dvc":
-            errors.append("project manifest must not declare a DVC root")
-        elif not (ROOT / value).is_dir():
-            errors.append(f"manifest root missing: {key}={value}")
+    for entry in ROOT.iterdir():
+        if entry.is_dir() and entry.name not in TOP_LEVEL_DIRS | TOP_LEVEL_CACHES:
+            errors.append(f"unexpected top-level directory: {entry.name}/")
+        elif entry.is_file() and entry.name not in TOP_LEVEL_FILES:
+            errors.append(f"unexpected top-level file: {entry.name}")
 
-    excluded = {".git", ".pytest_cache", ".hypothesis", "__pycache__", "data", "artifacts", "tmp"}
-    for base, dirs, _ in os.walk(ROOT):
-        dirs[:] = [name for name in dirs if name not in excluded]
-        base_rel = Path(base).relative_to(ROOT).parts
-        if not base_rel or base_rel[0] not in {"src", "tests", "tools"}:
+    for rel in files:
+        path = Path(rel)
+        if not rel.startswith(tuple(f"{root}/" for root in PYTHON_ROOTS)):
             continue
-        for name in dirs:
-            if not DIR_NAME.match(name):
-                errors.append(f"Python project directory is not snake_case: {rel(Path(base) / name)}/")
+        if path.suffix != ".py" and path.name != "README.md":
+            continue
+        for part in path.parts[:-1]:
+            if not DIR_NAME.match(part):
+                errors.append(f"directory is not snake_case: {rel}")
+                break
+        if path.suffix == ".py" and not PY_NAME.match(path.name):
+            errors.append(f"Python filename is not snake_case: {rel}")
+        if rel.startswith("tests/acceptance/") and path.name != "__init__.py" and path.suffix == ".py":
+            if not path.name.startswith("test_"):
+                errors.append(f"acceptance test must use test_ prefix: {rel}")
+            if "def checks(" not in (_read(rel) or ""):
+                errors.append(f"acceptance module lacks checks(): {rel}")
+        if rel.startswith("src/") and path.suffix == ".py" and FORBIDDEN_IN_SRC.search(_read(rel) or ""):
+            errors.append(f"src code imports tools/experiments/tests/paper: {rel}")
 
-    for path in files():
-        name = path.name
-        path_rel = rel(path)
-        if path.suffix == ".py" and not PY_NAME.match(name):
-            errors.append(f"Python filename is not snake_case: {path_rel}")
-        if path_rel.startswith("tests/acceptance/") and name not in {"__init__.py"}:
-            if not name.startswith("test_"):
-                errors.append(f"acceptance test must use test_ prefix: {path_rel}")
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            if "def checks(" not in text:
-                errors.append(f"acceptance module lacks checks(): {path_rel}")
-        if path.parts[0] == "src" and path.suffix == ".py":
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            if re.search(r"(?:^|\n)\s*(?:from|import)\s+(?:tools|tests)(?:\.|\s|$)", text):
-                errors.append(f"src code imports tools/tests: {path_rel}")
-        if path.suffix in {".md", ".py", ".yml", ".yaml", ".json", ".toml"}:
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            if path_rel in {"governance/decisions.md", "docs/other/GPT.md",
-                            "tests/acceptance/test_governance.py", "tools/check_structure.py"}:
-                continue
-            for label, pattern in OLD_PATHS.items():
-                if pattern.search(text):
-                    errors.append(f"stale active path {label}: {path_rel}")
+    for rel in files:
+        if rel.endswith((".md", ".py", ".yml", ".yaml", ".toml", ".tex")) and rel not in ABSOLUTE_PATH_EXEMPT:
+            text = _read(rel)
+            if text and DRIVE_PATH.search(text):
+                errors.append(f"absolute drive path in tracked text: {rel}")
+
+    for rel in files:
+        path = Path(rel)
+        if path.suffix != ".md" or path.name == "README.md" or path.parts[0] not in DOC_DIRS:
+            continue
+        if not CJK.search(path.stem):
+            errors.append(f"document name should be Chinese: {rel}")
+        if not rel.startswith(DATE_EXEMPT_PREFIXES) and DATE_TOKEN.search(_read(rel) or ""):
+            errors.append(f"document contains a date/timestamp: {rel}")
     return errors
 
 

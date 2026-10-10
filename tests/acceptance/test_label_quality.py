@@ -1,13 +1,13 @@
-"""标签质量审核门（六项趋势，铁律 #6；docs §6.6）——oracle/标签未过此门不进正式神经实验。
+"""标签质量审核门（六项趋势，铁律 #6；研究背景与设计 §5）——oracle/标签未过此门不进正式神经实验。
 
 六项趋势的守护分工（一个事实一个家，不重复造门）：
   ① 典型几何   test_known_answers（盲腔=不可达 / 开阔下朝面=可达）
   ② 随机抽样   test_differential（体素 vs 暴力参考，随机件 robust 一致）
   ③ 边界稳定   test_differential（ε 边界带容忍 vs robust 不一致）
-  ④ 半径趋势   **本模块**——受限盲腔不可达随 r 单调非减（D-008 收窄口径：仅受限几何，闭合其"待复核"）
+  ④ 半径趋势   **本模块**——受限盲腔不可达随 r 单调非减（仅受限几何；D-008 证伪的是一般半径单调性）
   ⑤ 方向变化   test_support_contact（S(P,d) 随 d 改变：d=+z 底面 vs d=+x 侧面）
-  ⑥ 跨数据     程序化=test_data（两类俱在、按模型切分）；真实(Fusion360/Thingi)=Phase-3
-本模块补 ④ + 批量聚合体检（②的系统化：标签分布合理、非退化）。全绿=标签质量门就绪（解锁 params-freeze）。
+  ⑥ 跨数据     程序化=test_procedural_cases（两类俱在、按模型切分）；真实网格见 experiments/label_audit.py
+本模块补 ④ + 批量聚合体检（②的系统化：标签分布合理、非退化）。全绿=标签质量门就绪。
 """
 
 from unittest import SkipTest
@@ -29,7 +29,7 @@ def _radius_monotone_confined():
     from support_accessibility.oracle import SupportAccessibilityOracle
     bad = []
     for opening, depth in ((3, 9), (4, 9), (5, 9), (6, 9)):
-        occ = D._slab_blind_hole(_N, opening, depth)
+        occ = D.slab_with_blind_hole(_N, opening, depth)
         o = SupportAccessibilityOracle(occ, {"n_directions": _N_DIR})
         ceil = [p for p in D.down_facing_points(occ) if p[2] > 8]     # 高于板底=腔顶（受限）
         seq = [sum(o.label(p, r).value == "inaccessible" for p in ceil) for r in (1., 2., 3., 4., 5.)]

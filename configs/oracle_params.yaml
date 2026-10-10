@@ -1,0 +1,33 @@
+# oracle_params.yaml — 几何 oracle / 采样 / 标签的冻结口径（D-021 台账镜像）。
+#
+# 本文件是冻结口径的单一登记之家，不含任何路径（数据位置见 paths.yaml）。
+# 连续数值变更须同步在 governance/决策台账.md 新增 supersede 条目。
+# 离散选择（语义 C / 球模型 / 基板不建模 + 下半球 / 体素腐蚀口径 / 二分类）已冻结，见 D-001..D-005。
+
+oracle:
+  semantic: C                    # D-001 多方向直线插入无碰撞（不可改，见 铁律约束 §4）
+  tool_model: ball               # D-005 球模型、方向灵活
+  model_build_plate: false       # D-002 基板不建模
+  approach_hemisphere: lower     # D-002 工具从下半球逼近；只计零件本体遮挡（遮挡下界）
+  method: voxel_erosion          # D-003 体素/距离场腐蚀 + 边界带精确胶囊细化
+  direction_sampling: fibonacci_hemisphere
+  n_directions: 128              # 冻结 D-021（真实收敛 128-vs-256=0.982；64 尚差 5%）
+  epsilon_voxels: 1.5            # 冻结 D-021；D-020 精确细化的边界带宽
+  boundary_refine: exact_capsule # 边界带用精确胶囊-网格求交细化
+
+geometry:
+  normalize: longest_edge_1      # 最长包围盒边 = 1
+  overhang_angle_deg: 45         # 冻结 D-021（D-010）；鲁棒性可扫 40/50
+
+labels:
+  mode: binary                   # D-004 二分类先行
+
+split:
+  by: model                      # 必须按模型切分；禁止按点随机切分
+  frac_train: 0.6                # 物化数据集三切（D-016 切分 {train,val,test}）
+  frac_val: 0.2                  # val 为预留 held-out：超参先验固定、实验脚本不在 val 上调参；余为 test（Thingi10K 恒 test）
+
+data:
+  source: fusion360              # {procedural, fusion360, thingi10k(恒 test)}（ABC 已弃用，D-023）
+  resolution: 48                 # 冻结 D-021 + 精确细化开（D-020：低分辨率即 res-稳定的训练级标签）
+  radius_world: 0.05             # 冻结 D-021（主工具半径；工具尺寸效应验证工具尺寸要紧）
