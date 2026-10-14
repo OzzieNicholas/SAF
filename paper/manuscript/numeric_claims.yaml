@@ -54,6 +54,13 @@
 - {id: cross_domain_nwt_net, experiment: cross_domain_robustness, path: by_mesh_quality.not_watertight.network_f1_mean, text: "0.788"}
 - {id: cross_domain_nwt_coarse, experiment: cross_domain_robustness, path: by_mesh_quality.not_watertight.coarse16_f1, text: "0.779"}
 - {id: cross_domain_nwt_ray, experiment: cross_domain_robustness, path: by_mesh_quality.not_watertight.rayvis_f1, text: "0.578"}
+- {id: scale_train_parts, experiment: training_scale, path: n_train_models, format: ",.0f", text: "1,393"}
+- {id: scale_holdout, experiment: training_scale, path: f1.fusion_holdout.mean, text: "0.931"}
+- {id: scale_holdout_std, experiment: training_scale, path: f1.fusion_holdout.std, text: "0.008"}
+- {id: scale_thingi, experiment: training_scale, path: f1.thingi.mean, text: "0.891"}
+- {id: scale_thingi_std, experiment: training_scale, path: f1.thingi.std, text: "0.006"}
+- {id: scale_thingi_wt, experiment: training_scale, path: f1.thingi_watertight.mean, text: "0.904"}
+- {id: scale_thingi_nwt, experiment: training_scale, path: f1.thingi_not_watertight.mean, text: "0.814"}
 - {id: cross_model_f1, experiment: cross_model_prediction, path: part_f1_mean_mean, text: "0.790"}
 - {id: cross_model_f1_std, experiment: cross_model_prediction, path: part_f1_mean_std, text: "0.018"}
 - {id: cross_model_median, experiment: cross_model_prediction, path: part_f1_median_mean, text: "0.943"}

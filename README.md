@@ -80,7 +80,8 @@ python tools/build_thingi10k_dataset.py
 | `cost_accuracy_frontier.py` | 不同方向数的体素判定、两级判定器与网络的单件耗时和精度 |
 | `screening_evaluation.py` | 在含全可达零件的全部未见零件上，零件级检出、误报与排序能力 |
 | `orientation_evaluation.py` | 对 6 个轴向候选构建方向，网络与接触面积能否排出可达性风险的高低（方向评价，不做优化） |
-| `cross_domain_robustness.py` | 同一组模型在 Thingi10K 网格上的表现（跨来源） |
+| `cross_domain_robustness.py` | 同一组模型在 Thingi10K 网格上的表现（跨来源，按网格是否水密分组） |
+| `training_scale.py` | 训练零件扩大到全部可用 Fusion 两类件时，固定留出集与跨来源表现如何变化 |
 | `cross_model_prediction.py` | 切分随机性下的未见零件表现（重复随机留出） |
 | `direction_field_prediction.py` | 能否预测每个逼近方向是否被挡，并推荐可达方向（方向级模型） |
 

@@ -25,7 +25,7 @@ CANONICAL_RUNS = (
     ("label_audit", ["--write"]),
     ("oracle_differential_audit", ["--cases", "10000"]),
     ("mesh_quality_audit", []),
-    ("holdout_model", ["--seeds", "5"]),               # 下面七项读取它的多种子权重，须先运行
+    ("holdout_model", ["--seeds", "5"]),               # 其后各项读取它的多种子权重或切分，须先运行
     ("baseline_comparison", ["--tiny-epochs", "300"]),
     ("shape_context_ablation", []),
     ("failure_analysis", []),

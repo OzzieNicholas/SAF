@@ -57,6 +57,12 @@
    "run_id": "20261014T183629.835780Z-42140-a8717551",
    "command": "experiments/cross_domain_robustness.py"
   },
+  "training_scale": {
+   "path": "artifacts/runs/training_scale/result.json",
+   "sha256": "7217c042d4fe8ae9690425f7c7e3bf965d762e86281fa16f72501bdcc7286ce1",
+   "run_id": "20261014T192924.671693Z-26688-9d51381c",
+   "command": "experiments/training_scale.py --seeds 5"
+  },
   "direction_field_prediction": {
    "path": "artifacts/runs/direction_field_prediction/result.json",
    "sha256": "6e42286adf94ecb18cb14177d2f2cead7d7ab9bff83c75e98f1bf71703ab2eca",
