@@ -5,7 +5,7 @@
   - 纯体素判定（无细化），全局方向数 8 / 16 / 32 / 64 / 128 / 256；
   - 零半径射线可见性（128 方向）；
   - 两级标签器本身（重算，核对与冻结标签的一致率，并给出生成标签的真实耗时）；
-  - 固定留出模型（experiments/holdout_model.py 的权重），GPU 与 CPU 各计一次。
+  - 固定留出模型（experiments/holdout_model.py 的权重），GPU 与 CPU（单线程）各计一次。
 每件耗时从占据栅格开始计：几何方法含距离场构造与逐点判定，两级标签器另含网格预处理与细化，
 网络含张量上传与一次前向。网格→占据栅格对所有方法相同，单列为公共预处理耗时。
 
@@ -46,6 +46,7 @@ def main():
 
     fus, _ = load_dataset(a.fusion)
     _tr, _va, test = holdout_split(fus)
+    torch.set_num_threads(1)                  # 与单进程单线程的几何方法同条件计时
     gpu = torch.cuda.is_available()
     net_gpu, ckpt = load_holdout_model(0, "cuda" if gpu else "cpu")       # 计时用种子 0；精度报全部种子
     if [m.name for m in test] != list(ckpt["test_names"]):
@@ -132,7 +133,7 @@ def main():
         "occupancy_seconds_per_part_median": round(float(np.median(occ_s)), 5),
         "two_stage_relabel_agreement_mean": round(float(np.mean(refine_agree)), 6),
         "methods": rows,
-        "timing_note": "single process, wall clock per part from occupancy grid; occupancy construction listed separately and shared by all methods",
+        "timing_note": "single process, single CPU thread, wall clock per part from occupancy grid; occupancy construction listed separately and shared by all methods",
         "per_part": {"names": names, "n_points": n_points,
                      "seconds": {k: [round(float(v), 5) for v in secs[k]] for k in secs}},
     }, a.out, (a.fusion, a.root))
