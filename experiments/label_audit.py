@@ -29,7 +29,7 @@ def main():
     ap.add_argument("--data", default=str(paths.processed_root("fusion360")))
     ap.add_argument("--root", default=str(paths.fusion360_root), help="原网格根（给定则跑 res-稳定审核）")
     ap.add_argument("--sample-points", type=int, default=1000, help="差分审核采样点数（可达与不可达各半；暴力参考较慢）")
-    ap.add_argument("--stability-models", type=int, default=30, help="分辨率稳定性审核从两类零件中随机抽取的零件数")
+    ap.add_argument("--stability-models", type=int, default=30, help="分辨率稳定性审核每组随机抽取的零件数（全部零件一组、两类零件一组）")
     ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--write", action="store_true", help="把 label_audit 块 + human_signoff=verdict 写回 dataset.json")
@@ -94,36 +94,41 @@ def main():
             "refinement_changed_frac": round(changed / max(n, 1), 4)}
 
     # (b) res-稳定（需原网格）：同世界接触点 res48 vs res96 标签一致
-    stab = None
+    stab = stab_both = None
     if a.root:
         from support_accessibility.data import mesh as MESH
         from support_accessibility.data.fusion360 import iter_final_designs, load_obj, normalize
         mesh_of = dict(iter_final_designs(a.root))
-        tot = ag = done = 0
-        inacc_tot = inacc_ag = 0
+
+        def stability(indices):
+            """同一组接触面在分辨率 48 与 96 下（各自含细化）的标签一致率；另报任一分辨率判为不可达的面上的一致率。"""
+            tot = ag = inacc_tot = inacc_ag = 0
+            for mi in indices:
+                V, F = load_obj(mesh_of[ms[mi].name])
+                Vn, _s = normalize(V)
+                labels = {}
+                for res in (48, 96):
+                    lab = MESH.label_mesh(Vn, F, resolution=res, n_directions=a.n_directions)
+                    labels[res] = dict(zip(lab["faces"].tolist(), lab["labels"].tolist()))
+                common = sorted(set(labels[48]) & set(labels[96]))   # 两种分辨率下都未被判为翻面的面才可比
+                ag += sum(labels[48][f] == labels[96][f] for f in common); tot += len(common)
+                inacc = [f for f in common if labels[48][f] or labels[96][f]]
+                inacc_ag += sum(labels[48][f] == labels[96][f] for f in inacc); inacc_tot += len(inacc)
+            return {"models": len(indices), "points": tot, "res48_vs_res96_agreement": round(ag / max(tot, 1), 4),
+                    "inaccessible_points": inacc_tot,
+                    "res48_vs_res96_agreement_inaccessible": round(inacc_ag / max(inacc_tot, 1), 4)}
+
+        # 裁决口径（D-025）：从全部零件中随机抽样，代表整个数据集；另从两类零件中抽样，披露风险类的稳定性
+        stab = stability(rng.permutation(len(ms))[:a.stability_models])
         both = [i for i, m in enumerate(ms) if np.asarray(m.labels, bool).any() and (~np.asarray(m.labels, bool)).any()]
-        for mi in rng.permutation(both)[:a.stability_models]:     # 两类零件中按固定种子随机抽样，两类标签都有样本
-            V, F = load_obj(mesh_of[ms[mi].name])
-            Vn, _s = normalize(V)
-            labels = {}
-            for res in (48, 96):                                # 同一组接触面在两种分辨率下的标签（入库口径）
-                lab = MESH.label_mesh(Vn, F, resolution=res, n_directions=a.n_directions)
-                labels[res] = dict(zip(lab["faces"].tolist(), lab["labels"].tolist()))
-            common = sorted(set(labels[48]) & set(labels[96]))  # 两种分辨率下都未被判为翻面的面才可比
-            ag += sum(labels[48][f] == labels[96][f] for f in common); tot += len(common); done += 1
-            inacc = [f for f in common if labels[48][f] or labels[96][f]]   # 任一分辨率判为不可达的面
-            inacc_ag += sum(labels[48][f] == labels[96][f] for f in inacc); inacc_tot += len(inacc)
-        stab = {"models": done, "points": tot,
-                "res48_vs_res96_agreement": round(ag / max(tot, 1), 4),
-                "inaccessible_points": inacc_tot,
-                "res48_vs_res96_agreement_inaccessible": round(inacc_ag / max(inacc_tot, 1), 4)}
+        stab_both = stability(rng.permutation(both)[:a.stability_models])
 
     verdict = (diff["robust_mismatch_rate"] <= 0.01                              # D-003：robust 不一致≈0（边界带容忍）
                and 0.01 <= dist["inacc_frac_mean"] <= 0.9
                and dist["both_class_model_frac"] > 0.0
                and stab is not None and stab["res48_vs_res96_agreement"] >= 0.95)   # 命门须含 res-稳定腿（缺 --root→verdict False，与拒写一致）
     audit = {"verdict_pass": bool(verdict), "n_directions": a.n_directions,
-             "differential": diff, "res_stability": stab, "distribution": dist,
+             "differential": diff, "res_stability": stab, "res_stability_both_class": stab_both, "distribution": dist,
              "criterion": "D-003 robust 差分(边界带容忍) + D-020 res-稳定 + 分布；阈值 robust≤0.01/res≥0.95/inacc∈[0.01,0.9]（D-025）"}
     record = write_result("label_audit", {"data": logical_data_ref(a.data), **audit}, a.out, (a.data, a.root))
     print("LABEL_AUDIT " + json.dumps(record, ensure_ascii=False))
