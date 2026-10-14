@@ -2,8 +2,8 @@
 
 上排：零件旋转到各候选方向（构建方向朝上）后的仰视渲染，接触面按几何标签着色（红：不可达）；
 下排：各方向的下朝接触总面积、真实不可达接触面积与网络预测的不可达接触面积。
-选件规则（固定）：在「接触面积最小的方向」不属于真实最低风险方向的零件中，取真实不可达面积在方向间
-极差最大者。条形图数值取自 orientation_evaluation 的逐件记录；渲染时重算标签并核对面积与记录一致。
+选件规则（固定）：在「接触面积最小的方向」按面积与按点数都不是真实最低风险方向、且最高风险方向至少有
+MIN_POINTS 个不可达点的零件中，取不可达点占比在方向间极差最大者。条形图数值取自 orientation_evaluation 的逐件记录；渲染时重算标签并核对面积与记录一致。
 
 用法：python -m paper.pipeline.figure_scripts.orientation_case
 """
@@ -13,6 +13,7 @@ from paper.pipeline.figure_scripts.figure_data import load_run
 from support_accessibility.data.overhang import AXIS_BUILD_ROTATIONS
 
 ORDER = tuple(AXIS_BUILD_ROTATIONS)
+MIN_POINTS = 20
 
 
 def _axis_label(key):
@@ -25,11 +26,16 @@ def choose(parts):
     best, score = None, -1.0
     for p in parts:
         o = p["orientations"]
-        true = np.array([o[k]["true_inacc_area"] for k in ORDER])
-        area = np.array([o[k]["contact_area"] for k in ORDER])
-        if np.isclose(true[int(np.argmin(area))], true.min(), rtol=0, atol=1e-12):
-            continue                                   # 接触面积已选中最低风险方向：不是反例
-        spread = float(true.max() - true.min())
+        true_area = np.array([o[k]["true_inacc_area"] for k in ORDER])
+        true_pts = np.array([o[k]["true_inacc_points"] for k in ORDER])
+        frac = true_pts / np.maximum([o[k]["n_points"] for k in ORDER], 1)
+        pick = int(np.argmin([o[k]["contact_area"] for k in ORDER]))
+        # 反例须在面积与点数两种口径下都成立，且最高风险方向至少有 MIN_POINTS 个不可达点，
+        # 避免由少数大三角面主导的情形（每个接触面以其质心查询点的标签代表整面）
+        if (np.isclose(true_area[pick], true_area.min(), rtol=0, atol=1e-12) or true_pts[pick] == true_pts.min()
+                or true_pts[int(np.argmax(true_area))] < MIN_POINTS):
+            continue
+        spread = float(frac.max() - frac.min())
         if spread > score:
             best, score = p, spread
     return best

@@ -80,9 +80,10 @@ def main():
     # (c) 最低风险方向命中率
     cx = fig.add_axes([0.76, 0.29, 0.22, 0.61])
     names = ("接触面积\n最小", "随机\n选取", "网络预测\n最小")
-    vals = (orient["lowest_risk_hit_contact_area"], orient["lowest_risk_hit_random_expected"],
-            orient["lowest_risk_hit_network"])
-    errs = (0.0, 0.0, orient["lowest_risk_hit_network_std"])
+    area = orient["by_area"]
+    vals = (area["lowest_risk_hit_contact"], area["lowest_risk_hit_random_expected"],
+            area["lowest_risk_hit_network"])
+    errs = (0.0, 0.0, area["lowest_risk_hit_network_std"])
     colours = (S.GEOMETRY, S.GREY, S.NETWORK)
     bars = cx.bar(range(3), vals, color=colours, width=0.6)
     cx.errorbar(2, vals[2], yerr=errs[2], fmt="none", ecolor=S.INK, lw=0.7, capsize=1.5)   # 仅网络有种子间波动

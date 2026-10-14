@@ -28,8 +28,8 @@ def main():
     paths = resolve_data_paths()
     ap.add_argument("--data", default=str(paths.processed_root("fusion360")))
     ap.add_argument("--root", default=str(paths.fusion360_root), help="原网格根（给定则跑 res-稳定审核）")
-    ap.add_argument("--sample-points", type=int, default=160, help="差分审核采样点数（暴力参考较慢）")
-    ap.add_argument("--stability-models", type=int, default=10)
+    ap.add_argument("--sample-points", type=int, default=1000, help="差分审核采样点数（可达与不可达各半；暴力参考较慢）")
+    ap.add_argument("--stability-models", type=int, default=30, help="分辨率稳定性审核随机抽取的零件数")
     ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--write", action="store_true", help="把 label_audit 块 + human_signoff=verdict 写回 dataset.json")
@@ -68,16 +68,9 @@ def main():
     #     阈值附近必然小差，refinement 正是处理此带）；仅 **robust 不一致**（r±ε 邻域仍不一致）= 真 bug。
     EPS_B = 0.75
     k = a.sample_points // 2
-    pos, neg = [], []
-    for mi in rng.permutation(len(ms)):
-        if len(pos) >= k and len(neg) >= k:
-            break
-        lab = np.asarray(ms[mi].labels, bool)
-        for pi in range(lab.size):
-            if lab[pi] and len(pos) < k:
-                pos.append((mi, pi, True))
-            elif (not lab[pi]) and len(neg) < k:
-                neg.append((mi, pi, False))
+    pool = [(mi, pi, bool(lab)) for mi, m in enumerate(ms) for pi, lab in enumerate(np.asarray(m.labels, bool))]
+    pos = [pool[i] for i in rng.permutation([i for i, t in enumerate(pool) if t[2]])[:k]]          # 全部点中均匀抽样
+    neg = [pool[i] for i in rng.permutation([i for i, t in enumerate(pool) if not t[2]])[:k]]
     bym = defaultdict(list)
     for mi, pi, sl in pos + neg:
         bym[mi].append((pi, sl))
@@ -104,14 +97,12 @@ def main():
     stab = None
     if a.root:
         from support_accessibility.data import mesh as MESH
-        from support_accessibility.data.fusion360 import _meshes_from_root, normalize, qualify
+        from support_accessibility.data.fusion360 import iter_final_designs, load_obj, normalize
+        mesh_of = dict(iter_final_designs(a.root))
         tot = ag = done = 0
-        for name, V, F in _meshes_from_root(a.root):
-            if done >= a.stability_models:
-                break
+        for mi in rng.permutation(len(ms))[:a.stability_models]:   # 数据集零件中按固定种子随机抽样
+            V, F = load_obj(mesh_of[ms[mi].name])
             Vn, _s = normalize(V)
-            if not qualify(Vn, F)[0]:
-                continue
             labels = {}
             for res in (48, 96):                                # 同一组接触面在两种分辨率下的标签（入库口径）
                 lab = MESH.label_mesh(Vn, F, resolution=res, n_directions=a.n_directions)

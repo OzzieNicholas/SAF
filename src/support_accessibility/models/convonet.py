@@ -1,9 +1,10 @@
-"""ConvONet-lite：3D-CNN 全局编码器 + 点查询解码器（形状条件跨模型可达性预测；D-015 主线真模型）。
+"""ConvONet-lite：3D 卷积编码器 + 点查询解码器（形状条件的跨零件可达性预测，D-015 主线模型）。
 
-对比 tiny numpy（仅局部 patch、无全局上下文）：整块 occ 经 3D-CNN → 特征体 → 在查询点 trilinear 采样
-局部特征 + 归一坐标 → MLP → 不可达 logit。深腔全局遮挡（研究背景与设计 §4.2）由卷积感受野带入。
+整块占据栅格经三层 3×3×3 卷积得到特征体（单个特征的感受野为 7³ 个体素），在查询点三线性采样局部特征，
+与归一化坐标拼接后由 MLP 输出不可达 logit。网络获得的是局部到中程的形状上下文，不是全局编码；
+对照的 tiny_patch_mlp 直接以查询点周围 11³ 的原始占据小块为输入，不经卷积特征。
 grid_sample 用归一坐标 [-1,1]，故不同尺寸 occ 无需 resize（逐模型前向）。需 torch（environment.yml，D-007）；
-GPU 可用则用。坐标序坑（grid 末维 = W,H,D 序）由 to_grid_coords 统一处理，须经 sanity（采样 occ 自身≈占据值）验证。
+GPU 可用则用。坐标序（grid 末维 = W,H,D 序）由 to_grid_coords 统一处理。
 """
 import torch
 import torch.nn as nn
