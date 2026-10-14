@@ -17,8 +17,8 @@
   },
   "label_audit": {
    "path": "artifacts/runs/label_audit/result.json",
-   "sha256": "6a05f04c22063012327ab973bcbc6a6c071d1bff84e5c11111cd802224b10d74",
-   "run_id": "20261014T195303.743703Z-23712-731ad679",
+   "sha256": "f3308c6adf034c6559765f7762eb51d861e0b930a2ced139c88a38658868ea4d",
+   "run_id": "20261014T211327.137672Z-18812-26692a26",
    "command": "experiments\\label_audit.py --write"
   },
   "oracle_differential_audit": {
@@ -32,6 +32,12 @@
    "sha256": "0ab0caf88ccf1d31fa218dacb0b7600b1cff66bff698aa7cbea5bdcfee3d59d8",
    "run_id": "20261014T141856.723091Z-41792-13ed9c30",
    "command": "experiments\\mesh_quality_audit.py"
+  },
+  "exact_refinement_audit": {
+   "path": "artifacts/runs/exact_refinement_audit/result.json",
+   "sha256": "f1a13d77af1dc5f332e7e03372598d7579eea9ff5889d347f90029cdf31f44bf",
+   "run_id": "20261014T210609.410974Z-43328-65b29a62",
+   "command": "experiments\\exact_refinement_audit.py --workers 8"
   },
   "cross_model_prediction": {
    "path": "artifacts/runs/cross_model_prediction/result.json",
