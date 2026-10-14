@@ -33,6 +33,7 @@ CANONICAL_RUNS = (
     ("screening_evaluation", ["--workers", "16"]),
     ("orientation_evaluation", []),
     ("cross_domain_robustness", []),
+    ("training_scale", ["--seeds", "5"]),
     ("cross_model_prediction", ["--seeds", "5", "--epochs", "80"]),
     ("direction_field_prediction", ["--seeds", "5"]),
 )

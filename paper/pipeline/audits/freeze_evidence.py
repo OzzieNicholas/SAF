@@ -32,6 +32,7 @@ CANONICAL_EXPERIMENTS = (
     "baseline_comparison",
     "shape_context_ablation",
     "cross_domain_robustness",
+    "training_scale",
     "direction_field_prediction",
     "failure_analysis",
     "holdout_model",
