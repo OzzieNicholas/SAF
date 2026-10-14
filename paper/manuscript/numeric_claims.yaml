@@ -21,21 +21,31 @@
 - {id: ray_visible_share_procedural, experiment: tool_radius_effect, path: procedural.ray_visible_share_of_inaccessible, scale: 100, format: .0f, text: "99"}
 - {id: area_spearman_count, experiment: contact_area_vs_accessibility, path: contact_count.spearman_all, text: "0.264"}
 - {id: area_spearman_true, experiment: contact_area_vs_accessibility, path: true_area.spearman_all, text: "0.124"}
-- {id: orient_rho_area, experiment: orientation_evaluation, path: spearman_contact_area_vs_true_mean, format: .2f, text: "0.04"}
-- {id: orient_rho_network, experiment: orientation_evaluation, path: spearman_network_vs_true_mean, format: .2f, text: "0.79"}
-- {id: orient_hit_area, experiment: orientation_evaluation, path: lowest_risk_hit_contact_area, scale: 100, format: .1f, text: "27.5"}
-- {id: orient_hit_random, experiment: orientation_evaluation, path: lowest_risk_hit_random_expected, scale: 100, format: .1f, text: "31.0"}
-- {id: orient_hit_network, experiment: orientation_evaluation, path: lowest_risk_hit_network, scale: 100, format: .1f, text: "81.0"}
-- {id: orient_hit_network_std, experiment: orientation_evaluation, path: lowest_risk_hit_network_std, scale: 100, format: .1f, text: "3.5"}
-- {id: orient_rho_network_std, experiment: orientation_evaluation, path: spearman_network_vs_true_std, format: .2f, text: "0.01"}
+- {id: area_spearman_count_both, experiment: contact_area_vs_accessibility, path: contact_count.spearman_both_class, text: "-0.221"}
+- {id: area_spearman_true_both, experiment: contact_area_vs_accessibility, path: true_area.spearman_both_class, text: "-0.126"}
+- {id: orient_rho_area, experiment: orientation_evaluation, path: by_area.spearman_contact_vs_true_mean, format: .2f, text: "0.04"}
+- {id: orient_rho_network, experiment: orientation_evaluation, path: by_area.spearman_network_vs_true_mean, format: .2f, text: "0.79"}
+- {id: orient_hit_area, experiment: orientation_evaluation, path: by_area.lowest_risk_hit_contact, scale: 100, format: .1f, text: "27.5"}
+- {id: orient_hit_random, experiment: orientation_evaluation, path: by_area.lowest_risk_hit_random_expected, scale: 100, format: .1f, text: "31.0"}
+- {id: orient_hit_network, experiment: orientation_evaluation, path: by_area.lowest_risk_hit_network, scale: 100, format: .1f, text: "81.0"}
+- {id: orient_hit_network_std, experiment: orientation_evaluation, path: by_area.lowest_risk_hit_network_std, scale: 100, format: .1f, text: "3.5"}
+- {id: orient_rho_network_std, experiment: orientation_evaluation, path: by_area.spearman_network_vs_true_std, format: .2f, text: "0.01"}
 - {id: orient_rotated_f1, experiment: orientation_evaluation, path: rotated_pooled_f1, format: .2f, text: "0.86"}
 - {id: orient_worst_f1, experiment: orientation_evaluation, path: per_orientation.+y.pooled_f1, format: .2f, text: "0.81"}
+- {id: orient_pts_rho_contact, experiment: orientation_evaluation, path: by_point_count.spearman_contact_vs_true_mean, format: .2f, text: "-0.15"}
+- {id: orient_pts_rho_network, experiment: orientation_evaluation, path: by_point_count.spearman_network_vs_true_mean, format: .2f, text: "0.82"}
+- {id: orient_pts_hit_contact, experiment: orientation_evaluation, path: by_point_count.lowest_risk_hit_contact, scale: 100, format: .1f, text: "18.8"}
+- {id: orient_pts_hit_random, experiment: orientation_evaluation, path: by_point_count.lowest_risk_hit_random_expected, scale: 100, format: .1f, text: "31.5"}
+- {id: orient_pts_hit_network, experiment: orientation_evaluation, path: by_point_count.lowest_risk_hit_network, scale: 100, format: .1f, text: "84.5"}
 
 # ---- 标签审核（表 3） ----
-- {id: label_robust_mismatch, experiment: label_audit, path: differential.robust_mismatch_rate, scale: 100, format: .2f, text: "0.63"}
+- {id: label_robust_mismatch, experiment: label_audit, path: differential.robust_mismatch_rate, scale: 100, format: .2f, text: "0.20"}
 - {id: label_differential_synthetic, experiment: oracle_differential_audit, path: robust_mismatch_rate, scale: 100, format: .2f, text: "0.01"}
-- {id: label_resolution_agreement, experiment: label_audit, path: res_stability.res48_vs_res96_agreement, scale: 100, format: .2f, text: "97.28"}
+- {id: label_resolution_agreement, experiment: label_audit, path: res_stability.res48_vs_res96_agreement, scale: 100, format: .2f, text: "99.65"}
 - {id: label_both_class_share, experiment: label_audit, path: distribution.both_class_model_frac, scale: 100, format: .1f, text: "18.1"}
+- {id: label_sample_points, experiment: label_audit, path: differential.sample_n, format: ",.0f", text: "1,000"}
+- {id: label_refinement_changed, experiment: label_audit, path: differential.refinement_changed_frac, scale: 100, format: .1f, text: "22.5"}
+- {id: label_resolution_parts, experiment: label_audit, path: res_stability.models, format: ".0f", text: "30"}
 
 # ---- 未见零件上的预测（表 4、图 5） ----
 - {id: holdout_f1, experiment: holdout_model, path: pooled_f1_mean, text: "0.911"}
@@ -64,6 +74,8 @@
 - {id: cross_model_f1, experiment: cross_model_prediction, path: part_f1_mean_mean, text: "0.790"}
 - {id: cross_model_f1_std, experiment: cross_model_prediction, path: part_f1_mean_std, text: "0.018"}
 - {id: cross_model_median, experiment: cross_model_prediction, path: part_f1_median_mean, text: "0.943"}
+- {id: cross_model_pooled, experiment: cross_model_prediction, path: pooled_f1_mean, text: "0.882"}
+- {id: cross_model_pooled_std, experiment: cross_model_prediction, path: pooled_f1_std, text: "0.011"}
 - {id: baseline_local_rule, experiment: baseline_comparison, path: methods.local_rule.f1_overall, text: "0.317"}
 - {id: baseline_ray, experiment: baseline_comparison, path: methods.ray_visibility.f1_overall, text: "0.676"}
 - {id: baseline_coarse, experiment: baseline_comparison, path: methods.coarse_finite_tool.f1_overall, text: "0.853"}
@@ -107,7 +119,7 @@
 - {id: cost_voxel_low, experiment: cost_accuracy_frontier, path: methods.voxel_8.pooled_f1, format: .2f, text: "0.81"}
 - {id: cost_voxel_high, experiment: cost_accuracy_frontier, path: methods.voxel_64.pooled_f1, format: .2f, text: "0.86"}
 
-# ---- 方向级输出（5.7 节） ----
+# ---- 方向级输出（5.9 节） ----
 - {id: direction_f1, experiment: direction_field_prediction, path: network.direction_f1.mean, text: "0.935"}
 - {id: direction_f1_std, experiment: direction_field_prediction, path: network.direction_f1.std, text: "0.001"}
 - {id: direction_set_iou, experiment: direction_field_prediction, path: network.viable_set_iou.mean, text: "0.779"}
@@ -119,7 +131,7 @@
 - {id: direction_prior_top1, experiment: direction_field_prediction, path: global_prior_baseline.top1_hit, text: "0.684"}
 - {id: direction_eligible_share, experiment: direction_field_prediction, path: eligible_fraction, scale: 100, format: .1f, text: "70.9"}
 
-# ---- 误差分析（5.8 节、图 10） ----
+# ---- 误差分析（5.8 节、图 10a） ----
 - {id: failure_bin_1_2, experiment: failure_analysis, path: error_rate_by_nviable.1-2, scale: 100, format: .1f, text: "10.3"}
 - {id: failure_bin_3_5, experiment: failure_analysis, path: error_rate_by_nviable.3-5, scale: 100, format: .1f, text: "6.1"}
 - {id: failure_bin_0, experiment: failure_analysis, path: error_rate_by_nviable.0, scale: 100, format: .1f, text: "11.2"}
