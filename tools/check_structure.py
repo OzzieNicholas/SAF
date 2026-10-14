@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 TOP_LEVEL_DIRS = {".git", ".github", "artifacts", "configs", "data", "docs", "experiments",
                   "governance", "paper", "src", "tests", "tools"}
-TOP_LEVEL_CACHES = {".claude", ".pytest_cache", ".hypothesis", ".mypy_cache", ".ruff_cache"}
+TOP_LEVEL_CACHES = {".claude", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 TOP_LEVEL_FILES = {".gitignore", "AGENTS.md", "LICENSE", "README.md", "environment.yml", "pyproject.toml"}
 
 PY_NAME = re.compile(r"^[a-z_][a-z0-9_]*\.py$")

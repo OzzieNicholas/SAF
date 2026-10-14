@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = ["numpy", "scipy", "trimesh", "pyyaml"]
 
 [project.optional-dependencies]
-dev = ["pytest", "hypothesis"]
+dev = ["pytest"]
 
 # igl、torch、matplotlib 等重依赖以 environment.yml 为唯一权威源；此处只列纯 Python 的最小集。
 

@@ -16,7 +16,6 @@ dependencies:
   - trimesh
   - pyyaml
   - pytest
-  - hypothesis
   - tectonic=0.17.0            # 论文 PDF 编译：paper/pipeline/build_paper.py 调用
   - pip
   - pip:
@@ -25,4 +24,5 @@ dependencies:
     - matplotlib==3.11.1         # 论文图件：统计图与示意图
     - pyvista==0.48.4            # 论文图件：3D 网格离屏渲染（需 OpenGL 上下文）
     - pypdf==6.1.1               # 图件 QA：PDF 页面尺寸、字体嵌入与 Type 3 检查
+    - pillow                     # 图件 QA：PNG 分辨率、空白检测与预览拼图（matplotlib 亦依赖）
     - -e .                       # 本包（support_accessibility），源码在 src/

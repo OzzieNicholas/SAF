@@ -33,8 +33,6 @@ class Label(str, Enum):
     INACCESSIBLE = "inaccessible"
 
 
-
-
 def decide_label(clearances, r, eps, refine=None):
     """判定（D-003 边界带精确细化）。clearances = 每逼近方向沿射线的最小净空（体素）。
 

@@ -40,7 +40,6 @@ def stack_vf(parts):
     return np.vstack(Vs), np.vstack(Fs).astype(np.int32)
 
 
-
 # —— 两个真实网格已知答案件（构造即知）——
 def box_downface_case():
     """单盒 6×6×4（z∈[-2,2]）。查询点在底面下方 → 下朝面开阔 → accessible（D-002）。"""

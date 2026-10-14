@@ -24,7 +24,6 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
-.hypothesis/
 
 # 本地环境与编辑器/工具状态
 .venv/

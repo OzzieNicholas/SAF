@@ -25,7 +25,7 @@ SAF（Support Accessibility Field）：金属增材制造支撑接触区表面�
 
 ## 约定
 
-- 代码按模块组织（`src/support_accessibility/{oracle,data,eval,models,baselines,viz,runtime}`），不按阶段号命名；阶段号（阶段 0–10）和假设号（H1–H5）只是逻辑标签，用在决策台账和结果账本里，不出现在文件名中。
+- 代码按模块组织（`src/support_accessibility/{oracle,data,eval,models,baselines,runtime}`），不按阶段号命名；阶段号（阶段 0–10）和假设号（H1–H5）只是逻辑标签，用在决策台账和结果账本里，不出现在文件名中。
 - 依赖方向：`src` ← `experiments` / `tools` / `paper` ← `tests`；`src` 不得导入后者。
 - 路径只通过 `support_accessibility.runtime.data_paths` 取得，仓库内不写绝对路径（由 `tools/check_structure.py` 检查）。
 - 机器产物写 `artifacts/runs/`（证据）和 `artifacts/cache/`（可清理），都不入库；数据放 `data/`（不入库）。
