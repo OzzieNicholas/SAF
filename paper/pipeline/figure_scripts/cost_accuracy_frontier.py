@@ -24,26 +24,27 @@ def main():
     for n, x, y in zip(dirs, xs, ys):
         ax.annotate(str(n), (x, y), xytext=(0, -9), textcoords="offset points", ha="center",
                     color=S.GEOMETRY)
-    ax.annotate("纯体素判定", (xs[-1], ys[-1]), xytext=(7, 0), textcoords="offset points",
-                ha="left", va="center", color=S.GEOMETRY)
+    peak = int(np.argmax(ys))
+    ax.annotate("不经细化的体素判定", (xs[peak], ys[peak]), xytext=(0, 9), textcoords="offset points",
+                ha="center", va="bottom", color=S.GEOMETRY)
     ax.plot(t("ray_r0_128"), f("ray_r0_128"), "s", color=S.GREY, zorder=3)
     ax.annotate("零半径射线", (t("ray_r0_128"), f("ray_r0_128")), xytext=(-5, 0),
                 textcoords="offset points", ha="right", va="center", color=S.GREY)
     ax.plot(t("two_stage_128"), 1.0, "*", color=S.INK, markersize=7, zorder=3)
-    ax.annotate("两级标签器（参考）", (t("two_stage_128"), 1.0), xytext=(-6, 0),
+    ax.annotate("两级判定器（参考）", (t("two_stage_128"), 1.0), xytext=(-6, 0),
                 textcoords="offset points", ha="right", va="center", color=S.INK)
     # 网络精度取 5 个训练种子的均值与标准差（同一组权重在 GPU 与 CPU 上输出相同），耗时为种子 0 实测
     net_f1, net_sd = rows["network_gpu"]["pooled_f1_seed_mean"], rows["network_gpu"]["pooled_f1_seed_std"]
-    for key, face, name in (("network_gpu", S.NETWORK, "网络（GPU）"), ("network_cpu", "white", "网络（CPU）")):
+    for key, face, name in (("network_gpu", S.NETWORK, "网络（GPU）"), ("network_cpu", "white", "网络（单线程 CPU）")):
         ax.errorbar(t(key), net_f1, yerr=net_sd, fmt="^", color=S.NETWORK, mfc=face, mew=0.9, lw=0.7,
                     capsize=1.5, zorder=4)
         below = key == "network_gpu"                     # GPU 点靠近左轴，标签放下方以免与刻度相撞
-        ax.annotate(name, (t(key), net_f1), xytext=(-4, -9) if below else (0, 8), textcoords="offset points",
-                    ha="left" if below else "center", va="top" if below else "bottom", color=S.NETWORK)
+        ax.annotate(name, (t(key), net_f1), xytext=(-4, -9) if below else (4, 8), textcoords="offset points",
+                    ha="left" if below else "right", va="top" if below else "bottom", color=S.NETWORK)
     occ = run["occupancy_seconds_per_part_mean"]
     ax.axvline(occ, color=S.GREY, lw=0.6, ls=":", zorder=1)
     ax.set_ylim(0.64, 1.025)
-    ax.set_xlim(1.5e-3, 3.0)
+    ax.set_xlim(1.5e-3, max(10.0, 3 * t("two_stage_128")))
     ax.annotate("占据栅格构造", (occ, 0.645), xytext=(-2, 0), textcoords="offset points",
                 color=S.GREY, rotation=90, va="bottom", ha="right")
     ax.set_xscale("log")

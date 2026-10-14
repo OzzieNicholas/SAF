@@ -9,7 +9,7 @@ SAF（Support Accessibility Field）：金属增材制造支撑接触区表面�
 ## 环境
 
 - conda 环境 `saf`（Python 3.12，依赖见 `environment.yml`），由 `tests/acceptance/test_env.py` 守护。
-- 硬件上限：单卡 RTX 4060 / 32G，模型与数据规模据此控制。
+- 硬件上限：单卡 RTX 4060 Ti / 32G，模型与数据规模据此控制。
 - 非交互 shell 先 `conda activate saf` 再运行；不要直接调用环境里的 `python.exe`（未激活会因 OpenBLAS 延迟加载崩溃），不要同时开两个 `conda run`。
 
 ## 完成的定义

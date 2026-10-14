@@ -3,112 +3,94 @@
  "kind": "paper_evidence",
  "scope": "potential support-contact proxy; part-body occlusion only; finite spherical tool; discrete straight approaches; fixed r=0.05, +z, 45 degrees, and 128/64 directions",
  "canonical_runs": {
-  "support_area_vs_accessibility": {
-   "path": "artifacts/runs/support_area_vs_accessibility/result.json",
-   "sha256": "efa69b8d463bcbe909f0b88fe3fb9de5fd30b36cb0f2d193aad973562b1f9ceb",
-   "run_id": "20261009T055218.803036Z-23948-87bd35e5",
-   "command": "experiments\\support_area_vs_accessibility.py"
-  },
-  "true_triangle_area_check": {
-   "path": "artifacts/runs/true_triangle_area_check/result.json",
-   "sha256": "67b9a8eec3842b734d688f3ffcf003463039fcdb1456d33e7870823a9cc18fd0",
-   "run_id": "20261009T082845.505437Z-40912-e1db8d10",
-   "command": "experiments\\true_triangle_area_check.py"
+  "contact_area_vs_accessibility": {
+   "path": "artifacts/runs/contact_area_vs_accessibility/result.json",
+   "sha256": "40c76084ab315a469411973d34b790dabd58ee7015d6efdd43cacc98b68fb76d",
+   "run_id": "20261014T135432.521665Z-15800-4e8be969",
+   "command": "experiments\\contact_area_vs_accessibility.py --workers 16"
   },
   "tool_radius_effect": {
    "path": "artifacts/runs/tool_radius_effect/result.json",
-   "sha256": "6825461c0acc3f6440e76cd5298fc15cb61fd02acb30c20b44c146fb9676dbad",
-   "run_id": "20261009T055647.155841Z-29704-df2cd7aa",
-   "command": "experiments\\tool_radius_effect.py"
+   "sha256": "39e35c1f7920535a9c2b304a5bd430d116546698547188d564bd6ac3aecee86b",
+   "run_id": "20261014T141330.360170Z-34784-a35e0a80",
+   "command": "experiments\\tool_radius_effect.py --workers 16"
   },
   "label_audit": {
    "path": "artifacts/runs/label_audit/result.json",
-   "sha256": "1efbc0dff9ae04069559977f683b149ce7a596a24973e3129d1d3b659346bc39",
-   "run_id": "20261009T055754.178555Z-25884-01e124b7",
+   "sha256": "6bd6a6c07109fe945a04790183afc1ef6b80c5630f808742902988812c708e82",
+   "run_id": "20261014T141452.225870Z-9636-12b6077b",
    "command": "experiments\\label_audit.py --write"
   },
   "oracle_differential_audit": {
    "path": "artifacts/runs/oracle_differential_audit/result.json",
-   "sha256": "bfd610778260c004f67bf59eb0a61370015e49aa51d148f2e3caafe9aa70075b",
-   "run_id": "20261009T060432.869526Z-37072-e6b22ffb",
+   "sha256": "0dc108f02b7f2e513a6228833fbc71a06b892cd6e8a3087938d4c59850c413a9",
+   "run_id": "20261014T141747.454806Z-18024-51f621e2",
    "command": "experiments\\oracle_differential_audit.py --cases 10000"
   },
   "mesh_quality_audit": {
    "path": "artifacts/runs/mesh_quality_audit/result.json",
-   "sha256": "1c21acfe132f9b9442edcd759ccddb5906c992e0b755dd1687dcb7729f4e08c0",
-   "run_id": "20261009T060527.107644Z-19744-303a076f",
+   "sha256": "0ab0caf88ccf1d31fa218dacb0b7600b1cff66bff698aa7cbea5bdcfee3d59d8",
+   "run_id": "20261014T141856.723091Z-41792-13ed9c30",
    "command": "experiments\\mesh_quality_audit.py"
   },
   "cross_model_prediction": {
    "path": "artifacts/runs/cross_model_prediction/result.json",
-   "sha256": "8602ded243f4003e2be76a4cdb912b29770000d6b2ff08ec3d06ee753aecd082",
-   "run_id": "20261009T064403.508196Z-24124-5fab584b",
+   "sha256": "7fc091bcc91e249d7b2b5be8b7c6f8014f160c62f0ec64f0ab18b67e7189913d",
+   "run_id": "20261014T164919.086481Z-30976-a8f97a7f",
    "command": "experiments\\cross_model_prediction.py --seeds 5 --epochs 80"
   },
   "baseline_comparison": {
    "path": "artifacts/runs/baseline_comparison/result.json",
-   "sha256": "402a69910e407c9669d2422b4707ea1ca518570c5e536e9e2bc5dbd8dc8c6251",
-   "run_id": "20261014T080245.802308Z-38724-ee7cca1a",
+   "sha256": "05fad9282029f84a1fa85b2622e6c5b672cb0a835364c5481184e3ce785adf1b",
+   "run_id": "20261014T144307.325212Z-37680-d0aa33bd",
    "command": "experiments\\baseline_comparison.py --tiny-epochs 300"
-  },
-  "regression_check": {
-   "path": "artifacts/runs/regression_check/result.json",
-   "sha256": "bfc2b38b3fa261afa24f473380be1bde3ecd3a3eeb7523a699796327391e75ed",
-   "run_id": "20261014T080350.372424Z-42752-643f9530",
-   "command": "experiments\\regression_check.py --n-boot 2000"
   },
   "shape_context_ablation": {
    "path": "artifacts/runs/shape_context_ablation/result.json",
-   "sha256": "d8c40793988c0a3822d13ef7d4b7952cbb3b2e361ca10c864b5de866466428f7",
-   "run_id": "20261014T081519.273941Z-4404-78be995b",
+   "sha256": "8274a52d90f79317106a6dad1cfbd4d89637c9baaf4ce814ed2f743b26d0e21d",
+   "run_id": "20261014T150209.404868Z-36760-b6fbc88a",
    "command": "experiments\\shape_context_ablation.py"
   },
   "cross_domain_robustness": {
    "path": "artifacts/runs/cross_domain_robustness/result.json",
-   "sha256": "35ed751b99811886d6634c35bbd0f0d8529e951604e52608868bf0ef2ad7bf2f",
-   "run_id": "20261009T065908.628559Z-35732-0b8f6bba",
-   "command": "experiments\\cross_domain_robustness.py --seeds 3 --epochs 80"
+   "sha256": "79417d38115e110df65a94e11a32980aa48f2d19ad3ef5eccb9f1085724cf899",
+   "run_id": "20261014T162253.021890Z-28228-42736534",
+   "command": "experiments\\cross_domain_robustness.py"
   },
   "direction_field_prediction": {
    "path": "artifacts/runs/direction_field_prediction/result.json",
-   "sha256": "f6e65f0272c4185713f03e7949600383cfbd99be063051e2d8b88b474ce138d5",
-   "run_id": "20261009T081938.831740Z-10432-14480ac9",
-   "command": "experiments\\direction_field_prediction.py --max-models 500 --seeds 3 --epochs 100 --root <external-path>"
-  },
-  "direction_field_audit": {
-   "path": "artifacts/runs/direction_field_audit/result.json",
-   "sha256": "ea8016b932a4f54637dec4c337ea952222c204b30862002fc601117be75a809f",
-   "run_id": "20261009T073637.280056Z-49212-d6d61be4",
-   "command": "experiments\\direction_field_audit.py --max-models 500"
+   "sha256": "6e42286adf94ecb18cb14177d2f2cead7d7ab9bff83c75e98f1bf71703ab2eca",
+   "run_id": "20261014T171003.564470Z-44216-1e0b6707",
+   "command": "experiments\\direction_field_prediction.py --seeds 5"
   },
   "failure_analysis": {
    "path": "artifacts/runs/failure_analysis/result.json",
-   "sha256": "1d28f268142e853d430a1aa415e60a7d5e43657cce1d8fab7d349f92acbb797d",
-   "run_id": "20261014T081559.158211Z-3120-3addd75b",
-   "command": "experiments\\failure_analysis.py --figure-case 116082_b59d8605_0002"
+   "sha256": "e46e84a3f99daa11c7c9170c081f041b88f2eb0f581ba37a8d973d250c898ab2",
+   "run_id": "20261014T150546.626245Z-42136-d450351a",
+   "command": "experiments\\failure_analysis.py"
   },
   "holdout_model": {
    "path": "artifacts/runs/holdout_model/result.json",
-   "sha256": "09c9fb288a99e8eaefcc1127ba7b54745fa6aecc6bb2958d0995f690cf65ff08",
-   "run_id": "20261014T075641.892389Z-42668-d1542253",
-   "command": "experiments/holdout_model.py --seeds 5"
+   "sha256": "8f06f129255926e94b7b2e481be5a8b898ff6deaa17ed4c7ec4ca5c449f9bdca",
+   "run_id": "20261014T143043.206404Z-15576-ac779ac1",
+   "command": "experiments\\holdout_model.py --seeds 5"
   },
   "cost_accuracy_frontier": {
    "path": "artifacts/runs/cost_accuracy_frontier/result.json",
-   "sha256": "e37972aa3a8fd13ecf0ac07340748c322c5ed30000b822c9a94d715bb737501e",
-   "run_id": "20261014T084000.453442Z-43472-9d4858a7",
+   "sha256": "f91564a79a2ea174ad56c07d29b9825e474ad2920f31a00b6b0b826b7805b446",
+   "run_id": "20261014T174953.079860Z-29420-6d8eaf49",
    "command": "experiments/cost_accuracy_frontier.py"
   },
   "screening_evaluation": {
    "path": "artifacts/runs/screening_evaluation/result.json",
-   "sha256": "6b4d56f5008f433058560caf8c61edcb10aa9f36e2fc096a6a31ead19511e046",
-   "run_id": "20261014T082454.105278Z-32832-5a4a1ebb",
+   "sha256": "00cd10e458a4224040044b18edd4fe9a243867adca5d762129dff7f794e624f8",
+   "run_id": "20261014T154030.101342Z-36300-5d0a0580",
    "command": "experiments\\screening_evaluation.py --workers 16"
   },
   "orientation_evaluation": {
    "path": "artifacts/runs/orientation_evaluation/result.json",
-   "sha256": "35cb3eb1aa79ee5b7cb86907ea9f9a97c2e2fb9de5572d3048f8e5946bbf7ab2",
-   "run_id": "20261014T083440.953782Z-18560-56d113f2",
+   "sha256": "ccc6ed7c94d65daa14470312debf741c058825d536037593a223b1fc1de556de",
+   "run_id": "20261014T160506.951618Z-24148-6242295a",
    "command": "experiments\\orientation_evaluation.py"
   }
  },
