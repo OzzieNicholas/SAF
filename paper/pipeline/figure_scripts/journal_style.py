@@ -101,7 +101,7 @@ def save(fig, name):
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(QA_DIR, exist_ok=True)
     fig.canvas.draw()
-    write_result("figure_qa", inspect_figure(fig, name), os.path.join(QA_DIR, name + ".json"), (out_dir,))
+    write_result("figure_qa", inspect_figure(fig, name), os.path.join(QA_DIR, name + ".json"))
     metadata = {"Creator": "SAF reproducible figure pipeline", "Title": name}
     png = os.path.join(out_dir, name + ".png")
     fig.savefig(png, dpi=600, facecolor="white", metadata=metadata)

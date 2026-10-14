@@ -85,7 +85,10 @@ def input_digest(paths: Iterable[str | os.PathLike[str]]) -> str:
             rows.append(f"{_relative(path)}:{stat.st_size}:{stat.st_mtime_ns}")
         elif path.is_dir():
             for child in sorted(p for p in path.rglob("*") if p.is_file()):
-                stat = child.stat()
+                try:
+                    stat = child.stat()
+                except FileNotFoundError:          # 列目录与读元数据之间被删除的临时文件（如外部工具的中间文件）
+                    continue
                 rows.append(f"{_relative(child)}:{stat.st_size}:{stat.st_mtime_ns}")
         else:
             rows.append(f"{_relative(path)}:missing")
