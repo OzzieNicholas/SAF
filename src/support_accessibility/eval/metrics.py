@@ -1,4 +1,4 @@
-"""评价指标（不可达=风险正类）：不可达类 F1、区域 IoU、点占比误差、方向排序 Top-k、Spearman。
+"""评价指标（不可达=风险正类）：不可达类 F1、区域 IoU、方向排序 Top-k、Spearman。
 
 已知答案锚定见 tests/acceptance/test_eval.py。
 """
@@ -44,20 +44,6 @@ def iou_inaccessible(pred_region, gold_region):
     _check_same(p, g)
     inter = int(np.sum(p & g)); union = int(np.sum(p | g))
     return 1.0 if union == 0 else inter / union
-
-
-def inaccessible_area_error(pred_region, gold_region):
-    """不可达**点占比**误差 = |pred 不可达点占比 − gold 不可达点占比|。
-
-    注：这是点占比误差；仅当点集**按面积均匀采样**时才≈面积比例误差，而当前 ingest（逐三角质心 / 分层体素）
-    不满足该假设（真面积口径见 experiments/true_triangle_area_check.py 与 experiments/support_area_vs_accessibility.py）。数值本身有效（同点集 pred vs gold），
-    只是"面积"解读不成立。形状校验对齐 f1/iou（`_check_same`）。"""
-    import numpy as np
-    p, g = _pos_mask(pred_region), _pos_mask(gold_region)
-    _check_same(p, g)
-    if p.size == 0:
-        return 0.0
-    return abs(float(np.mean(p)) - float(np.mean(g)))
 
 
 # ---- 方向排序指标（方向级场 / D-024；问题定义.md「方向排序相关 Top-k」）----
@@ -123,11 +109,3 @@ def spearman(x, y):
     if rx.std() == 0 or ry.std() == 0:
         return 0.0
     return float(np.corrcoef(rx, ry)[0, 1])
-
-
-def summary(pred, gold):
-    """一个预测器 vs gold 的指标包（不可达=正类）：{f1, iou, acc, area_err}。用于基线对照。"""
-    p, g = _pos_mask(pred), _pos_mask(gold)
-    return {"f1": f1_inaccessible(p, g), "iou": iou_inaccessible(p, g),
-            "acc": float((p == g).mean()) if p.size else 1.0,
-            "area_err": inaccessible_area_error(p, g)}

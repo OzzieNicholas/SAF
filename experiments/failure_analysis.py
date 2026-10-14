@@ -1,172 +1,74 @@
 #!/usr/bin/env python3
-"""失败案例分析（需 torch）。神经二分预测 vs oracle 在**留出真实件**上何处/为何误判。
+"""误差分析：固定留出模型在留出零件上的误判出现在哪里。
 
-训 ConvONet-lite 二分头（镜像跨模型预测制度），留出集上定位 pred≠gold 的点，按**几何难度**刻画：
-每点可达方向数 n_viable（oracle direction_labels，D-024）——n_viable 小=勉强可达/临界=最难。
-产出：整体 F1、误判率、假正(FP:判不可达实可达)/假负(FN:判可达实不可达)拆分、按 n_viable 分箱误判率，
-+ 误判最多的几件审计 PNG（occ 剪影 + 误判掩码）。
+读取 experiments/holdout_model.py 的多种子权重（与基线对照、消融为同一组模型）。每个接触点的几何难度
+用「可达方向数」刻画：两级判定器在 64 个下半球方向上逐方向判定（与点级标签同一细化口径），
+0 个即不可达，1–5 个为余量临界，≥6 个为开阔。报告整体误判率、误报与漏报拆分，以及按可达方向数分箱的
+误判率（训练种子间均值 ± 标准差）。
 
 用法：
-  python experiments/failure_analysis.py --max-models 400
+  python experiments/failure_analysis.py
 """
 import argparse
-import os
 
 from support_accessibility.runtime.console import setup_console
 from support_accessibility.runtime.data_paths import resolve_data_paths
-from support_accessibility.runtime.frozen_params import FROZEN
-from support_accessibility.runtime.run_records import RUN_ROOT
 
 setup_console()
 
-
-def both_class(ms):
-    import numpy as np
-    return [m for m in ms if np.asarray(m.labels).size and np.asarray(m.labels).any() and (~np.asarray(m.labels)).any()]
+BINS = {"0": (0, 0), "1-2": (1, 2), "3-5": (3, 5), "6+": (6, None)}
 
 
 def main():
-    ap = argparse.ArgumentParser(description="失败案例分析")
+    ap = argparse.ArgumentParser(description="误差分析（按可达方向数分箱）")
     paths = resolve_data_paths()
     ap.add_argument("--fusion", default=str(paths.processed_root("fusion360")))
-    ap.add_argument("--procedural", default=str(paths.processed_root("procedural")))
-    ap.add_argument("--max-models", type=int, default=400, help="截取 fusion both-class 前 N 件（可解性）")
-    ap.add_argument("--epochs", type=int, default=80)
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--seeds", type=int, default=5, help="训练种子数：按种子聚合误判分箱 mean±std（减小小样本噪声，稳住 FP/FN 与分箱结论）")
-    ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)
-    ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/failure_analysis/result.json，审计图和图件数据写在同一目录（试跑请指定其他路径）")
-    ap.add_argument("--top-audit", type=int, default=4)
-    ap.add_argument("--figure-case", default="116082_b59d8605_0002",
-                    help="图10固定留出案例；必须属于本次首种子测试集")
+    ap.add_argument("--root", default=str(paths.fusion360_root), help="Fusion 原始网格目录（生成细化方向标签）")
+    ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/failure_analysis/result.json")
     a = ap.parse_args()
 
     import json
     import numpy as np
     import torch
-    from support_accessibility.runtime.run_records import write_result
+    from holdout_model import holdout_split, load_holdout_models, mean_std, predict_proba, refined_direction_labels
+    from support_accessibility import eval as E
     from support_accessibility.data.dataset import load_dataset
-    from support_accessibility.data import split_by_model
-    from support_accessibility.oracle import SupportAccessibilityOracle
-    from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
-    from support_accessibility import eval as E, viz as VIZ
+    from support_accessibility.runtime.run_records import write_result
 
-    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-    fus, _ = load_dataset(a.fusion)
-    proc, _ = load_dataset(a.procedural)
-    fus_bc = both_class(fus)[:a.max_models]
-    ftr, _fva, fte = split_by_model(fus_bc, frac_train=0.6, frac_val=0.2, seed=a.seed)
-    fte = [m for m in fte if m.points.shape[0] > 0]
-    print(f"device={dev} fusion_bc={len(fus_bc)} train={len(ftr)} test={len(fte)}", flush=True)
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    _train, _val, test = holdout_split(load_dataset(a.fusion)[0])
+    nets = load_holdout_models(dev)
+    viable = refined_direction_labels(test, a.fusion, a.root, a.workers)
+    n_viable = np.concatenate([viable[m.name].sum(axis=1) for m in test])
+    gold = np.concatenate([np.asarray(m.labels, bool) for m in test])
+    bins = {k: (n_viable >= lo) & (n_viable <= (hi if hi is not None else n_viable.max())) for k, (lo, hi) in BINS.items()}
+    print(f"device={dev} test={len(test)} points={gold.size} seeds={[s for s, _n, _c in nets]}", flush=True)
 
-    def prep(m):
-        occ = torch.as_tensor(np.asarray(m.occ, np.float32)).view(1, 1, *m.occ.shape).to(dev)
-        return occ, to_grid_coords(m.points, m.occ.shape).to(dev)
+    runs = []
+    for seed, net, _ck in nets:
+        pred = np.concatenate([predict_proba(net, m, dev) >= 0.5 for m in test])
+        err = pred != gold
+        runs.append({"f1": float(E.f1_inaccessible(pred, gold)), "error": float(err.mean()),
+                     "false_alarm": float((pred & ~gold).mean()), "missed": float((~pred & gold).mean()),
+                     **{f"bin_{k}": float(err[v].mean()) for k, v in bins.items()}})
+        print(f"seed {seed}: " + " ".join(f"{k}={v:.3f}" for k, v in runs[-1].items()), flush=True)
 
-    # oracle 每点 n_viable（难度代理）——**种子无关**，只算一次（昂贵的方向 ray-march；oracle 每件构一次复用 EDT）
-    def _nviable(m):
-        o = SupportAccessibilityOracle(m.occ, {"n_directions": a.n_directions})
-        return np.array([int(o.direction_labels(p, m.radius).sum()) for p in m.points])
-    nv_by = {m.name: _nviable(m) for m in fte}
-    NV = np.concatenate([nv_by[m.name] for m in fte])
-    G = np.concatenate([np.asarray(m.labels, bool) for m in fte])
-    bins = {"0": NV == 0, "1-2": (NV >= 1) & (NV <= 2), "3-5": (NV >= 3) & (NV <= 5), "6+": NV >= 6}
+    def stat(key):
+        return mean_std([r[key] for r in runs])
 
-    def train_predict(seed):
-        """按种子从头训一个点级网络，返回留出集逐件预测。cudnn 确定；grid_sample 反向 CUDA 微噪由多种子聚合吸收。"""
-        np.random.seed(seed); torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        net = ConvONetLite().to(dev)
-        opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
-        lossf = torch.nn.BCEWithLogitsLoss()
-        data = [(prep(m), torch.as_tensor(np.asarray(m.labels, np.float32)).to(dev)) for m in (ftr + proc)]
-        for _ in range(a.epochs):
-            for i in torch.randperm(len(data)):
-                (occ, gc), y = data[i]
-                opt.zero_grad(); lossf(net(occ, gc), y).backward(); opt.step()
-        net.eval()
-        preds = {}
-        with torch.no_grad():
-            for m in fte:
-                occ, gc = prep(m)
-                preds[m.name] = (torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy()
-        return preds
-
-    seeds = list(range(a.seed, a.seed + a.seeds))
-    metrics, preds0 = [], None                                 # 逐种子标量 + 分箱率；preds0=首种子（审计/图10 定位）
-    for si in seeds:
-        preds = train_predict(si)
-        P = np.concatenate([preds[m.name] for m in fte])
-        err = P != G
-        rec = {"error": float(err.mean()), "fp": float((P & ~G).mean()), "fn": float((~P & G).mean()),
-               "f1": float(E.f1_inaccessible(P, G))}
-        for k, v in bins.items():
-            rec[f"bin_{k}"] = float(err[v].mean()) if v.any() else float("nan")
-        metrics.append(rec)
-        if si == seeds[0]:
-            preds0 = preds
-        print(f"seed{si} err={rec['error']:.3f} fp={rec['fp']:.3f} fn={rec['fn']:.3f} f1={rec['f1']:.3f}", flush=True)
-
-    def ms(key):
-        arr = np.array([r[key] for r in metrics], float)
-        return round(float(np.nanmean(arr)), 3), round(float(np.nanstd(arr)), 3)
-
-    # 首种子最糟件（审计 PNG + error_boundary npz）
-    per_model0 = [(m.name, int((preds0[m.name] != np.asarray(m.labels, bool)).sum()),
-                   preds0[m.name] != np.asarray(m.labels, bool), m) for m in fte]
-    result_path = a.out or str(RUN_ROOT / "failure_analysis" / "result.json")
-    outdir = os.path.dirname(os.path.abspath(result_path))
-    emitted = []
-    try:
-        os.makedirs(outdir, exist_ok=True)
-        for name, ne, emask, m in sorted(per_model0, key=lambda t: -t[1])[:a.top_audit]:
-            if ne == 0:
-                continue
-            p = os.path.join(outdir, f"fail_{name}_{ne}err.png")
-            VIZ.accessibility_montage(m.occ, m.points, emask, p)
-            emitted.append(os.path.basename(p))
-    except Exception as e:
-        emitted = [f"(PNG 跳过：{str(e)[:50]})"]
-
-    err_m, err_s = ms("error"); fp_m, fp_s = ms("fp"); fn_m, fn_s = ms("fn"); f1_m, f1_s = ms("f1")
-    rep = {
-        "test_models": len(fte), "test_points": int(G.size), "seeds": a.seeds,
-        "f1_inaccessible": f1_m, "f1_inaccessible_std": f1_s,
-        "error_rate": err_m, "error_rate_std": err_s,
-        "false_pos_rate": fp_m, "false_pos_rate_std": fp_s,
-        "false_neg_rate": fn_m, "false_neg_rate_std": fn_s,
-        "gold_inacc_frac": round(float(G.mean()), 3),
-        "error_rate_by_nviable": {k: ms(f"bin_{k}")[0] for k in bins},
-        "error_rate_by_nviable_std": {k: ms(f"bin_{k}")[1] for k in bins},
-        "nviable_share": {k: round(float(v.mean()), 3) for k, v in bins.items()},
-        "audit_pngs": emitted,
-    }
-    print("FAILURE_ANALYSIS " + json.dumps(rep))
-
-    # —— 图件数据落盘（附加，不改判定口径）：聚合 rep + 首种子最糟件逐点 FP/FN/n_viable，供 paper/pipeline/figure_scripts/error_boundary ——
-    evidence_path = result_path
-    written = False
-    try:
-        case = next((item for item in per_model0 if item[0] == a.figure_case), None)
-        if case is None:
-            raise RuntimeError(f"figure case is not in the held-out set: {a.figure_case}")
-        cname, cerrors, _cmask, cm = case
-        cp = preds0[cname]; cg = np.asarray(cm.labels, bool)
-        np.savez(os.path.join(outdir, "error_boundary_case.npz"), name=cname, points=cm.points,
-                 fp=(cp & ~cg), fn=(~cp & cg), gold=cg, nviable=nv_by[cname],
-                 error_count=int(cerrors), split="test", seed=int(seeds[0]))
-        rep["figure_case"] = {"name": cname, "errors": int(cerrors), "split": "test"}
-        rep = write_result("failure_analysis", rep, evidence_path, (a.fusion, a.procedural))
-        written = True
-    except Exception as e:
-        if not written:
-            # Preserve the aggregate analysis even when the optional Figure 10
-            # sample is unavailable or malformed.
-            write_result("failure_analysis", rep, evidence_path, (a.fusion, a.procedural))
-        raise RuntimeError(f"error_boundary artifact generation failed: {e}") from e
+    rep = write_result("failure_analysis", {
+        "training_seeds": [s for s, _n, _c in nets], "test_models": len(test), "test_points": int(gold.size),
+        "direction_semantics": "two-stage refined direction labels (same semantics as point labels)",
+        "f1_inaccessible": stat("f1")[0], "f1_inaccessible_std": stat("f1")[1],
+        "error_rate": stat("error")[0], "error_rate_std": stat("error")[1],
+        "false_alarm_rate": stat("false_alarm")[0], "false_alarm_rate_std": stat("false_alarm")[1],
+        "missed_rate": stat("missed")[0], "missed_rate_std": stat("missed")[1],
+        "error_rate_by_nviable": {k: stat(f"bin_{k}")[0] for k in BINS},
+        "error_rate_by_nviable_std": {k: stat(f"bin_{k}")[1] for k in BINS},
+        "nviable_share": {k: round(float(v.mean()), 4) for k, v in bins.items()},
+    }, a.out, (a.fusion, a.root))
+    print("FAILURE_ANALYSIS " + json.dumps(rep, ensure_ascii=False))
 
 
 if __name__ == "__main__":

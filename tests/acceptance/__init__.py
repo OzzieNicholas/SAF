@@ -22,7 +22,6 @@ N/A（经检验判定为非不变量，或已被他处覆盖，附理由）。
   test_direction_field      方向级可达性场：逐方向判定与模型输出头
   test_baselines            工具尺寸效应与基线对照
   test_label_quality        标签质量趋势（六项）
-  test_viz                  审计图：合法 PNG、尺寸与颜色在位
   test_figure_face_mapping  论文样本的面映射（外部数据缺失时 PENDING）
   test_governance           决策台账格式与覆盖、参考文档、路线图、仓库布局
 

@@ -9,9 +9,9 @@ from .procedural import (
     open_downface_case,
     slab_with_blind_hole,
 )
-from .records import LabeledModel, split_by_model
+from .records import LabeledModel, both_class, split_by_model
 
 __all__ = [
-    "LabeledModel", "VoxelCase", "blind_cavity_case", "down_facing_points", "flagship_pair",
+    "LabeledModel", "VoxelCase", "blind_cavity_case", "both_class", "down_facing_points", "flagship_pair",
     "make_dataset", "open_downface_case", "slab_with_blind_hole", "split_by_model",
 ]

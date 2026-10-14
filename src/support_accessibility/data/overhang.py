@@ -10,6 +10,18 @@ from support_accessibility.runtime.frozen_params import FROZEN
 from dataclasses import dataclass
 
 
+# 6 个轴向候选构建方向：把方向 d 转到 +z 的正交旋转（行列式 +1，保持网格缠绕方向）。
+# 零件按此旋转后，仍以 +z 为构建方向提取接触区，即可评价候选方向 d。
+AXIS_BUILD_ROTATIONS = {
+    "+z": ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+    "-z": ((1, 0, 0), (0, -1, 0), (0, 0, -1)),
+    "+x": ((0, 0, -1), (0, 1, 0), (1, 0, 0)),
+    "-x": ((0, 0, 1), (0, 1, 0), (-1, 0, 0)),
+    "+y": ((1, 0, 0), (0, 0, -1), (0, 1, 0)),
+    "-y": ((1, 0, 0), (0, 0, 1), (0, -1, 0)),
+}
+
+
 @dataclass
 class SupportContact:
     """支撑接触区代理 S(P,d)：下朝悬垂面（质心=接触点）。"""

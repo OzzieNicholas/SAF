@@ -64,3 +64,47 @@ def nudge_to_free(occ, c, n, nudge_world, lo, pitch):
         return "free", q
     q2 = world_to_voxel(c - n * nudge_world, lo, pitch)
     return ("flipped", None) if not _solid(q2) else ("confined", q)
+
+
+def contact_queries(Vn, F, occ, lo, pitch, d=(0.0, 0.0, 1.0), overhang_deg=FROZEN.overhang_deg, nudge_voxels=2.0):
+    """下朝悬垂面 → 查询点：面质心沿外法向外移 nudge_voxels 个体素，丢弃法向翻转面（D-010、D-028）。
+
+    返回 (face_indices (k,), points (k,3) float32 体素坐标, n_flipped)。入库、方向评价与作图共用这一份，
+    同一网格在各处得到逐点一致的查询点。
+    """
+    import numpy as np
+    from support_accessibility.data.overhang import support_contact_faces
+    contact = support_contact_faces(Vn, F, d, overhang_deg)
+    faces, points, n_flipped = [], [], 0
+    for face, c, n in zip(contact.indices, contact.centroids, contact.normals):
+        status, q = nudge_to_free(occ, c, n, nudge_voxels * pitch, lo, pitch)
+        if status == "flipped":
+            n_flipped += 1
+            continue
+        faces.append(int(face))
+        points.append(q)
+    return np.asarray(faces, int), np.asarray(points, np.float32).reshape(-1, 3), n_flipped
+
+
+def face_areas(V, F, rows=None):
+    """三角面面积；rows 给定时只算这些面。"""
+    import numpy as np
+    tri = np.asarray(V, float)[np.asarray(F, np.int64) if rows is None else np.asarray(F, np.int64)[np.asarray(rows, int)]]
+    return 0.5 * np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+
+
+def label_mesh(Vn, F, d=(0.0, 0.0, 1.0), resolution=FROZEN.resolution, radius_world=FROZEN.radius_world,
+               n_directions=FROZEN.n_directions):
+    """归一化网格 → 占据栅格、查询点与两级判定器的点级标签（含边界带精确细化）。
+
+    返回 dict：occ, lo, pitch, faces, points, labels（True 为不可达）, radius（体素）, n_flipped。
+    """
+    import numpy as np
+    from support_accessibility.oracle import SupportAccessibilityOracle
+    occ, lo, pitch = mesh_to_occupancy(Vn, F, resolution=resolution)
+    faces, points, n_flipped = contact_queries(Vn, F, occ, lo, pitch, d)
+    radius = radius_world / pitch
+    oracle = SupportAccessibilityOracle(occ, {"n_directions": n_directions}, mesh=(Vn, F, lo, pitch))
+    labels = np.asarray([oracle.label(q, radius).value == "inaccessible" for q in points], bool)
+    return {"occ": occ, "lo": lo, "pitch": pitch, "faces": faces, "points": points, "labels": labels,
+            "radius": float(radius), "n_flipped": n_flipped}

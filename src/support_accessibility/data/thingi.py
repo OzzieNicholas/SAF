@@ -143,7 +143,7 @@ def build_thingi(root, out_dir, max_models=200, d=(0.0, 0.0, 1.0), resolution=FR
         if not pts:                          # 全部翻转/无点 → 跳过（保 (K,3) 记录契约；D-028 P1）
             continue
         rec = LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r))
-        DS.save_model(rec, os.path.join(out_dir, DS._rel_npz(name)))
+        DS.save_model(rec, os.path.join(out_dir, DS.rel_npz_path(name)))
         records.append(rec)
     _write_manifest(out_dir, records, "thingi10k", n_directions, seed, 0.0, 0.0,
                     human_signoff=False, extra_meta={"nudge_discarded_flipped_normal": n_flip_total})  # split 恒 test

@@ -32,7 +32,7 @@ flowchart LR
 
 | 目录 | 内容 |
 |---|---|
-| `src/support_accessibility/` | 唯一的 Python 包：`oracle`（几何判定）、`data`（数据与网格前端）、`models`、`baselines`、`eval`（指标与运行报告）、`viz`、`runtime`（路径与运行记录） |
+| `src/support_accessibility/` | 唯一的 Python 包：`oracle`（几何判定）、`data`（数据与网格前端）、`models`、`baselines`、`eval`（指标）、`runtime`（路径与运行记录） |
 | `experiments/` | 可复现实验脚本，每个对应结果账本里的一条结论 |
 | `tools/` | 数据集构建脚本、全量实验复现入口 `reproduce_experiments.py`、缓存清理 `prune_artifacts.py`、布局检查 `check_structure.py` |
 | `tests/` | `acceptance/` 验收性质（工程规格）、`unit/` 单元测试、`paper_pipeline/` 论文流水线测试、`gate.py` 验收门 |
@@ -68,21 +68,21 @@ python tools/build_thingi10k_dataset.py
 
 | 脚本 | 回答的问题 |
 |---|---|
-| `support_area_vs_accessibility.py` | 支撑面积（接触点计数代理）能否预示可达性（支撑面积与可达性） |
-| `true_triangle_area_check.py` | 换成真实三角面积后支撑面积与可达性的结论是否改变 |
-| `tool_radius_effect.py` | 有限工具半径是否改变可达性（工具尺寸效应） |
-| `cross_model_prediction.py` | 在未见零件上能否预测可达性（跨模型预测） |
-| `cross_domain_robustness.py` | 在野外网格上是否仍然成立（跨域鲁棒性） |
-| `direction_field_prediction.py` | 能否预测每个逼近方向的可达性（方向级场） |
-| `inference_speed.py` | 神经推理比逐点几何判定快多少（推理速度） |
-| `shape_context_ablation.py` | 形状上下文和感受野的价值 |
-| `baseline_comparison.py` | 与多数类、局部规则、射线可见性等基线的对照 |
-| `regression_check.py` | 神经预测是否显著不劣于最强几何基线 |
-| `failure_analysis.py` | 误判集中在哪里 |
+| `contact_area_vs_accessibility.py` | 支撑接触量（点数与真实三角面积）能否预示可达性 |
+| `tool_radius_effect.py` | 不可达点中有多少对零半径射线可见（工具尺寸的影响） |
 | `label_audit.py` | 真实网格标签是否可信（差分、跨分辨率稳定、分布） |
-| `oracle_differential_audit.py` | 快速判定器与精确参考在随机案例上是否一致（差分对拍） |
+| `oracle_differential_audit.py` | 快速判定器与暴力参考在随机案例上是否一致（差分对拍） |
 | `mesh_quality_audit.py` | 原始网格是否可读、水密，有无非流形边（网格质量披露） |
-| `direction_field_audit.py` | 方向级 Top-k 指标的分母与排序基线 |
+| `holdout_model.py` | 固定留出协议下以多个训练种子训练点级网络；下面七项共用这组权重 |
+| `baseline_comparison.py` | 与多数类、局部规则、零半径射线、粗判定、局部学习模型的对照；也是回归门的依据 |
+| `shape_context_ablation.py` | 形状上下文和感受野的价值 |
+| `failure_analysis.py` | 误判集中在哪里（按可达方向数分箱） |
+| `cost_accuracy_frontier.py` | 不同方向数的体素判定、两级判定器与网络的单件耗时和精度 |
+| `screening_evaluation.py` | 在含全可达零件的全部未见零件上，零件级检出、误报与排序能力 |
+| `orientation_evaluation.py` | 对 6 个轴向候选构建方向，网络与接触面积能否排出可达性风险的高低（方向评价，不做优化） |
+| `cross_domain_robustness.py` | 同一组模型在 Thingi10K 网格上的表现（跨来源） |
+| `cross_model_prediction.py` | 切分随机性下的未见零件表现（重复随机留出） |
+| `direction_field_prediction.py` | 能否预测每个逼近方向是否被挡，并推荐可达方向（方向级模型） |
 
 脚本用法见各文件开头的说明；权威数值和复现命令见 [结果账本](governance/结果账本.md)。`python tools/reproduce_experiments.py --list` 列出全部规范运行，`--only 名称,名称` 选跑部分，不带参数则按顺序全部重跑。
 

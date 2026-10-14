@@ -9,7 +9,6 @@
 | `models/` | `convonet.py` 形状条件编码器 + 点查询解码器（ConvONet-lite，需 torch）；`tiny_patch_mlp.py` numpy 小模型，作无全局上下文的对照 |
 | `baselines/` | 几何启发式对照：射线可见性（oracle 在 r=0）、多数类、局部规则、粗有限工具代理 |
 | `eval/` | `metrics.py` 不可达 F1 / IoU / 点占比误差 / 方向 Top-k / Spearman；`cost.py` 计时、预算外推、数据集摘要；`run_reports.py` 实验运行记录 |
-| `viz/` | 可达性审计图（热图拼板） |
 | `runtime/` | `data_paths.py` 数据位置解析与逻辑引用；`run_records.py` 运行记录与缓存清理；`console.py` 终端编码与 OpenMP 设置 |
 
 实验产物写入 `artifacts/runs/`，数据集写入数据根（见 `configs/paths.yaml`）。

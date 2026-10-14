@@ -6,7 +6,7 @@
   原始网格目录与输出目录默认取自 configs/paths.yaml（--root / --out 可覆盖）。
 
 只用最终零件 .obj（不碰构造序列/B-Rep）。数据未落地 → 清晰 FileNotFoundError（exit 2）。
-**命门（D-018）**：物化后须人审 <out>/audit/*.png 再签收（翻 dataset.json human_signoff），方可用于训练。
+标签须通过量化审核 experiments/label_audit.py（D-025）并签收后，方可用于训练。
 """
 import argparse
 import os
@@ -26,8 +26,7 @@ def main():
     ap.add_argument("--data-root", default=None)
     ap.add_argument("--resolution", type=int, default=FROZEN.resolution)
     ap.add_argument("--radius-world", type=float, default=FROZEN.radius_world)
-    ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)  # D-021 冻结值（收敛证据见 D-020；细化默认开，见 _label_one）
-    ap.add_argument("--overhang-deg", type=float, default=FROZEN.overhang_deg)
+    ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)
     ap.add_argument("--max-models", type=int, default=None)
     ap.add_argument("--frac-train", type=float, default=0.6)
     ap.add_argument("--frac-val", type=float, default=0.2)
@@ -40,7 +39,7 @@ def main():
     from support_accessibility.data.fusion360 import build_from_root
     try:                                                    # root 缺失在 numpy 之前就报（裸环境也友好）
         out = build_from_root(out_dir, root, resolution=a.resolution, radius_world=a.radius_world,
-                              n_directions=a.n_directions, overhang_deg=a.overhang_deg,
+                              n_directions=a.n_directions,
                               max_models=a.max_models, frac_train=a.frac_train,
                               frac_val=a.frac_val, seed=a.seed)
     except FileNotFoundError as e:
@@ -60,7 +59,7 @@ def main():
     print(f"  切分 train{counts['train']}/val{counts['val']}/test{counts['test']}（按模型，无泄漏）")
     if lab.size:
         print(f"  不可达 {int(lab.sum())}/{lab.size}（占比 {100 * lab.mean():.0f}%，两类俱在={both}）")
-    print(f"  审计图：{os.path.join(out, 'audit')}/*.png —— 命门：人审后签收（dataset.json human_signoff），见 D-018")
+    print("  标签须经 experiments/label_audit.py 量化审核并签收后方可训练（D-025）")
     print(f"  产物：{os.path.join(out, 'models')}/*.npz + manifest.csv + dataset.json")
 
 

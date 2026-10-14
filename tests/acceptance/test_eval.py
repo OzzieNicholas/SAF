@@ -28,8 +28,6 @@ def _cases():
         ("iou_identical", E.iou_inaccessible(g, g) == 1.0, "同 mask IoU=1"),
         ("iou_disjoint", E.iou_inaccessible(np.array([T, F, F]), np.array([F, T, F])) == 0.0, "不交 IoU=0"),
         ("iou_known", abs(E.iou_inaccessible(p_mix, g) - 0.5) < 1e-9, "交2/并4 → IoU=0.5"),
-        ("area_err_known", abs(E.inaccessible_area_error(p_neg, g) - 0.6) < 1e-9, "|0−0.6|=0.6"),
-        ("area_err_zero", E.inaccessible_area_error(g, g) == 0.0, "同→0"),
         ("topk_hit_top1", E.topk_direction_hit_rate(scr, via, 1) == 1.0, "每点 top-1 即 viable → 命中率 1"),
         ("topk_hit_miss", E.topk_direction_hit_rate(scr1, via1, 1) == 0.0, "top-1 非 viable → 0"),
         ("topk_hit_k2", E.topk_direction_hit_rate(scr1, via1, 2) == 1.0, "top-2 含 viable → 1"),

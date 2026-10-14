@@ -42,8 +42,6 @@ flowchart LR
 ```bash
 python tools/reproduce_experiments.py            # 重跑全部实验，生成证据（耗时较长）
 python -m paper.pipeline.audits.freeze_evidence  # 冻结证据清单
-python -m paper.pipeline.figure_scripts.train_point_checkpoint --max-models 1200 --epochs 150       # 出图用的检查点（写入 artifacts/cache，图件 QA 后会清理）
-python -m paper.pipeline.figure_scripts.train_direction_checkpoint --max-models 250 --epochs 120    # 方向级检查点，同上
 python -m paper.pipeline.build_paper             # 冻结证据 → 出图 → 图件 QA → 源稿审计 → 渲染并编译 → 论文门
 python -m paper.pipeline.build_paper --skip-figures --skip-latex   # 只做证据与审计的阶段性检查
 python -m paper.pipeline.paper_gate              # 论文门（加 --skip-data 可在无外部数据的环境里检查）

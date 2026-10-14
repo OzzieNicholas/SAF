@@ -1,5 +1,7 @@
 """构建论文：冻结证据 → 出图 → 图件 QA → 源稿审计 → 渲染 LaTeX → 编译 PDF → 论文门。
 
+LaTeX 在临时目录 paper/build/ 中编译，成功后 PDF 复制到 paper/outputs/ 并删除构建目录。
+
 用法（仓库根目录）：
   python -m paper.pipeline.build_paper
   python -m paper.pipeline.build_paper --skip-figures --skip-latex   # 只做证据与审计的阶段性检查
@@ -9,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -100,6 +103,7 @@ def main() -> int:
             return 2
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy2(built_pdf, PAPER_PDF)
+        shutil.rmtree(BUILD_DIR)                       # 构建目录是临时的；编译失败时保留以便排查
 
     report = run_gate()
     print(json.dumps(report, ensure_ascii=False, indent=2))

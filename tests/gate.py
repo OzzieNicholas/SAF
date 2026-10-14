@@ -23,7 +23,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # repo roo
 if _ROOT not in sys.path:                              # 作为脚本运行时，使 paper 包可导入
     sys.path.insert(0, _ROOT)
 
-from acceptance import PASS, NA, test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_procedural_cases, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_figure_face_mapping
+from acceptance import PASS, NA, test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_procedural_cases, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_figure_face_mapping
 
 PENDING = "PENDING"
 
@@ -51,50 +51,30 @@ def budget_gate():
 
 
 def regression_gate():
-    """回归门（D-026）：读 experiments/regression_check.py 产出（模型级配对 + bootstrap CI）。神经二分显著**不劣于
-    最强几何基线**（射线可见性基线对照；配对差 95%CI 下界 >0）→ PASS；含 0/负 → FAIL；无产出（未跑实验）→ PENDING。
-    产出在 artifacts/runs/（机器 emit、gitignore），故裸克隆 PENDING、跑实验后棘轮。"""
-    path = os.path.join(_ROOT, "artifacts", "runs", "regression_check", "result.json")
+    """回归门（D-026）：读 experiments/baseline_comparison.py 的产出。形状条件网络相对零半径射线的逐件配对差
+    95% bootstrap 区间下界 > 0 → PASS；否则 FAIL。无产出、或产出记录的数据摘要与当前数据不一致 → PENDING。"""
+    path = os.path.join(_ROOT, "artifacts", "runs", "baseline_comparison", "result.json")
+    run = "跑 `experiments/baseline_comparison.py`（D-026）"
     if not os.path.exists(path):
-        return {"name": "regression", "status": PENDING,
-                "detail": "未见回归产出——跑 `experiments/regression_check.py` 生成 artifacts/runs/regression_check/result.json（D-026）"}
+        return {"name": "regression", "status": PENDING, "detail": f"未见基线对照产出——{run}"}
     try:
         with open(path, encoding="utf-8") as f:
             r = json.load(f)
     except (OSError, ValueError) as e:
-        return {"name": "regression", "status": PENDING, "detail": f"回归产出读失败：{e}"}
-    # 新鲜度（D-026 P5）：产物须自记数据摘要（缺=旧产物→PENDING）+ 数据根，与当前 manifest 一致（不匹配=数据已变→PENDING，诚实活检）
-    stamp = r.get("data_digest")
-    if stamp is None:
+        return {"name": "regression", "status": PENDING, "detail": f"基线对照产出读失败：{e}"}
+    from support_accessibility.eval import data_digest
+    from support_accessibility.runtime.data_paths import resolve_data_paths, resolve_logical_data_ref
+    paths = resolve_data_paths()
+    current = data_digest(*[str(resolve_logical_data_ref(ref, paths)) for ref in r.get("data_roots", [])])
+    if r.get("data_digest") != current:
         return {"name": "regression", "status": PENDING,
-                "detail": "回归产出无 data_digest（旧产物）——重跑 `experiments/regression_check.py` 补新鲜度戳（D-026）"}
-    try:
-        from support_accessibility.eval import data_digest
-        from support_accessibility.runtime.data_paths import resolve_data_paths, resolve_logical_data_ref
-        paths = resolve_data_paths()
-        roots = r.get("data_roots") or [
-            "dataset://fusion360",
-            "dataset://procedural",
-        ]
-        resolved = []
-        for reference in roots:
-            local = resolve_logical_data_ref(reference, paths)
-            if local is None:
-                if isinstance(reference, str) and os.path.isabs(reference):
-                    return {"name": "regression", "status": PENDING,
-                            "detail": "回归产出仍含本机绝对数据路径——重跑 regression_check 生成逻辑数据集引用（D-026）"}
-                local = os.path.join(_ROOT, str(reference))
-            resolved.append(str(local))
-        cur = data_digest(*resolved)
-        if stamp != cur:
-            return {"name": "regression", "status": PENDING,
-                    "detail": f"回归产出陈旧（数据摘要 {stamp}≠当前 {cur}）——重跑 `experiments/regression_check.py`（D-026）"}
-    except ImportError:
-        pass
-    ok = bool(r.get("diff_ci_low", -1) > 0)
+                "detail": f"基线对照产出过期（数据摘要 {r.get('data_digest')} ≠ 当前 {current}）——{run}"}
+    delta = r["paired_delta_convonet_minus_ray"]
+    ok = delta["ci95"][0] > 0
+    methods = r["methods"]
     return {"name": "regression", "status": PASS if ok else "FAIL",
-            "detail": f"神经 F1 {r.get('neural_f1')} vs 几何基线 {r.get('baseline_f1')}，模型级配对差 95%CI "
-                      f"[{r.get('diff_ci_low')},{r.get('diff_ci_high')}] {'>0 显著胜' if ok else '含0/负—回归'}（D-026）"}
+            "detail": f"网络 F1 {methods['convonet']['f1_overall']} vs 零半径射线 {methods['ray_visibility']['f1_overall']}，"
+                      f"逐件配对差 {delta['mean']}，95% 区间 {delta['ci95']}（D-026）"}
 
 
 def label_audit_gate():
@@ -126,7 +106,7 @@ def label_audit_gate():
 def build_verdict(include_external=False):
     acceptance = []
     # test_env / test_governance 在前：它们现在就应绿，其余几何性质 PENDING
-    for mod in (test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_procedural_cases, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_viz, test_figure_face_mapping):
+    for mod in (test_env, test_governance, test_invariants, test_known_answers, test_properties, test_differential, test_mesh_frontend, test_support_contact, test_capsule, test_direction_field, test_eval, test_procedural_cases, test_dataset, test_fusion360, test_thingi, test_model, test_baselines, test_label_quality, test_figure_face_mapping):
         acceptance += mod.checks()
     core_gates = [budget_gate()]
     # Keep the default engineering gate hermetic: external-data gates are only

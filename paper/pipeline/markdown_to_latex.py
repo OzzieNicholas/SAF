@@ -17,12 +17,31 @@ from pathlib import Path
 import re
 
 FIGURE_WIDTH = "\\textwidth"
+SINGLE_FIGURE_WIDTH = "\\columnwidth"
+SINGLE_COLUMN_MAX_MM = 90.0          # 图件物理宽度不超过此值时按单栏图排版（单栏图按 85 mm 绘制）
+FIGURE_DIR = Path(__file__).resolve().parents[1] / "figures"
 SPECIALS = {"%": r"\%", "&": r"\&", "#": r"\#", "_": r"\_"}
 PLACEHOLDER = "\x00{}\x00"
 
 
 class RenderError(ValueError):
     """源稿不符合渲染器约定。"""
+
+
+def _is_single_column(png: Path) -> bool:
+    """按 PNG 的像素宽度与 pHYs 分辨率换算物理宽度；读不到文件或分辨率时按通栏图处理。"""
+    try:
+        data = png.read_bytes()
+    except OSError:
+        return False
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        return False
+    width_px = int.from_bytes(data[16:20], "big")
+    phys = data.find(b"pHYs")
+    if phys < 0 or data[phys + 12] != 1:                 # 单位须为米
+        return False
+    px_per_m = int.from_bytes(data[phys + 4:phys + 8], "big")
+    return px_per_m > 0 and width_px / px_per_m * 1000.0 <= SINGLE_COLUMN_MAX_MM
 
 
 @dataclass
@@ -238,10 +257,12 @@ def render(md: str, keys: list[str]) -> Document:
             index += 1
             stem = Path(figure.group(1)).stem
             label = _figure_label(figure.group(1))
+            single = _is_single_column(FIGURE_DIR / f"{stem}.png")
+            env, width = ("figure", SINGLE_FIGURE_WIDTH) if single else ("figure*", FIGURE_WIDTH)
             doc.body.append(
-                "\\begin{figure*}[!t]\n  \\centering\n"
-                f"  \\includegraphics[width={FIGURE_WIDTH}]{{{stem}}}\n"
-                f"  \\caption{{{inline(caption.group(2).strip(), doc, keys)}}}\n  \\label{{fig:{label}}}\n\\end{{figure*}}")
+                f"\\begin{{{env}}}[!t]\n  \\centering\n"
+                f"  \\includegraphics[width={width}]{{{stem}}}\n"
+                f"  \\caption{{{inline(caption.group(2).strip(), doc, keys)}}}\n  \\label{{fig:{label}}}\n\\end{{{env}}}")
         elif (table := re.match(r"\*\*表\s*(\d+)\s+(.*)\*\*$", head)) is not None:
             parts = [_table(block[1:], doc, keys)] if len(block) > 1 else []
             while index < len(blocks) and blocks[index][0].startswith("|"):

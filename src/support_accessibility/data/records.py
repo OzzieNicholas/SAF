@@ -22,7 +22,7 @@ def split_by_model(models, frac_train=0.7, frac_val=None, seed=0):
 
     frac_val=None → 返回 (train, test)（2-way；在内存快评/薄纵切用）；
     frac_val 给值 → 返回 (train, val, test)（物化数据集用，落地 D-016 切分 {train,val,test}）。
-    注：val 为**预留 held-out**——超参先验固定、当前工具（cross_model_prediction/eval_*/regression_check）均未在 val 上调参（见各 tool 的 `_fva` 丢弃）。
+    注：val 为**预留 held-out**——超参先验固定、各实验均不在 val 上调参。
     """
     import numpy as np
     idx = np.arange(len(models))
@@ -35,3 +35,9 @@ def split_by_model(models, frac_train=0.7, frac_val=None, seed=0):
     return ([models[i] for i in idx[:n_tr]],
             [models[i] for i in idx[n_tr:n_tr + n_va]],
             [models[i] for i in idx[n_tr + n_va:]])
+
+
+def both_class(models):
+    """两类零件：同一零件内既有可达点又有不可达点（评测只用这类零件）。"""
+    import numpy as np
+    return [m for m in models if np.asarray(m.labels, bool).any() and (~np.asarray(m.labels, bool)).any()]

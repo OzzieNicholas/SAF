@@ -47,21 +47,21 @@
   },
   "baseline_comparison": {
    "path": "artifacts/runs/baseline_comparison/result.json",
-   "sha256": "ae4caae8492c8abd7747d980319e1c975ea234d9904e3940ac699ebfe0b1e0cc",
-   "run_id": "20261009T061651.558339Z-34964-5a8e1875",
-   "command": "experiments\\baseline_comparison.py --max-models 400 --epochs 80 --tiny-epochs 300 --seed 0"
+   "sha256": "402a69910e407c9669d2422b4707ea1ca518570c5e536e9e2bc5dbd8dc8c6251",
+   "run_id": "20261014T080245.802308Z-38724-ee7cca1a",
+   "command": "experiments\\baseline_comparison.py --tiny-epochs 300"
   },
   "regression_check": {
    "path": "artifacts/runs/regression_check/result.json",
-   "sha256": "b42d6b8b6ae5257e11523ccac4b8bf1267548bfae1fe2fc8408282edf468d2dd",
-   "run_id": "20261009T061855.253303Z-51164-b54e4ac6",
-   "command": "experiments\\regression_check.py --max-models 400 --epochs 80 --seed 0 --n-boot 2000"
+   "sha256": "bfc2b38b3fa261afa24f473380be1bde3ecd3a3eeb7523a699796327391e75ed",
+   "run_id": "20261014T080350.372424Z-42752-643f9530",
+   "command": "experiments\\regression_check.py --n-boot 2000"
   },
   "shape_context_ablation": {
    "path": "artifacts/runs/shape_context_ablation/result.json",
-   "sha256": "26dbff12739de9dcbe37d897cb10ac74a9f30fa10a9069d40fdef2eb195bbc3f",
-   "run_id": "20261009T062129.434688Z-50540-1b4dd154",
-   "command": "experiments\\shape_context_ablation.py --max-models 400 --epochs 60 --seed 0"
+   "sha256": "d8c40793988c0a3822d13ef7d4b7952cbb3b2e361ca10c864b5de866466428f7",
+   "run_id": "20261014T081519.273941Z-4404-78be995b",
+   "command": "experiments\\shape_context_ablation.py"
   },
   "cross_domain_robustness": {
    "path": "artifacts/runs/cross_domain_robustness/result.json",
@@ -81,22 +81,41 @@
    "run_id": "20261009T073637.280056Z-49212-d6d61be4",
    "command": "experiments\\direction_field_audit.py --max-models 500"
   },
-  "inference_speed": {
-   "path": "artifacts/runs/inference_speed/result.json",
-   "sha256": "a1c2ec0afd20ae2075ae26f9664b1c96f159d116d0f79fdc6620c75e98249dc7",
-   "run_id": "20261009T055711.070723Z-34244-962a5148",
-   "command": "experiments\\inference_speed.py"
-  },
   "failure_analysis": {
    "path": "artifacts/runs/failure_analysis/result.json",
-   "sha256": "04904afe677dd3017da3489a69b46fd6edccf083b90d6113a004f6c79abe1a09",
-   "run_id": "20261009T072428.316176Z-39672-b31ed3d5",
-   "command": "experiments\\failure_analysis.py --max-models 400 --epochs 80 --seed 0 --seeds 5 --figure-case 116082_b59d8605_0002"
+   "sha256": "1d28f268142e853d430a1aa415e60a7d5e43657cce1d8fab7d349f92acbb797d",
+   "run_id": "20261014T081559.158211Z-3120-3addd75b",
+   "command": "experiments\\failure_analysis.py --figure-case 116082_b59d8605_0002"
+  },
+  "holdout_model": {
+   "path": "artifacts/runs/holdout_model/result.json",
+   "sha256": "09c9fb288a99e8eaefcc1127ba7b54745fa6aecc6bb2958d0995f690cf65ff08",
+   "run_id": "20261014T075641.892389Z-42668-d1542253",
+   "command": "experiments/holdout_model.py --seeds 5"
+  },
+  "cost_accuracy_frontier": {
+   "path": "artifacts/runs/cost_accuracy_frontier/result.json",
+   "sha256": "e37972aa3a8fd13ecf0ac07340748c322c5ed30000b822c9a94d715bb737501e",
+   "run_id": "20261014T084000.453442Z-43472-9d4858a7",
+   "command": "experiments/cost_accuracy_frontier.py"
+  },
+  "screening_evaluation": {
+   "path": "artifacts/runs/screening_evaluation/result.json",
+   "sha256": "6b4d56f5008f433058560caf8c61edcb10aa9f36e2fc096a6a31ead19511e046",
+   "run_id": "20261014T082454.105278Z-32832-5a4a1ebb",
+   "command": "experiments\\screening_evaluation.py --workers 16"
+  },
+  "orientation_evaluation": {
+   "path": "artifacts/runs/orientation_evaluation/result.json",
+   "sha256": "35cb3eb1aa79ee5b7cb86907ea9f9a97c2e2fb9de5572d3048f8e5946bbf7ab2",
+   "run_id": "20261014T083440.953782Z-18560-56d113f2",
+   "command": "experiments\\orientation_evaluation.py"
   }
  },
  "statistical_rules": {
   "positive_class": "inaccessible",
   "split_unit": "model-level",
+  "fixed_holdout": "first 400 both-class Fusion parts, split seed 0, 0.6/0.2/0.2; five training seeds; baseline, ablation, failure, frontier, screening and orientation runs share these weights",
   "repeat_holdout": "five repeated 0.6/0.2/0.2 random model holdouts; test sets may overlap",
   "geometry_hierarchy": "full 128-global/64-lower-direction refined oracle supplies labels; the 16-global/8-lower-direction finite-tool result is a coarse proxy; the neural model is a shape-conditioned surrogate"
  }

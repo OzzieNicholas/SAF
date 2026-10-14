@@ -20,8 +20,7 @@ def checks():
     """gate 集成：方向级场的判定逻辑 + OR-归约不变量 + 盲腔/开阔已知答案。"""
     try:
         import numpy as np
-        from support_accessibility.oracle import (SupportAccessibilityOracle, decide_direction_labels,
-                                                  decide_label, Label)
+        from support_accessibility.oracle import SupportAccessibilityOracle, decide_direction_labels, Label
         from support_accessibility.data import blind_cavity_case, open_downface_case
     except ImportError as e:
         return [pending("direction_field", f"依赖未就绪：{e}", "D-024")]
@@ -86,7 +85,7 @@ def test_direction_field_or_reduces_to_binary():
 
 
 def test_convonet_out_dim_direction_head():
-    """ConvONet-lite 方向级输出头（方向级场）：out_dim=D → 每点 D 个 logit [N,D]；out_dim=1 → [N]（向后兼容跨模型预测/跨域鲁棒性）。
+    """ConvONet-lite 输出头：out_dim=D → 每点 D 个方向 logit [N,D]；out_dim=1 → 点级 logit [N]。
 
     验收层设计上无 torch（gate 零安装、torch 模型经 tools/ 验证）；本 torch 断言仅在能干净加载 torch 的
     进程跑（隔离/CI）。满载进程里 torch fbgemm.dll 偶发 WinError 127（Windows DLL 顺序脆性）→ 归为不可用而 skip；
@@ -100,7 +99,7 @@ def test_convonet_out_dim_direction_head():
     from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
     occ = torch.zeros(1, 1, 8, 8, 8); occ[0, 0, 3:6, 3:6, 3:6] = 1.0
     gc = to_grid_coords(np.array([[2., 2, 2], [4, 4, 4], [5, 5, 5]]), (8, 8, 8))
-    assert tuple(ConvONetLite(out_dim=1)(occ, gc).shape) == (3,)         # 向后兼容
+    assert tuple(ConvONetLite(out_dim=1)(occ, gc).shape) == (3,)         # 点级
     assert tuple(ConvONetLite(out_dim=5)(occ, gc).shape) == (3, 5)       # 方向级 [N,D]
 
 

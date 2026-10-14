@@ -39,16 +39,16 @@ SAF 的治理入口：把「意图、决策、证据、结果」写成散文，�
 | D-024 方向级可达性场 | `test_direction_field`（逐方向判定、any 归约不变量、模型方向头） |
 | D-028 网格前端加固 | `test_mesh_frontend`（缠绕安全外移三态、栅格维度） |
 | D-025 标签审核客观化 | `experiments/label_audit.py` 与 `test_differential`、`test_capsule`、`test_label_quality` |
-| D-026 预算门与回归门 | `gate.py::budget_gate`；`gate.py::regression_gate` 读 `experiments/regression_check.py` 的产出 |
+| D-026 预算门与回归门 | `gate.py::budget_gate`；`gate.py::regression_gate` 读 `experiments/baseline_comparison.py` 的产出 |
 | D-033 布局与路径策略 | `test_governance`（`check_repository_structure`） |
 | 指标实现 | `test_eval`（已知答案锚定） |
 | 程序化已知答案件 | `test_procedural_cases`（含旗舰配对：同支撑面积、可达性相反） |
 | 跨模型预测可行性 | `test_model` |
 | 工具尺寸效应 / 基线对照 | `test_baselines` |
-| 跨域鲁棒性跨域（Thingi10K） | `test_thingi` |
+| 跨来源（Thingi10K）采样 | `test_thingi` |
 | 标签质量门（六项趋势） | `test_label_quality` 与 `test_known_answers`、`test_differential`、`test_support_contact`、`test_procedural_cases` |
 
-无 `tests/acceptance/` 专属性质，由实验脚本、门或结构检查守护的决策：D-000、D-004、D-006、D-012、D-013、D-014、D-015、D-018、D-021、D-023、D-025、D-026、D-027、D-029、D-030、D-031、D-032。
+无 `tests/acceptance/` 专属性质，由实验脚本、门或结构检查守护的决策：D-000、D-004、D-006、D-012、D-013、D-014、D-015、D-018、D-021、D-023、D-025、D-026、D-027、D-029、D-030、D-031、D-032、D-034。
 
 ## 工程门与论文门
 

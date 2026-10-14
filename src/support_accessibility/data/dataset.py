@@ -25,7 +25,8 @@ COLUMNS = ["name", "source", "split", "npz_path", "occ_shape", "n_points",
            "n_inaccessible", "inaccessible_frac", "radius", "n_directions", "seed"]
 
 
-def _rel_npz(name):
+def rel_npz_path(name):
+    """零件记录相对数据根的路径（manifest 的 npz_path 列）。"""
     return f"{MODELS_DIR}/{name}.npz"
 
 
@@ -73,7 +74,7 @@ def build_procedural(out_dir, n_models=16, N=28, max_points=24, radius=3.0,
 
     rows = []
     for m in models:
-        rel = _rel_npz(m.name)
+        rel = rel_npz_path(m.name)
         save_model(m, os.path.join(out_dir, rel))
         lab = np.asarray(m.labels, dtype=bool)
         n_pts, n_inacc = int(lab.size), int(lab.sum())

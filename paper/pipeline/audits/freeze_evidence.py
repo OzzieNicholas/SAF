@@ -23,21 +23,21 @@ ROOT = REPO_ROOT
 
 # 论文引用的实验：实验名即 artifacts/runs/<实验名>/result.json 的目录名和结果里的 kind。
 CANONICAL_EXPERIMENTS = (
-    "support_area_vs_accessibility",
-    "true_triangle_area_check",
+    "contact_area_vs_accessibility",
     "tool_radius_effect",
     "label_audit",
     "oracle_differential_audit",
     "mesh_quality_audit",
     "cross_model_prediction",
     "baseline_comparison",
-    "regression_check",
     "shape_context_ablation",
     "cross_domain_robustness",
     "direction_field_prediction",
-    "direction_field_audit",
-    "inference_speed",
     "failure_analysis",
+    "holdout_model",
+    "cost_accuracy_frontier",
+    "screening_evaluation",
+    "orientation_evaluation",
 )
 
 
@@ -94,6 +94,8 @@ def build_payload(root: Path) -> dict[str, object]:
         "statistical_rules": {
             "positive_class": "inaccessible",
             "split_unit": "model-level",
+            "fixed_holdout": "first 400 both-class Fusion parts, split seed 0, 0.6/0.2/0.2; five training seeds; "
+                             "baseline, ablation, failure, frontier, screening and orientation runs share these weights",
             "repeat_holdout": "five repeated 0.6/0.2/0.2 random model holdouts; test sets may overlap",
             "geometry_hierarchy": (
                 "full 128-global/64-lower-direction refined oracle supplies labels; "

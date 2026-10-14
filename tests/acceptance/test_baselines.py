@@ -38,8 +38,8 @@ def _run():
     maj = B.predict_majority(gold.size, B.majority_label(tr))
     ray_visible_blocked = float((~rayvis & gold).mean())       # r=0 可达 但 gold 不可达
     return dict(gold=gold, tool_blocked=ray_visible_blocked,
-                neural=E.summary(neural, gold)["f1"], rayvis=E.summary(rayvis, gold)["f1"],
-                localr=E.summary(localr, gold)["f1"], majority=E.summary(maj, gold)["f1"],
+                neural=E.f1_inaccessible(neural, gold), rayvis=E.f1_inaccessible(rayvis, gold),
+                localr=E.f1_inaccessible(localr, gold), majority=E.f1_inaccessible(maj, gold),
                 pos=int(gold.sum()), tot=int(gold.size))
 
 
@@ -84,8 +84,8 @@ def test_neural_beats_visibility_and_majority_e4():
     assert r["neural"] >= r["majority"] + 0.3, f"神经 {r['neural']:.3f} 未胜多数类 {r['majority']:.3f}"
 
 
-def test_coarse_finite_tool_proxy_respects_open_and_blind_known_answers():
-    """较少方向的有限工具代理仍应通过两项最基本的几何已知答案。"""
+def test_voxel_judgment_respects_open_and_blind_known_answers():
+    """16 方向的体素判定仍应通过两项最基本的几何已知答案。"""
     try:
         _deps()
     except ImportError as e:
@@ -94,18 +94,18 @@ def test_coarse_finite_tool_proxy_respects_open_and_blind_known_answers():
 
     open_case = D.open_downface_case()
     blind_case = D.blind_cavity_case()
-    open_prediction = B.coarse_finite_tool_proxy(
-        open_case.occ, [open_case.point], open_case.radius, n_directions=16
+    open_prediction = B.voxel_judgment(
+        open_case.occ, [open_case.point], open_case.radius, 16
     )
-    blind_prediction = B.coarse_finite_tool_proxy(
-        blind_case.occ, [blind_case.point], blind_case.radius, n_directions=16
+    blind_prediction = B.voxel_judgment(
+        blind_case.occ, [blind_case.point], blind_case.radius, 16
     )
     assert open_prediction.tolist() == [False]
     assert blind_prediction.tolist() == [True]
 
 
-def test_coarse_finite_tool_proxy_rejects_too_few_directions():
-    """粗方向代理必须拒绝无法形成下半球候选集的配置。"""
+def test_voxel_judgment_rejects_too_few_directions():
+    """体素判定必须拒绝无法形成下半球候选集的方向数。"""
     try:
         _deps()
     except ImportError as e:
@@ -114,7 +114,7 @@ def test_coarse_finite_tool_proxy_rejects_too_few_directions():
     from support_accessibility import baselines as B
 
     with pytest.raises(ValueError, match="at least 4"):
-        B.coarse_finite_tool_proxy(np.zeros((8, 8, 8), bool), [[3, 3, 3]], 1.0, n_directions=2)
+        B.voxel_judgment(np.zeros((8, 8, 8), bool), [[3, 3, 3]], 1.0, 2)
 
 
 def test_baseline_method_roles_keep_reference_hierarchy_explicit():

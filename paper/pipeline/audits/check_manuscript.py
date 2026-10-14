@@ -83,8 +83,14 @@ def check_citations(text: str, bib_text: str) -> list[dict[str, Any]]:
         doc = render(text, keys)
     except RenderError as exc:
         return [_finding("render_error", str(exc))]
-    cited = {key for block in doc.body for group in CITE_RE.findall(block) for key in group.split(",")}
+    first_seen = list(dict.fromkeys(key for block in doc.body for group in CITE_RE.findall(block)
+                                    for key in group.split(",")))
+    cited = set(first_seen)
     errors = [_finding("citation_unused", f"文献条目未被正文引用：{key}", key=key) for key in keys if key not in cited]
+    # 顺序编码制样式按首次引用排序，书目顺序必须与首次引用顺序一致，否则 PDF 编号与源稿不符
+    if first_seen != [key for key in keys if key in cited]:
+        errors.append(_finding("citation_order", "references.bib 的条目顺序与正文首次引用顺序不一致",
+                               first_cited=first_seen))
     if len(doc.references) != len(keys):
         errors.append(_finding("reference_count", f"参考文献列表 {len(doc.references)} 条，references.bib 有 {len(keys)} 条"))
     return errors
@@ -141,6 +147,8 @@ def check_numeric_claims(text: str, claims: list[dict[str, Any]], manifest: dict
             if name not in artifacts:
                 artifacts[name] = load_canonical_artifact(manifest, name, root)
             value = float(_lookup(artifacts[name], claim["path"])) * float(claim.get("scale", 1))
+            if "per" in claim:                       # 派生比例：取值除以同一证据中的另一字段
+                value /= float(_lookup(artifacts[name], claim["per"]))
         except (KeyError, IndexError, TypeError, ValueError, RuntimeError) as exc:
             errors.append(_finding("claim_unresolved", f"数值声明 {claim['id']} 无法从证据取值：{exc}", id=claim["id"]))
             continue

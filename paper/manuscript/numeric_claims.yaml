@@ -1,114 +1,110 @@
 # 正文数值声明表：每条指向一个实验结果文件中的取值路径。
 #
 # 字段：id 唯一标识；experiment 实验名（对应 artifacts/runs/<实验名>/result.json，经证据清单核对哈希）；
-# path 用点号逐层取值（列表用下标）；scale 乘数（百分数写 100，缺省 1）；format 取整格式（缺省 .3f）；
-# text 正文里出现的原文。重跑实验后数字变了，check_manuscript 会指出哪条声明过期。
+# path 用点号逐层取值（列表用下标）；per 可选，取值再除以同一证据中的另一字段（派生比例）；
+# scale 乘数（百分数写 100，缺省 1）；format 取整格式（缺省 .3f）；text 正文里出现的原文。
+# 重跑实验后数字变了，check_manuscript 会指出哪条声明过期。
 
-# ---- 点级跨模型预测（重复模型级留出） ----
-- {id: cross_model_f1_mean, experiment: cross_model_prediction, path: model_macro_f1_mean, text: "0.791"}
+# ---- 数据（表 2） ----
+- {id: data_fusion_parts, experiment: mesh_quality_audit, path: sources.0.all_materialized.manifest_rows, format: ",.0f", text: "8,590"}
+- {id: data_fusion_both, experiment: mesh_quality_audit, path: sources.0.both_class.manifest_rows, format: ",.0f", text: "1,553"}
+- {id: data_thingi_parts, experiment: mesh_quality_audit, path: sources.1.all_materialized.manifest_rows, format: ",.0f", text: "300"}
+- {id: data_fusion_watertight, experiment: mesh_quality_audit, path: sources.0.all_materialized.watertight_fraction, scale: 100, format: .2f, text: "96.71"}
+- {id: data_fusion_non_manifold, experiment: mesh_quality_audit, path: sources.0.all_materialized.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "3.25"}
+- {id: data_thingi_watertight, experiment: mesh_quality_audit, path: sources.1.all_materialized.watertight_fraction, scale: 100, format: .2f, text: "74.67"}
+- {id: data_thingi_non_manifold, experiment: mesh_quality_audit, path: sources.1.all_materialized.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "12.00"}
+- {id: data_thingi_points, experiment: cross_domain_robustness, path: thingi_pts, format: ",.0f", text: "40,864"}
+- {id: data_thingi_inaccessible, experiment: cross_domain_robustness, path: thingi_gold_inacc_frac, scale: 100, format: .1f, text: "31.8"}
+
+# ---- 廉价指标遗漏的风险（5.2 节、图 4） ----
+- {id: ray_visible_share_fusion, experiment: tool_radius_effect, path: fusion.ray_visible_but_tool_blocked_frac, per: fusion.oracle_inacc_frac, scale: 100, format: .0f, text: "72"}
+- {id: ray_visible_share_procedural, experiment: tool_radius_effect, path: procedural.ray_visible_but_tool_blocked_frac, per: procedural.oracle_inacc_frac, scale: 100, format: .0f, text: "99"}
+- {id: area_spearman_count, experiment: support_area_vs_accessibility, path: spearman_facecount_vs_inacc_frac_all, text: "0.264"}
+- {id: area_spearman_true, experiment: true_triangle_area_check, path: true_area.spearman_all, text: "0.124"}
+- {id: orient_rho_area, experiment: orientation_evaluation, path: spearman_contact_area_vs_true_mean, format: .2f, text: "0.04"}
+- {id: orient_rho_network, experiment: orientation_evaluation, path: spearman_network_vs_true_mean, format: .2f, text: "0.79"}
+- {id: orient_hit_area, experiment: orientation_evaluation, path: lowest_risk_hit_contact_area, scale: 100, format: .1f, text: "27.5"}
+- {id: orient_hit_random, experiment: orientation_evaluation, path: lowest_risk_hit_random_expected, scale: 100, format: .1f, text: "31.0"}
+- {id: orient_hit_network, experiment: orientation_evaluation, path: lowest_risk_hit_network, scale: 100, format: .1f, text: "82.5"}
+- {id: orient_hit_network_std, experiment: orientation_evaluation, path: lowest_risk_hit_network_std, scale: 100, format: .1f, text: "3.5"}
+- {id: orient_rho_network_std, experiment: orientation_evaluation, path: spearman_network_vs_true_std, format: .2f, text: "0.02"}
+- {id: orient_rotated_f1, experiment: orientation_evaluation, path: rotated_pooled_f1, format: .2f, text: "0.86"}
+- {id: orient_worst_f1, experiment: orientation_evaluation, path: per_orientation.+y.pooled_f1, format: .2f, text: "0.80"}
+
+# ---- 标签审核（表 3） ----
+- {id: label_robust_mismatch, experiment: label_audit, path: differential.robust_mismatch_rate, scale: 100, format: .2f, text: "0.63"}
+- {id: label_differential_synthetic, experiment: oracle_differential_audit, path: robust_mismatch_rate, scale: 100, format: .2f, text: "0.01"}
+- {id: label_resolution_agreement, experiment: label_audit, path: res_stability.res48_vs_res96_agreement, scale: 100, format: .2f, text: "97.28"}
+- {id: label_both_class_share, experiment: label_audit, path: distribution.both_class_model_frac, scale: 100, format: .1f, text: "18.1"}
+
+# ---- 未见零件上的预测（表 4、图 5） ----
+- {id: holdout_f1, experiment: holdout_model, path: pooled_f1_mean, text: "0.906"}
+- {id: holdout_f1_std, experiment: holdout_model, path: pooled_f1_std, text: "0.012"}
+- {id: unseen_both_f1, experiment: screening_evaluation, path: methods.network.pooled_f1_both_class_parts, text: "0.865"}
+- {id: unseen_both_f1_std, experiment: screening_evaluation, path: methods.network.pooled_f1_both_class_parts_std, text: "0.004"}
+- {id: unseen_both_parts, experiment: screening_evaluation, path: n_both_class_parts, format: ",.0f", text: "1,233"}
+- {id: cross_domain_out, experiment: cross_domain_robustness, path: crossdomain_f1_mean, text: "0.888"}
+- {id: cross_domain_out_std, experiment: cross_domain_robustness, path: crossdomain_f1_std, text: "0.014"}
+- {id: cross_domain_in, experiment: cross_domain_robustness, path: indomain_f1_mean, text: "0.887"}
+- {id: cross_domain_in_std, experiment: cross_domain_robustness, path: indomain_f1_std, text: "0.014"}
+- {id: cross_model_f1, experiment: cross_model_prediction, path: model_macro_f1_mean, text: "0.791"}
 - {id: cross_model_f1_std, experiment: cross_model_prediction, path: model_macro_f1_std, text: "0.028"}
-- {id: cross_model_iou_mean, experiment: cross_model_prediction, path: model_macro_iou_mean, text: "0.736"}
-- {id: cross_model_median_f1_mean, experiment: cross_model_prediction, path: repeat_model_median_f1_mean, text: "0.955"}
-- {id: cross_model_median_f1_std, experiment: cross_model_prediction, path: repeat_model_median_f1_std, text: "0.013"}
-- {id: cross_model_iqr_mean, experiment: cross_model_prediction, path: repeat_model_f1_iqr_mean, text: "0.329"}
-- {id: cross_model_iqr_std, experiment: cross_model_prediction, path: repeat_model_f1_iqr_std, text: "0.068"}
-- {id: cross_model_zero_f1_min, experiment: cross_model_prediction, path: runs.2.model_f1_distribution.zero_fraction, scale: 100, format: .2f, text: "4.52"}
-- {id: cross_model_zero_f1_max, experiment: cross_model_prediction, path: runs.1.model_f1_distribution.zero_fraction, scale: 100, format: .2f, text: "11.29"}
-
-# ---- 六方法基线（固定 80 件留出集） ----
+- {id: cross_model_median, experiment: cross_model_prediction, path: repeat_model_median_f1_mean, text: "0.955"}
 - {id: baseline_local_rule, experiment: baseline_comparison, path: methods.local_rule.f1_overall, text: "0.317"}
 - {id: baseline_ray, experiment: baseline_comparison, path: methods.ray_visibility.f1_overall, text: "0.676"}
 - {id: baseline_coarse, experiment: baseline_comparison, path: methods.coarse_finite_tool.f1_overall, text: "0.853"}
-- {id: baseline_tiny_local, experiment: baseline_comparison, path: methods.tiny_local.f1_overall, text: "0.851"}
-- {id: baseline_convonet, experiment: baseline_comparison, path: methods.convonet.f1_overall, text: "0.915"}
-- {id: baseline_convonet_mean, experiment: baseline_comparison, path: methods.convonet.f1_model_mean, text: "0.748"}
-- {id: baseline_convonet_std, experiment: baseline_comparison, path: methods.convonet.f1_model_std, text: "0.343"}
-- {id: baseline_convonet_ci_low, experiment: baseline_comparison, path: methods.convonet.f1_model_ci95.0, text: "0.670"}
-- {id: baseline_convonet_ci_high, experiment: baseline_comparison, path: methods.convonet.f1_model_ci95.1, text: "0.821"}
-- {id: baseline_ray_mean, experiment: baseline_comparison, path: methods.ray_visibility.f1_model_mean, text: "0.352"}
-- {id: baseline_coarse_mean, experiment: baseline_comparison, path: methods.coarse_finite_tool.f1_model_mean, text: "0.682"}
-- {id: baseline_paired_delta, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.mean, text: "0.396"}
-- {id: baseline_paired_ci_low, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.ci95.0, text: "0.302"}
-- {id: baseline_paired_ci_high, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.ci95.1, text: "0.488"}
-- {id: regression_neural_f1, experiment: regression_check, path: neural_f1, text: "0.929"}
-- {id: regression_delta, experiment: regression_check, path: paired_diff_mean, text: "0.459"}
-- {id: regression_ci_low, experiment: regression_check, path: diff_ci_low, text: "0.371"}
-- {id: regression_ci_high, experiment: regression_check, path: diff_ci_high, text: "0.547"}
+- {id: baseline_tiny, experiment: baseline_comparison, path: methods.tiny_local.f1_overall, text: "0.848"}
+- {id: baseline_tiny_std, experiment: baseline_comparison, path: methods.tiny_local.f1_overall_std, text: "0.020"}
+- {id: delta_ray, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.mean, text: "0.417"}
+- {id: delta_ray_low, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.ci95.0, text: "0.332"}
+- {id: delta_ray_high, experiment: baseline_comparison, path: paired_delta_convonet_minus_ray.ci95.1, text: "0.500"}
+- {id: delta_coarse, experiment: baseline_comparison, path: paired_delta_convonet_minus_coarse.mean, text: "0.087"}
+- {id: delta_coarse_low, experiment: baseline_comparison, path: paired_delta_convonet_minus_coarse.ci95.0, text: "0.029"}
+- {id: delta_coarse_high, experiment: baseline_comparison, path: paired_delta_convonet_minus_coarse.ci95.1, text: "0.149"}
+- {id: ablation_no_shape, experiment: shape_context_ablation, path: f1.no_shape, format: .2f, text: "0.43"}
+- {id: ablation_local, experiment: shape_context_ablation, path: f1.local, format: .2f, text: "0.85"}
+- {id: ablation_pooled, experiment: shape_context_ablation, path: f1.pooled, format: .2f, text: "0.81"}
+- {id: ablation_lite, experiment: shape_context_ablation, path: f1.lite, text: "0.906"}
 
-# ---- 形状上下文消融 ----
-- {id: ablation_no_shape, experiment: shape_context_ablation, path: f1.no_shape, text: "0.434"}
-- {id: ablation_local, experiment: shape_context_ablation, path: f1.local, text: "0.862"}
-- {id: ablation_lite, experiment: shape_context_ablation, path: f1.lite, text: "0.931"}
-- {id: ablation_pooled, experiment: shape_context_ablation, path: f1.pooled, text: "0.779"}
+# ---- 设计筛查（5.5 节、图 7） ----
+- {id: screen_parts, experiment: screening_evaluation, path: n_eval_parts, format: ",.0f", text: "8,270"}
+- {id: screen_safe, experiment: screening_evaluation, path: n_safe_parts, format: ",.0f", text: "7,036"}
+- {id: screen_safe_share, experiment: screening_evaluation, path: n_safe_parts, per: n_eval_parts, scale: 100, format: .1f, text: "85.1"}
+- {id: screen_auroc, experiment: screening_evaluation, path: network_part_auroc_max_prob, text: "0.981"}
+- {id: screen_auroc_std, experiment: screening_evaluation, path: network_part_auroc_max_prob_std, text: "0.002"}
+- {id: screen_detect, experiment: screening_evaluation, path: methods.network.part_detection_rate, scale: 100, format: .1f, text: "92.7"}
+- {id: screen_detect_std, experiment: screening_evaluation, path: methods.network.part_detection_rate_std, scale: 100, format: .1f, text: "1.9"}
+- {id: screen_false_alarm, experiment: screening_evaluation, path: methods.network.part_false_alarm_rate, scale: 100, format: .1f, text: "7.8"}
+- {id: screen_false_alarm_std, experiment: screening_evaluation, path: methods.network.part_false_alarm_rate_std, scale: 100, format: .1f, text: "2.9"}
+- {id: screen_ray_detect, experiment: screening_evaluation, path: methods.ray_r0_128.part_detection_rate, scale: 100, format: .1f, text: "51.6"}
+- {id: screen_coarse_detect, experiment: screening_evaluation, path: methods.coarse_16.part_detection_rate, scale: 100, format: .1f, text: "78.7"}
+- {id: screen_coarse_false_alarm, experiment: screening_evaluation, path: methods.coarse_16.part_false_alarm_rate, scale: 100, format: .1f, text: "2.6"}
+- {id: screen_f1_all, experiment: screening_evaluation, path: methods.network.pooled_f1, text: "0.805"}
+- {id: screen_f1_all_ray, experiment: screening_evaluation, path: methods.ray_r0_128.pooled_f1, text: "0.411"}
+- {id: screen_f1_all_coarse, experiment: screening_evaluation, path: methods.coarse_16.pooled_f1, text: "0.729"}
 
-# ---- 支撑面积、工具尺寸与标签质量 ----
-- {id: area_spearman_all, experiment: support_area_vs_accessibility, path: spearman_facecount_vs_inacc_frac_all, text: "0.264"}
-- {id: area_spearman_both_class, experiment: support_area_vs_accessibility, path: spearman_facecount_vs_inacc_frac_bothclass, text: "-0.221"}
-- {id: true_area_spearman_all, experiment: true_triangle_area_check, path: true_area.spearman_all, text: "0.124"}
-- {id: true_area_spearman_both_class, experiment: true_triangle_area_check, path: true_area.spearman_bothclass, text: "-0.126"}
-- {id: tool_blocked_fusion, experiment: tool_radius_effect, path: fusion.ray_visible_but_tool_blocked_frac, scale: 100, format: .2f, text: "4.86"}
-- {id: tool_blocked_procedural, experiment: tool_radius_effect, path: procedural.ray_visible_but_tool_blocked_frac, scale: 100, format: .2f, text: "29.25"}
-- {id: label_robust_mismatch, experiment: label_audit, path: differential.robust_mismatch_rate, scale: 100, format: .2f, text: "0.63"}
-- {id: label_resolution_agreement, experiment: label_audit, path: res_stability.res48_vs_res96_agreement, scale: 100, format: .2f, text: "97.28"}
-- {id: label_inaccessible_mean, experiment: label_audit, path: distribution.inacc_frac_mean, scale: 100, format: .1f, text: "5.1"}
-- {id: label_both_class_share, experiment: label_audit, path: distribution.both_class_model_frac, scale: 100, format: .1f, text: "18.1"}
-- {id: differential_exact, experiment: oracle_differential_audit, path: counts.exact, format: ",.0f", text: "9,857"}
-- {id: differential_boundary, experiment: oracle_differential_audit, path: counts.operational_boundary, format: ".0f", text: "142"}
-- {id: differential_robust_rate, experiment: oracle_differential_audit, path: robust_mismatch_rate, scale: 100, format: .2f, text: "0.01"}
+# ---- 精度与代价（5.6 节、图 8） ----
+- {id: cost_two_stage_s, experiment: cost_accuracy_frontier, path: methods.two_stage_128.seconds_per_part_mean, format: .2f, text: "1.20"}
+- {id: cost_two_stage_median_s, experiment: cost_accuracy_frontier, path: methods.two_stage_128.seconds_per_part_median, format: .2f, text: "0.42"}
+- {id: cost_network_gpu_ms, experiment: cost_accuracy_frontier, path: methods.network_gpu.seconds_per_part_mean, scale: 1000, format: .1f, text: "3.1"}
+- {id: cost_network_cpu_ms, experiment: cost_accuracy_frontier, path: methods.network_cpu.seconds_per_part_mean, scale: 1000, format: .0f, text: "48"}
+- {id: cost_ratio, experiment: cost_accuracy_frontier, path: methods.two_stage_128.seconds_per_part_mean, per: methods.network_gpu.seconds_per_part_mean, format: .0f, text: "382"}
+- {id: cost_occupancy_ms, experiment: cost_accuracy_frontier, path: occupancy_seconds_per_part_mean, scale: 1000, format: .0f, text: "17"}
+- {id: cost_voxel_low, experiment: cost_accuracy_frontier, path: methods.voxel_8.pooled_f1, format: .2f, text: "0.81"}
+- {id: cost_voxel_high, experiment: cost_accuracy_frontier, path: methods.voxel_64.pooled_f1, format: .2f, text: "0.86"}
 
-# ---- 原始网格质量（表 3） ----
-- {id: mesh_fusion_all_watertight, experiment: mesh_quality_audit, path: sources.0.all_materialized.watertight_fraction, scale: 100, format: .2f, text: "96.71"}
-- {id: mesh_fusion_all_boundary, experiment: mesh_quality_audit, path: sources.0.all_materialized.mesh_fraction_with_boundary_edges, scale: 100, format: .2f, text: "0.08"}
-- {id: mesh_fusion_all_non_manifold, experiment: mesh_quality_audit, path: sources.0.all_materialized.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "3.25"}
-- {id: mesh_fusion_both_watertight, experiment: mesh_quality_audit, path: sources.0.both_class.watertight_fraction, scale: 100, format: .2f, text: "91.63"}
-- {id: mesh_fusion_both_boundary, experiment: mesh_quality_audit, path: sources.0.both_class.mesh_fraction_with_boundary_edges, scale: 100, format: .2f, text: "0.39"}
-- {id: mesh_fusion_both_non_manifold, experiment: mesh_quality_audit, path: sources.0.both_class.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "8.18"}
-- {id: mesh_thingi_all_watertight, experiment: mesh_quality_audit, path: sources.1.all_materialized.watertight_fraction, scale: 100, format: .2f, text: "74.67"}
-- {id: mesh_thingi_all_boundary, experiment: mesh_quality_audit, path: sources.1.all_materialized.mesh_fraction_with_boundary_edges, scale: 100, format: .2f, text: "20.33"}
-- {id: mesh_thingi_all_non_manifold, experiment: mesh_quality_audit, path: sources.1.all_materialized.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "12.00"}
-- {id: mesh_thingi_both_watertight, experiment: mesh_quality_audit, path: sources.1.both_class.watertight_fraction, scale: 100, format: .2f, text: "73.72"}
-- {id: mesh_thingi_both_boundary, experiment: mesh_quality_audit, path: sources.1.both_class.mesh_fraction_with_boundary_edges, scale: 100, format: .2f, text: "21.17"}
-- {id: mesh_thingi_both_non_manifold, experiment: mesh_quality_audit, path: sources.1.both_class.mesh_fraction_with_non_manifold_edges, scale: 100, format: .2f, text: "10.95"}
-
-# ---- 跨域 ----
-- {id: cross_domain_in_mean, experiment: cross_domain_robustness, path: indomain_f1_mean, text: "0.887"}
-- {id: cross_domain_in_std, experiment: cross_domain_robustness, path: indomain_f1_std, text: "0.014"}
-- {id: cross_domain_out_mean, experiment: cross_domain_robustness, path: crossdomain_f1_mean, text: "0.888"}
-- {id: cross_domain_drop, experiment: cross_domain_robustness, path: f1_drop_mean, text: "-0.001"}
-- {id: cross_domain_ray, experiment: cross_domain_robustness, path: crossdomain_rayvis_f1, text: "0.655"}
-- {id: cross_domain_points, experiment: cross_domain_robustness, path: thingi_pts, format: ",.0f", text: "40,864"}
-
-# ---- 方向级场 ----
-- {id: direction_f1_mean, experiment: direction_field_prediction, path: dir_f1_mean, text: "0.902"}
+# ---- 方向级输出（5.7 节） ----
+- {id: direction_f1, experiment: direction_field_prediction, path: dir_f1_mean, text: "0.902"}
 - {id: direction_f1_std, experiment: direction_field_prediction, path: dir_f1_std, text: "0.004"}
 - {id: direction_set_iou, experiment: direction_field_prediction, path: dir_setiou_mean, text: "0.866"}
 - {id: direction_top1, experiment: direction_field_prediction, path: topk_hit_top1_mean, text: "0.960"}
-- {id: direction_top3, experiment: direction_field_prediction, path: topk_hit_top3_mean, text: "0.978"}
-- {id: direction_precision_at3, experiment: direction_field_prediction, path: topk_precision_at3_mean, text: "0.955"}
-- {id: direction_recovered_f1, experiment: direction_field_prediction, path: recovered_binary_f1_mean, text: "0.813"}
-- {id: direction_test_points_seed0, experiment: direction_field_prediction, path: runs.0.n_test_points, format: ",.0f", text: "6,740"}
-- {id: direction_test_points_seed1, experiment: direction_field_prediction, path: runs.1.n_test_points, format: ",.0f", text: "6,738"}
-- {id: direction_test_points_seed2, experiment: direction_field_prediction, path: runs.2.n_test_points, format: ",.0f", text: "8,133"}
-- {id: direction_eligible_points, experiment: direction_field_audit, path: eligible_points, format: ",.0f", text: "6,252"}
-- {id: direction_eligible_share, experiment: direction_field_audit, path: eligible_fraction, scale: 100, format: .2f, text: "92.76"}
-- {id: direction_viable_rate, experiment: direction_field_audit, path: direction_viable_fraction_eligible_points, text: "0.822"}
-- {id: direction_random_top3, experiment: direction_field_audit, path: random_baseline.top3_hit, text: "0.909"}
+- {id: direction_random_top1, experiment: direction_field_audit, path: random_baseline.top1_hit, text: "0.822"}
 - {id: direction_prior_top1, experiment: direction_field_audit, path: global_direction_prior_baseline.top1_hit, text: "0.841"}
-- {id: direction_prior_top3, experiment: direction_field_audit, path: global_direction_prior_baseline.top3_hit, text: "0.874"}
-- {id: direction_prior_precision, experiment: direction_field_audit, path: global_direction_prior_baseline.top3_precision, text: "0.847"}
-- {id: direction_group_blocked, experiment: direction_field_audit, path: viable_count_distribution.0, format: ".0f", text: "488"}
-- {id: direction_group_open, experiment: direction_field_audit, path: viable_count_distribution.6+, format: ",.0f", text: "5,950"}
+- {id: direction_eligible_share, experiment: direction_field_audit, path: eligible_fraction, scale: 100, format: .2f, text: "92.76"}
+- {id: direction_viable_rate, experiment: direction_field_audit, path: direction_viable_fraction_eligible_points, scale: 100, format: .1f, text: "82.2"}
 
-# ---- 查询量级 ----
-- {id: speed_oracle_ms, experiment: inference_speed, path: oracle_ms_per_point, format: .2f, text: "5.70"}
-- {id: speed_neural_ms, experiment: inference_speed, path: neural_ms_per_point, text: "0.048"}
-- {id: speed_ratio, experiment: inference_speed, path: speedup_neural_over_oracle, format: .0f, text: "118"}
-
-# ---- 失败分析 ----
-- {id: failure_error_rate, experiment: failure_analysis, path: error_rate, scale: 100, format: .1f, text: "4.3"}
-- {id: failure_false_positive, experiment: failure_analysis, path: false_pos_rate, scale: 100, format: .1f, text: "1.4"}
-- {id: failure_false_negative, experiment: failure_analysis, path: false_neg_rate, scale: 100, format: .1f, text: "2.9"}
-- {id: failure_bin_1_2, experiment: failure_analysis, path: error_rate_by_nviable.1-2, scale: 100, format: .1f, text: "15.2"}
-- {id: failure_bin_3_5, experiment: failure_analysis, path: error_rate_by_nviable.3-5, scale: 100, format: .1f, text: "11.9"}
-- {id: failure_bin_6_plus, experiment: failure_analysis, path: error_rate_by_nviable.6+, scale: 100, format: .1f, text: "3.4"}
-- {id: failure_bin_0, experiment: failure_analysis, path: error_rate_by_nviable.0, scale: 100, format: .1f, text: "2.5"}
+# ---- 误差分析（5.8 节、图 10） ----
+- {id: failure_bin_1_2, experiment: failure_analysis, path: error_rate_by_nviable.1-2, scale: 100, format: .1f, text: "16.2"}
+- {id: failure_bin_3_5, experiment: failure_analysis, path: error_rate_by_nviable.3-5, scale: 100, format: .1f, text: "12.4"}
+- {id: failure_bin_0, experiment: failure_analysis, path: error_rate_by_nviable.0, scale: 100, format: .1f, text: "2.6"}
+- {id: failure_bin_6_plus, experiment: failure_analysis, path: error_rate_by_nviable.6+, scale: 100, format: .1f, text: "4.8"}

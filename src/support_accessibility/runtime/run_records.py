@@ -93,13 +93,12 @@ def input_digest(paths: Iterable[str | os.PathLike[str]]) -> str:
 
 
 def _git_revision() -> str:
+    """当前提交的短哈希；已跟踪文件有未提交改动时加后缀 +dirty，表明结果不完全对应该提交。"""
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=ROOT, text=True, stderr=subprocess.DEVNULL).strip()
     try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=ROOT,
-            text=True,
-            stderr=subprocess.DEVNULL,
-        ).strip()
+        revision = git("rev-parse", "--short", "HEAD")
+        return revision + ("+dirty" if git("status", "--porcelain", "--untracked-files=no") else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
 

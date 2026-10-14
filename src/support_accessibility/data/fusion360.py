@@ -4,7 +4,7 @@
 .smt/.step B-Rep 不碰（故非 CAD 序列建模）。管线：
   走目录取 final obj（.obj 有同名 .json 兄弟＝final 存在标记）→ load_obj → normalize（最长边=1，闭合体素↔归一单位桥）
   → mesh_to_occupancy（igl winding number, D-009）→ 下朝悬垂面 S(P,d)（D-010）取支撑接触点
-  → oracle 打标（语义 C, D-001..D-003）→ 物化 D-016 记录（source=fusion360）+ viz 审计图。
+  → oracle 打标（语义 C, D-001..D-003）→ 物化 D-016 记录（source=fusion360）。
 
 铁律 #6 / D-018（发放机制经 D-025 客观化）：真实网格 oracle 有效性**未过审核**前，本 ingest 记
 `human_signoff=false`，不得直接进训练集。**验证由量化审核** `experiments/label_audit.py`（差分/res-稳定/分布，
@@ -71,7 +71,7 @@ def normalize(V):
     return (V - (lo + hi) / 2.0) / scale, scale
 
 
-def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg=FROZEN.overhang_deg):
+def qualify(V, F, min_faces=8, max_faces=200000):
     """几何轻筛（非 oracle 判定）。返回 (ok, reason)：面数非退化区间 + 存在下朝悬垂面（否则无接触区可评）。"""
     import numpy as np
     from support_accessibility.data.overhang import support_contact_faces
@@ -80,41 +80,58 @@ def qualify(V, F, min_faces=8, max_faces=200000, d=(0.0, 0.0, 1.0), overhang_deg
         return False, f"面数过少({F.shape[0]}<{min_faces})"
     if F.shape[0] > max_faces:
         return False, f"面数过多({F.shape[0]}>{max_faces})"
-    sc = support_contact_faces(V, F, d, overhang_deg)
+    sc = support_contact_faces(V, F, (0.0, 0.0, 1.0))
     if len(sc.centroids) == 0:
         return False, "无下朝悬垂面（无支撑接触区可评）"
     return True, f"面数{F.shape[0]}、悬垂面{len(sc.centroids)}"
 
 
-def build_from_meshes(meshes, out_dir, d=(0.0, 0.0, 1.0), resolution=FROZEN.resolution, radius_world=FROZEN.radius_world,
-                      overhang_deg=FROZEN.overhang_deg, n_directions=FROZEN.n_directions, nudge_voxels=2.0,
-                      max_models=None, emit_audit=True, frac_train=0.6, frac_val=0.2, seed=0):
-    """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）+ viz 审计图。
+def build_from_meshes(meshes, out_dir, resolution=FROZEN.resolution, radius_world=FROZEN.radius_world,
+                      n_directions=FROZEN.n_directions, max_models=None,
+                      frac_train=0.6, frac_val=0.2, seed=0):
+    """(name, V, F) 迭代 → 物化 D-016 记录（source=fusion360，按模型三切 train/val/test）。
 
-    radius_world 在归一尺度（最长边=1）下。支撑接触点 = 下朝悬垂面质心沿外法向外移 nudge_voxels 体素到自由侧。
+    radius_world 在归一尺度（最长边=1）下；查询点与标签由 mesh.label_mesh 生成（含 D-020 边界带细化）。
     D-018/D-025：本 ingest 记 human_signoff=false；有效性由量化审核 `experiments/label_audit.py` 裁定后置真。返回 out_dir。
     """
-    os.makedirs(out_dir, exist_ok=True)                 # models/、audit/ 由 save_model / montage 各自建
-    audit_dir = os.path.join(out_dir, "audit")
+    import numpy as np
+    from support_accessibility.data import LabeledModel, mesh as MESH
+    os.makedirs(out_dir, exist_ok=True)
     records = []
     n_flip_total = 0
     for name, V, F in meshes:
         if max_models is not None and len(records) >= max_models:
             break
         Vn, _s = normalize(V)
-        if not qualify(Vn, F, d=d, overhang_deg=overhang_deg)[0]:
+        if not qualify(Vn, F)[0]:
             continue
-        rec, n_flip = _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directions, nudge_voxels)
-        n_flip_total += n_flip
-        if rec is None:
+        lab = MESH.label_mesh(Vn, F, resolution=resolution, radius_world=radius_world, n_directions=n_directions)
+        n_flip_total += lab["n_flipped"]
+        if not len(lab["points"]):
             continue
+        rec = LabeledModel(name, lab["occ"], lab["points"], np.asarray(lab["labels"], bool), lab["radius"])
         _save(rec, out_dir)
-        if emit_audit:
-            _try_audit(rec, os.path.join(audit_dir, name + ".png"))
         records.append(rec)
     _write_manifest(out_dir, records, "fusion360", n_directions, seed, frac_train, frac_val,
                     human_signoff=False, extra_meta={"nudge_discarded_flipped_normal": n_flip_total})
     return out_dir
+
+
+def direction_labels(model, mesh_path):
+    """数据集零件的方向级标签 (K, D)，True 为该方向可达；与点级标签同一口径（含边界带精确细化）。
+
+    由原网格重建占据栅格并要求与数据集逐比特一致，否则报错，不混用口径。
+    """
+    import numpy as np
+    from support_accessibility.data import mesh as MESH
+    from support_accessibility.oracle import SupportAccessibilityOracle
+    V, F = load_obj(mesh_path)
+    Vn, _ = normalize(V)
+    occ, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=FROZEN.resolution)
+    if occ.shape != model.occ.shape or not np.array_equal(occ, model.occ):
+        raise RuntimeError(f"{model.name}: 由原网格重建的占据栅格与数据集不一致")
+    oracle = SupportAccessibilityOracle(model.occ, {"n_directions": FROZEN.n_directions}, mesh=(Vn, F, lo, pitch))
+    return np.stack([oracle.direction_labels(p, model.radius) for p in model.points]).astype(bool)
 
 
 def build_from_root(out_dir, root, **kw):
@@ -137,42 +154,9 @@ def _meshes_from_root(root):
         yield name, V, F
 
 
-def _label_one(name, Vn, F, d, resolution, radius_world, overhang_deg, n_directions, nudge_voxels):
-    """归一网格 → occupancy → 下朝接触点 → oracle 打标 → LabeledModel（无接触点则 None）。
-
-    传 mesh=(Vn,F,lo,pitch) 给 oracle → 启用 D-020 边界带精确胶囊-网格细化（真实 CAD 标签 res-稳定训练级）。
-    """
-    import numpy as np
-    from support_accessibility.data import mesh as MESH, overhang as OVH, LabeledModel
-    from support_accessibility.oracle import SupportAccessibilityOracle
-    occ, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=resolution)
-    sc = OVH.support_contact_faces(Vn, F, d, overhang_deg)
-    r = radius_world / pitch
-    o = SupportAccessibilityOracle(occ, {"n_directions": n_directions}, mesh=(Vn, F, lo, pitch))
-    pts, labs, n_flip = [], [], 0
-    for c, n in zip(sc.centroids, sc.normals):
-        status, q = MESH.nudge_to_free(occ, c, n, nudge_voxels * pitch, lo, pitch)   # 缠绕安全外移（D-028）
-        if status == "flipped":             # 法向翻转、非真下朝面 → 丢弃并计数
-            n_flip += 1
-            continue
-        pts.append(q)                        # "free"/"confined"：保留 +n 点（confined 保留稀有不可达正类）
-        labs.append(o.label(q, r).value == "inaccessible")
-    if not pts:
-        return None, n_flip
-    return LabeledModel(name, occ, np.asarray(pts, np.float32), np.asarray(labs, bool), float(r)), n_flip
-
-
 def _save(rec, out_dir):
     from support_accessibility.data import dataset as DS
-    DS.save_model(rec, os.path.join(out_dir, DS._rel_npz(rec.name)))
-
-
-def _try_audit(rec, path):
-    try:                                        # 审计图是旁路产物；出图失败不得污染数据管线
-        from support_accessibility import viz
-        viz.audit_model(rec, path)
-    except Exception:
-        pass
+    DS.save_model(rec, os.path.join(out_dir, DS.rel_npz_path(rec.name)))
 
 
 def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, frac_val, human_signoff, extra_meta=None):
@@ -194,7 +178,7 @@ def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, fr
         lab = np.asarray(m.labels, bool)
         n_pts, n_inacc = int(lab.size), int(lab.sum())
         rows.append({"name": m.name, "source": source, "split": split_of[m.name],
-                     "npz_path": DS._rel_npz(m.name), "occ_shape": "x".join(map(str, m.occ.shape)),
+                     "npz_path": DS.rel_npz_path(m.name), "occ_shape": "x".join(map(str, m.occ.shape)),
                      "n_points": n_pts, "n_inaccessible": n_inacc,
                      "inaccessible_frac": (n_inacc / n_pts) if n_pts else 0.0,
                      "radius": float(m.radius), "n_directions": int(n_directions), "seed": int(seed)})
@@ -204,7 +188,7 @@ def _write_manifest(out_dir, records, source, n_directions, seed, frac_train, fr
         w.writerows(rows)
     meta = {"schema_version": DS.RECORD_SCHEMA_VERSION, "source": source,
             "record_keys": ["occ", "points", "labels"], "units": "voxel",
-            "human_signoff": bool(human_signoff),          # D-018：人审 audit/ 后方可训练
+            "human_signoff": bool(human_signoff),          # D-025：通过 label_audit 量化审核后置真，方可训练
             "build_params": {"n_directions": n_directions, "seed": seed,
                              "frac_train": frac_train, "frac_val": frac_val},
             "split": {"n_train": len(tr), "n_val": len(va), "n_test": len(te)}}

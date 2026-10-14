@@ -103,32 +103,21 @@ def main():
     # (b) res-稳定（需原网格）：同世界接触点 res48 vs res96 标签一致
     stab = None
     if a.root:
-        from support_accessibility.data.fusion360 import _meshes_from_root, normalize
-        from support_accessibility.data import mesh as MESH, overhang as OVH
-        d = np.array([0., 0, 1.]); tot = ag = done = 0
+        from support_accessibility.data import mesh as MESH
+        from support_accessibility.data.fusion360 import _meshes_from_root, normalize, qualify
+        tot = ag = done = 0
         for name, V, F in _meshes_from_root(a.root):
             if done >= a.stability_models:
                 break
-            try:
-                Vn, _s = normalize(V)
-                sc = OVH.support_contact_faces(Vn, F, d, FROZEN.overhang_deg)
-                if len(sc.centroids) == 0:
-                    continue
-                res_labs, res_keep = {}, {}
-                for res in (48, 96):
-                    occ, lo, pitch = MESH.mesh_to_occupancy(Vn, F, resolution=res)
-                    r = FROZEN.radius_world / pitch
-                    o = SupportAccessibilityOracle(occ, {"n_directions": a.n_directions}, mesh=(Vn, F, lo, pitch))
-                    ll, kk = [], []
-                    for c, nn in zip(sc.centroids, sc.normals):
-                        status, q = MESH.nudge_to_free(occ, c, nn, 2.0 * pitch, lo, pitch)   # 同 ingest 口径（D-028）
-                        ll.append((o.label(q, r).value == "inaccessible") if status != "flipped" else False)
-                        kk.append(status != "flipped")
-                    res_labs[res] = np.array(ll); res_keep[res] = np.array(kk)
-                keep = res_keep[48] & res_keep[96]                      # 两 res 都非翻转的面才可比（与 ingest 一致）
-                ag += int((res_labs[48][keep] == res_labs[96][keep]).sum()); tot += int(keep.sum()); done += 1
-            except Exception as e:
-                print("skip", name, str(e)[:50], flush=True)
+            Vn, _s = normalize(V)
+            if not qualify(Vn, F)[0]:
+                continue
+            labels = {}
+            for res in (48, 96):                                # 同一组接触面在两种分辨率下的标签（入库口径）
+                lab = MESH.label_mesh(Vn, F, resolution=res, n_directions=a.n_directions)
+                labels[res] = dict(zip(lab["faces"].tolist(), lab["labels"].tolist()))
+            common = sorted(set(labels[48]) & set(labels[96]))  # 两种分辨率下都未被判为翻面的面才可比
+            ag += sum(labels[48][f] == labels[96][f] for f in common); tot += len(common); done += 1
         stab = {"models": done, "points": tot,
                 "res48_vs_res96_agreement": round(ag / max(tot, 1), 4)}
 

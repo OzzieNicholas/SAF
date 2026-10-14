@@ -1,103 +1,61 @@
 #!/usr/bin/env python3
-"""跨域鲁棒性评测（D-022；需 torch）。镜像 experiments/cross_model_prediction.py 的训练制度
-（split 0.6/0.2/0.2、多种子），同一 ConvONet-lite 模型上评 **域内**（留出 Fusion）vs **OOD**（Thingi10K）
-不可达 F1 → 跨域掉幅。域内结果应与点级主结果同量级（一致性自检）。
+"""跨来源评测（D-022）：固定留出模型在 Thingi10K 两类零件上的不可达 F1。
+
+模型就是 experiments/holdout_model.py 的多种子权重（只在 Fusion 与程序化零件上训练），与 Fusion 固定留出集上的
+结果直接可比。Thingi10K 网格来自打印社区，缠绕与流形质量更差，只用于测试。同时给出两种几何代理
+（零半径射线、16 方向粗判定）在同一子集上的 F1。
 
 用法：
-  python experiments/cross_domain_robustness.py --seeds 3
+  python experiments/cross_domain_robustness.py
 """
 import argparse
 
 from support_accessibility.runtime.console import setup_console
 from support_accessibility.runtime.data_paths import resolve_data_paths
-from support_accessibility.runtime.frozen_params import FROZEN
 
 setup_console()
 
 
-def both_class(ms):
-    import numpy as np
-    return [m for m in ms if np.asarray(m.labels).size and np.asarray(m.labels).any() and (~np.asarray(m.labels)).any()]
-
-
 def main():
-    ap = argparse.ArgumentParser(description="跨域鲁棒性：Fusion 域内留出 vs Thingi10K 野外网格（D-022）")
+    ap = argparse.ArgumentParser(description="跨来源评测：固定留出模型在 Thingi10K 两类零件上的表现（D-022）")
     paths = resolve_data_paths()
-    ap.add_argument("--fusion", default=str(paths.processed_root("fusion360")))
-    ap.add_argument("--procedural", default=str(paths.processed_root("procedural")))
     ap.add_argument("--thingi", default=str(paths.processed_root("thingi10k")))
-    ap.add_argument("--seeds", type=int, default=3)
-    ap.add_argument("--epochs", type=int, default=80)
-    ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/cross_domain_robustness/result.json（试跑请指定其他路径，避免覆盖证据）")
+    ap.add_argument("--out", default=None, help="结果路径；默认 artifacts/runs/cross_domain_robustness/result.json")
     a = ap.parse_args()
 
     import json
-    from support_accessibility.runtime.run_records import write_result
     import numpy as np
     import torch
+    from holdout_model import load_holdout_models, mean_std, predict_proba      # 同目录脚本
+    from support_accessibility import baselines as B, eval as E
+    from support_accessibility.data import both_class
     from support_accessibility.data.dataset import load_dataset
-    from support_accessibility.data import split_by_model
-    from support_accessibility.models.convonet import ConvONetLite, to_grid_coords
-    from support_accessibility import eval as E, baselines as B
+    from support_accessibility.runtime.run_records import write_result
 
-    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"device={dev} torch={torch.__version__}")
-    fus, _ = load_dataset(a.fusion)
-    proc, _ = load_dataset(a.procedural)
-    thi, _ = load_dataset(a.thingi)
-    fus_bc, thi_bc = both_class(fus), both_class(thi)
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    parts = both_class(load_dataset(a.thingi)[0])
+    gold = np.concatenate([np.asarray(m.labels, bool) for m in parts])
+    nets = load_holdout_models(dev)
+    print(f"device={dev} thingi both-class parts={len(parts)} points={gold.size}", flush=True)
 
-    def prep(m):
-        occ = torch.as_tensor(np.asarray(m.occ, np.float32)).view(1, 1, *m.occ.shape).to(dev)
-        gc = to_grid_coords(m.points, m.occ.shape).to(dev)
-        y = torch.as_tensor(np.asarray(m.labels, np.float32)).to(dev)
-        return occ, gc, y
-
-    def f1_on(net, models):
-        pr, go = [], []
-        with torch.no_grad():
-            for m in models:
-                occ, gc, _ = prep(m)
-                pr.append((torch.sigmoid(net(occ, gc)) >= 0.5).cpu().numpy())
-                go.append(np.asarray(m.labels, bool))
-        p, g = np.concatenate(pr), np.concatenate(go)
-        return E.f1_inaccessible(p, g), E.iou_inaccessible(p, g)
-
-    gold_thi = np.concatenate([np.asarray(m.labels, bool) for m in thi_bc])
-    rv = np.concatenate([B.ray_visibility(m.occ, m.points, FROZEN.n_directions) for m in thi_bc])   # OOD 几何基线（确定性）
-
-    rows = []
-    for seed in range(a.seeds):
-        ftr, _fva, fte = split_by_model(fus_bc, frac_train=0.6, frac_val=0.2, seed=seed)
-        fte = [m for m in fte if m.points.shape[0] > 0]
-        torch.manual_seed(seed)
-        net = ConvONetLite().to(dev)
-        opt = torch.optim.Adam(net.parameters(), lr=a.lr, weight_decay=1e-4)
-        lossf = torch.nn.BCEWithLogitsLoss()
-        data = [prep(m) for m in (ftr + proc)]
-        for _ in range(a.epochs):
-            net.train()
-            for i in torch.randperm(len(data)):
-                occ, gc, y = data[i]
-                opt.zero_grad(); lossf(net(occ, gc), y).backward(); opt.step()
-        net.eval()
-        in_f1, _ = f1_on(net, fte)
-        ood_f1, ood_iou = f1_on(net, thi_bc)
-        rows.append((in_f1, ood_f1, ood_iou))
-        print(f"seed{seed} in_f1={in_f1:.3f} ood_f1={ood_f1:.3f} drop={in_f1 - ood_f1:.3f}")
-
-    arr = np.array(rows)
+    f1s, ious = [], []
+    for seed, net, _ck in nets:
+        pred = np.concatenate([predict_proba(net, m, dev) >= 0.5 for m in parts])
+        f1s.append(E.f1_inaccessible(pred, gold)); ious.append(E.iou_inaccessible(pred, gold))
+        print(f"seed {seed}: F1 {f1s[-1]:.4f}", flush=True)
+    ray = np.concatenate([B.ray_visibility(m.occ, m.points) for m in parts])
+    coarse = np.concatenate([B.voxel_judgment(m.occ, m.points, m.radius, 16) for m in parts])
+    f1_m, f1_s = mean_std(f1s)
     rep = write_result("cross_domain_robustness", {
-        "seeds": a.seeds, "epochs": a.epochs, "device": dev,
-        "fusion_bothclass": len(fus_bc), "thingi_bothclass": len(thi_bc), "thingi_pts": int(gold_thi.size),
-        "thingi_gold_inacc_frac": round(float(gold_thi.mean()), 3),
-        "indomain_f1_mean": round(float(arr[:, 0].mean()), 3), "indomain_f1_std": round(float(arr[:, 0].std()), 3),
-        "crossdomain_f1_mean": round(float(arr[:, 1].mean()), 3), "crossdomain_f1_std": round(float(arr[:, 1].std()), 3),
-        "crossdomain_iou_mean": round(float(arr[:, 2].mean()), 3),
-        "f1_drop_mean": round(float((arr[:, 0] - arr[:, 1]).mean()), 3),
-        "crossdomain_rayvis_f1": round(E.f1_inaccessible(rv, gold_thi), 3),
-    }, a.out, (a.fusion, a.procedural, a.thingi))
+        "model_run": "holdout_model", "training_seeds": [s for s, _n, _c in nets],
+        "thingi_bothclass": len(parts), "thingi_pts": int(gold.size),
+        "thingi_gold_inacc_frac": round(float(gold.mean()), 4),
+        "crossdomain_f1_mean": f1_m, "crossdomain_f1_std": f1_s,
+        "crossdomain_f1_by_seed": [round(float(v), 4) for v in f1s],
+        "crossdomain_iou_mean": mean_std(ious)[0],
+        "crossdomain_rayvis_f1": round(float(E.f1_inaccessible(ray, gold)), 4),
+        "crossdomain_coarse16_f1": round(float(E.f1_inaccessible(coarse, gold)), 4),
+    }, a.out, (a.thingi,))
     print("CROSS_DOMAIN_ROBUSTNESS " + json.dumps(rep, ensure_ascii=False))
 
 

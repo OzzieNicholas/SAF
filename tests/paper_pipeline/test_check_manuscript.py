@@ -56,6 +56,12 @@ def test_every_bib_entry_must_be_cited(tmp_path):
     assert C.check_citations(cited, BIB) == []
 
 
+def test_first_citations_must_follow_bib_order():
+    text = "## 1 引言\n\n先引[2]，再引[1]。\n\n## 参考文献\n\n[1] A. DOI: 10.1/a.\n\n[2] B. DOI: 10.1/b.\n"
+    assert "citation_order" in _codes(C.check_citations(text, BIB))
+    assert C.check_citations(text.replace("先引[2]，再引[1]", "先引[1]，再引[2]"), BIB) == []
+
+
 def test_citation_number_beyond_the_bibliography_fails():
     text = "## 1 引言\n\n引用[3]。\n\n## 参考文献\n\n[1] A.\n"
     assert "render_error" in _codes(C.check_citations(text, BIB))
@@ -101,3 +107,9 @@ def test_numeric_claim_supports_scale_for_percentages(tmp_path):
     manifest = _manifest_and_root(tmp_path, 0.0486)
     claim = {"id": "p", "experiment": "exp", "path": "m.f1", "format": ".2f", "scale": 100, "text": "4.86"}
     assert C.check_numeric_claims("4.86%", [claim], manifest, tmp_path) == []
+
+
+def test_numeric_claim_supports_derived_ratio(tmp_path):
+    manifest = _manifest_and_root(tmp_path, 0.0486)
+    claim = {"id": "r", "experiment": "exp", "path": "m.f1", "per": "m.f1", "format": ".0f", "scale": 100, "text": "100"}
+    assert C.check_numeric_claims("100%", [claim], manifest, tmp_path) == []

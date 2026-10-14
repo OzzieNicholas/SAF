@@ -3,7 +3,7 @@
 两半：
   ① 纯 stdlib（**裸环境就跑**）：OBJ 文本解析（quad 扇形三角化）、final 过滤（.obj 有同名 .json 兄弟）。
   ② 几何栈（缺 numpy/igl/trimesh → PENDING/skip）：box 合成网格端到端物化 → D-016 记录，
-     source=fusion360、human_signoff=false（待人签收，D-018）、审计图产出。
+     source=fusion360、human_signoff=false（须经量化审核签收，D-025）。
 
 守护 D-017 换主源的落地：真实 CAD 网格 load_obj→normalize→occupancy→下朝点→oracle 打标→统一 processed。
 不断言具体标签值（那是 oracle 的活，见 test_known_answers/test_mesh_frontend），只断言管线结构自洽。
@@ -46,22 +46,20 @@ def _check_ingest_box():
     import json
     import os
     import tempfile
-    from support_accessibility.data import mesh as M, fusion360 as F, dataset as DS
+    from support_accessibility.data import fusion360 as F, dataset as DS
     meshes = [(f"box_{i}", *K.box_vf((6.0, 6.0, 4.0 + i))) for i in range(3)]
     with tempfile.TemporaryDirectory() as tmp:
-        F.build_from_meshes(meshes, tmp, resolution=40, n_directions=32, emit_audit=True)
+        F.build_from_meshes(meshes, tmp, resolution=40, n_directions=32)
         models, rows = DS.load_dataset(tmp)
         with open(os.path.join(tmp, DS.DATASET_JSON), encoding="utf-8") as f:
             meta = json.load(f)
-        adir = os.path.join(tmp, "audit")
-        n_audit = len(os.listdir(adir)) if os.path.isdir(adir) else 0
     shapes_ok = all(m.occ.ndim == 3 and m.occ.dtype == bool and m.points.shape[1] == 3
                     and m.labels.shape[0] == m.points.shape[0] for m in models)
     src_ok = bool(rows) and all(r["source"] == "fusion360" for r in rows)
     signoff_ok = meta.get("human_signoff") is False
     ok = len(models) == 3 and shapes_ok and src_ok and signoff_ok
     return result("f360_ingest_box", ok,
-                  f"{len(models)} 件物化·source=fusion360={src_ok}·human_signoff={meta.get('human_signoff')}·审计图{n_audit}", "D-017")
+                  f"{len(models)} 件物化·source=fusion360={src_ok}·human_signoff={meta.get('human_signoff')}", "D-017")
 
 
 def _safe(fn):
