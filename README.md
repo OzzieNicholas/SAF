@@ -73,6 +73,7 @@ python tools/build_thingi10k_dataset.py
 | `label_audit.py` | 真实网格标签是否可信（差分、跨分辨率稳定、分布） |
 | `oracle_differential_audit.py` | 快速判定器与暴力参考在随机案例上是否一致（差分对拍） |
 | `mesh_quality_audit.py` | 原始网格是否可读、水密，有无非流形边（网格质量披露） |
+| `exact_refinement_audit.py` | 两级判定器直接放行的方向中，有多少经精确求交其实碰撞（标签偏差的方向与大小） |
 | `holdout_model.py` | 固定留出协议下以多个训练种子训练点级网络；下面七项共用这组权重 |
 | `baseline_comparison.py` | 与多数类、局部规则、零半径射线、粗判定、局部学习模型的对照；也是回归门的依据 |
 | `shape_context_ablation.py` | 形状上下文和感受野的价值 |

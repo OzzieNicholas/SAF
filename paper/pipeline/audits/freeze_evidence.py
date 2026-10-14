@@ -28,6 +28,7 @@ CANONICAL_EXPERIMENTS = (
     "label_audit",
     "oracle_differential_audit",
     "mesh_quality_audit",
+    "exact_refinement_audit",
     "cross_model_prediction",
     "baseline_comparison",
     "shape_context_ablation",

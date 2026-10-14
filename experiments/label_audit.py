@@ -29,7 +29,7 @@ def main():
     ap.add_argument("--data", default=str(paths.processed_root("fusion360")))
     ap.add_argument("--root", default=str(paths.fusion360_root), help="原网格根（给定则跑 res-稳定审核）")
     ap.add_argument("--sample-points", type=int, default=1000, help="差分审核采样点数（可达与不可达各半；暴力参考较慢）")
-    ap.add_argument("--stability-models", type=int, default=30, help="分辨率稳定性审核随机抽取的零件数")
+    ap.add_argument("--stability-models", type=int, default=30, help="分辨率稳定性审核从两类零件中随机抽取的零件数")
     ap.add_argument("--n-directions", type=int, default=FROZEN.n_directions)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--write", action="store_true", help="把 label_audit 块 + human_signoff=verdict 写回 dataset.json")
@@ -100,7 +100,9 @@ def main():
         from support_accessibility.data.fusion360 import iter_final_designs, load_obj, normalize
         mesh_of = dict(iter_final_designs(a.root))
         tot = ag = done = 0
-        for mi in rng.permutation(len(ms))[:a.stability_models]:   # 数据集零件中按固定种子随机抽样
+        inacc_tot = inacc_ag = 0
+        both = [i for i, m in enumerate(ms) if np.asarray(m.labels, bool).any() and (~np.asarray(m.labels, bool)).any()]
+        for mi in rng.permutation(both)[:a.stability_models]:     # 两类零件中按固定种子随机抽样，两类标签都有样本
             V, F = load_obj(mesh_of[ms[mi].name])
             Vn, _s = normalize(V)
             labels = {}
@@ -109,8 +111,12 @@ def main():
                 labels[res] = dict(zip(lab["faces"].tolist(), lab["labels"].tolist()))
             common = sorted(set(labels[48]) & set(labels[96]))  # 两种分辨率下都未被判为翻面的面才可比
             ag += sum(labels[48][f] == labels[96][f] for f in common); tot += len(common); done += 1
+            inacc = [f for f in common if labels[48][f] or labels[96][f]]   # 任一分辨率判为不可达的面
+            inacc_ag += sum(labels[48][f] == labels[96][f] for f in inacc); inacc_tot += len(inacc)
         stab = {"models": done, "points": tot,
-                "res48_vs_res96_agreement": round(ag / max(tot, 1), 4)}
+                "res48_vs_res96_agreement": round(ag / max(tot, 1), 4),
+                "inaccessible_points": inacc_tot,
+                "res48_vs_res96_agreement_inaccessible": round(inacc_ag / max(inacc_tot, 1), 4)}
 
     verdict = (diff["robust_mismatch_rate"] <= 0.01                              # D-003：robust 不一致≈0（边界带容忍）
                and 0.01 <= dist["inacc_frac_mean"] <= 0.9
