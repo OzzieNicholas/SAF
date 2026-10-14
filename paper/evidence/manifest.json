@@ -53,9 +53,9 @@
   },
   "cross_domain_robustness": {
    "path": "artifacts/runs/cross_domain_robustness/result.json",
-   "sha256": "79417d38115e110df65a94e11a32980aa48f2d19ad3ef5eccb9f1085724cf899",
-   "run_id": "20261014T162253.021890Z-28228-42736534",
-   "command": "experiments\\cross_domain_robustness.py"
+   "sha256": "82d4f652ffc4525d61770c5c9a48d1219ab95bfe25c9c68de888091a0a17d8e8",
+   "run_id": "20261014T183629.835780Z-42140-a8717551",
+   "command": "experiments/cross_domain_robustness.py"
   },
   "direction_field_prediction": {
    "path": "artifacts/runs/direction_field_prediction/result.json",
