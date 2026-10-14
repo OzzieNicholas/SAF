@@ -27,6 +27,7 @@ flowchart LR
 | `manuscript/references.bib` | BibTeX 书目；条目顺序即正文引用编号 [1]…[n] | 是 |
 | `manuscript/numeric_claims.yaml` | 正文数值声明表：每条指向一个实验结果和取值路径 | 是 |
 | `manuscript/参考文献核验.md` | 每条文献的存在性与引用语境核验记录 | 是 |
+| `manuscript/AIGC使用声明草稿.md` | 按期刊要求整理的 AI 使用声明草稿，作者补全后签署 | 是 |
 | `manuscript/latex/template.tex` | LaTeX 外壳模板（版式、宏包、题目与摘要占位） | 是 |
 | `pipeline/` | 论文专属 Python 代码：构建、论文门、渲染、证据加载 | 是 |
 | `pipeline/figure_scripts/` | 十幅主图的生成脚本与共享模块，说明见该目录 README | 是 |
