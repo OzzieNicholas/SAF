@@ -106,7 +106,8 @@ def save(fig, name):
     png = os.path.join(out_dir, name + ".png")
     fig.savefig(png, dpi=600, facecolor="white", metadata=metadata)
     pdf = os.path.join(out_dir, name + ".pdf")
-    fig.savefig(pdf + ".tmp", format="pdf", facecolor="white", metadata=metadata)
+    fig.savefig(pdf + ".tmp", format="pdf", facecolor="white",
+                metadata={**metadata, "CreationDate": None})   # 不写创建时间：同一输入重建得到逐字节相同的 PDF
     with open(pdf + ".tmp", "rb") as handle:
         data = handle.read()
     if not data.rstrip().endswith(b"%%EOF"):
