@@ -35,7 +35,7 @@ flowchart LR
 | `evidence/` | 证据清单 `manifest.json` 与说明 `证据清单.md`；只用逻辑数据标识和哈希，不含本机路径 | 是 |
 | `投稿清单.md` | 与具体期刊有关、但不改变科学论证的行政接口 | 是 |
 | `outputs/` | 论文 PDF | 否，由入库的源稿、图和证据重建 |
-| `build/` | 渲染出的 LaTeX 和编译中间文件 | 否 |
+| `build/` | 编译时的临时目录（渲染出的 LaTeX 与中间文件），编译成功后自动删除 | 否 |
 
 ## 常用命令
 
@@ -47,4 +47,4 @@ python -m paper.pipeline.build_paper --skip-figures --skip-latex   # 只做证�
 python -m paper.pipeline.paper_gate              # 论文门（加 --skip-data 可在无外部数据的环境里检查）
 ```
 
-编译需要 `tectonic`（已写入 `environment.yml`）；缺少编译器时构建会在编译阶段明确失败，前面的审计不受影响。编译前，构建把图件与参考文献按有效字节暂存到 `paper/build/`（逐个核对长度与内容），编译器只读取这些副本。
+编译需要 `tectonic`（已写入 `environment.yml`）；缺少编译器时构建会在编译阶段明确失败，前面的审计不受影响。编译前，构建把图件与参考文献按有效字节暂存到 `paper/build/`（逐个核对长度与内容），编译器只读取这些副本；编译成功后 PDF 复制到 `outputs/`，`build/` 被删除，失败时保留以便排查。

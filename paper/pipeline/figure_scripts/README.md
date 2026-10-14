@@ -15,17 +15,16 @@
 | 图 7 | `screening_figure` | 全部未见零件上的设计筛查 | `screening_evaluation` |
 | 图 8 | `cost_accuracy_frontier` | 精度与单件耗时 | `cost_accuracy_frontier` |
 | 图 9 | `orientation_case` | 候选构建方向的评价示例 | `orientation_evaluation` + 原网格 |
-| 图 10 | `failure_direction` | 误差位置与方向推荐 | `failure_analysis`、`direction_field_prediction`、`direction_field_audit` |
+| 图 10 | `failure_direction` | 误差位置与方向推荐 | `failure_analysis`、`direction_field_prediction` |
 
 ## 模块
 
 | 模块 | 职责 |
 |---|---|
 | `journal_style.py` | 中文期刊样式（宋体 + Times New Roman、6 号字、变量斜体）、语义色与导出；导出前写布局诊断 |
-| `cad_render.py` | 不透明零件渲染与「幽灵视图」：被遮挡的关键面以半透明色块和虚线轮廓透出外壁 |
-| `figure_data.py` | 网格加载、按 D-028 把样本点映射回原始三角面、相机与裁边助手 |
-| `figure_style.py` | PyVista 离屏渲染主题（`figure_data` 使用） |
-| `figure_cases.py` | 按名称指定的固定案例与数据根 |
+| `cad_render.py` | 不透明零件渲染与「幽灵视图」：被遮挡的关键面以半透明色块和虚线轮廓透出外壁；正交相机、裁边 |
+| `figure_data.py` | 读取实验结果、载入原网格、按入库流程把样本点映射回原始三角面 |
+| `figure_cases.py` | 按名称指定的固定案例与留出集核对 |
 | `figure_qa.py` | 布局诊断汇总、像素与 PDF 检查、contact sheet |
 
 ## 不变量
@@ -33,9 +32,9 @@
 - 语义色：浅蓝 = 可达，红 = 不可达，橙 = 误报，深紫 = 漏报，灰 = 零件本体；误差面另加深色轮廓，灰度打印仍可辨。
 - 图内文字不小于 7.5 pt；中文宋体、数字与字母 Times New Roman、变量斜体。图中不用 mathtext（它不支持字体回退，与汉字混排会缺字），变量由 `journal_style.var()` 生成 Unicode 数学斜体字符。
 - 结果数值只从 `artifacts/runs/` 的运行产物读取，脚本内不写任何结果数字。
-- 定性结果必须由 `figure_data.map_processed_faces` 按 D-028 逐点映射回原始三角面；点数、顺序或体素坐标不一致即失败。
+- 定性结果必须由 `figure_data.map_processed_faces` 逐点映射回原始三角面（与入库共用 `data.mesh.contact_queries`）；点数、顺序或体素坐标不一致即失败。
 - 定性案例按固定规则选取（画廊：按逐件 F1 等距；方向示例：接触面积选错方向且风险差异最大），不按观感挑选；按名称指定的案例须属于留出集。
-- 截断纵轴只用于点图，柱状图从 0 起。
+- 柱状图纵轴从 0 起；需要放大差异时改用点图并在图中标明轴范围。
 
 ## 重生成
 
@@ -43,7 +42,7 @@
 
 ```bash
 # 1) 图件依赖的实验结果（holdout_model 须先于其余各项）
-python tools/reproduce_experiments.py --only holdout_model,baseline_comparison,shape_context_ablation,failure_analysis,cost_accuracy_frontier,screening_evaluation,orientation_evaluation
+python tools/reproduce_experiments.py --only tool_radius_effect,holdout_model,baseline_comparison,shape_context_ablation,failure_analysis,cost_accuracy_frontier,screening_evaluation,orientation_evaluation,direction_field_prediction
 python -m paper.pipeline.audits.freeze_evidence
 
 # 2) 十幅图（顺序执行，不并发）

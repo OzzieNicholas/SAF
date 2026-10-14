@@ -17,10 +17,10 @@
 - {id: data_thingi_inaccessible, experiment: cross_domain_robustness, path: thingi_gold_inacc_frac, scale: 100, format: .1f, text: "31.8"}
 
 # ---- 廉价指标遗漏的风险（5.2 节、图 4） ----
-- {id: ray_visible_share_fusion, experiment: tool_radius_effect, path: fusion.ray_visible_but_tool_blocked_frac, per: fusion.oracle_inacc_frac, scale: 100, format: .0f, text: "72"}
-- {id: ray_visible_share_procedural, experiment: tool_radius_effect, path: procedural.ray_visible_but_tool_blocked_frac, per: procedural.oracle_inacc_frac, scale: 100, format: .0f, text: "99"}
-- {id: area_spearman_count, experiment: support_area_vs_accessibility, path: spearman_facecount_vs_inacc_frac_all, text: "0.264"}
-- {id: area_spearman_true, experiment: true_triangle_area_check, path: true_area.spearman_all, text: "0.124"}
+- {id: ray_visible_share_fusion, experiment: tool_radius_effect, path: fusion.ray_visible_share_of_inaccessible, scale: 100, format: .0f, text: "72"}
+- {id: ray_visible_share_procedural, experiment: tool_radius_effect, path: procedural.ray_visible_share_of_inaccessible, scale: 100, format: .0f, text: "99"}
+- {id: area_spearman_count, experiment: contact_area_vs_accessibility, path: contact_count.spearman_all, text: "0.264"}
+- {id: area_spearman_true, experiment: contact_area_vs_accessibility, path: true_area.spearman_all, text: "0.124"}
 - {id: orient_rho_area, experiment: orientation_evaluation, path: spearman_contact_area_vs_true_mean, format: .2f, text: "0.04"}
 - {id: orient_rho_network, experiment: orientation_evaluation, path: spearman_network_vs_true_mean, format: .2f, text: "0.79"}
 - {id: orient_hit_area, experiment: orientation_evaluation, path: lowest_risk_hit_contact_area, scale: 100, format: .1f, text: "27.5"}
@@ -45,11 +45,11 @@
 - {id: unseen_both_parts, experiment: screening_evaluation, path: n_both_class_parts, format: ",.0f", text: "1,233"}
 - {id: cross_domain_out, experiment: cross_domain_robustness, path: crossdomain_f1_mean, text: "0.888"}
 - {id: cross_domain_out_std, experiment: cross_domain_robustness, path: crossdomain_f1_std, text: "0.014"}
-- {id: cross_domain_in, experiment: cross_domain_robustness, path: indomain_f1_mean, text: "0.887"}
-- {id: cross_domain_in_std, experiment: cross_domain_robustness, path: indomain_f1_std, text: "0.014"}
-- {id: cross_model_f1, experiment: cross_model_prediction, path: model_macro_f1_mean, text: "0.791"}
-- {id: cross_model_f1_std, experiment: cross_model_prediction, path: model_macro_f1_std, text: "0.028"}
-- {id: cross_model_median, experiment: cross_model_prediction, path: repeat_model_median_f1_mean, text: "0.955"}
+- {id: cross_domain_ray, experiment: cross_domain_robustness, path: crossdomain_rayvis_f1, text: ""}
+- {id: cross_domain_coarse, experiment: cross_domain_robustness, path: crossdomain_coarse16_f1, text: ""}
+- {id: cross_model_f1, experiment: cross_model_prediction, path: part_f1_mean_mean, text: "0.791"}
+- {id: cross_model_f1_std, experiment: cross_model_prediction, path: part_f1_mean_std, text: "0.028"}
+- {id: cross_model_median, experiment: cross_model_prediction, path: part_f1_median_mean, text: "0.955"}
 - {id: baseline_local_rule, experiment: baseline_comparison, path: methods.local_rule.f1_overall, text: "0.317"}
 - {id: baseline_ray, experiment: baseline_comparison, path: methods.ray_visibility.f1_overall, text: "0.676"}
 - {id: baseline_coarse, experiment: baseline_comparison, path: methods.coarse_finite_tool.f1_overall, text: "0.853"}
@@ -94,14 +94,16 @@
 - {id: cost_voxel_high, experiment: cost_accuracy_frontier, path: methods.voxel_64.pooled_f1, format: .2f, text: "0.86"}
 
 # ---- 方向级输出（5.7 节） ----
-- {id: direction_f1, experiment: direction_field_prediction, path: dir_f1_mean, text: "0.902"}
-- {id: direction_f1_std, experiment: direction_field_prediction, path: dir_f1_std, text: "0.004"}
-- {id: direction_set_iou, experiment: direction_field_prediction, path: dir_setiou_mean, text: "0.866"}
-- {id: direction_top1, experiment: direction_field_prediction, path: topk_hit_top1_mean, text: "0.960"}
-- {id: direction_random_top1, experiment: direction_field_audit, path: random_baseline.top1_hit, text: "0.822"}
-- {id: direction_prior_top1, experiment: direction_field_audit, path: global_direction_prior_baseline.top1_hit, text: "0.841"}
-- {id: direction_eligible_share, experiment: direction_field_audit, path: eligible_fraction, scale: 100, format: .2f, text: "92.76"}
-- {id: direction_viable_rate, experiment: direction_field_audit, path: direction_viable_fraction_eligible_points, scale: 100, format: .1f, text: "82.2"}
+- {id: direction_f1, experiment: direction_field_prediction, path: network.direction_f1.mean, text: ""}
+- {id: direction_f1_std, experiment: direction_field_prediction, path: network.direction_f1.std, text: ""}
+- {id: direction_set_iou, experiment: direction_field_prediction, path: network.viable_set_iou.mean, text: ""}
+- {id: direction_recovered_f1, experiment: direction_field_prediction, path: network.recovered_point_f1.mean, text: ""}
+- {id: direction_recovered_f1_std, experiment: direction_field_prediction, path: network.recovered_point_f1.std, text: ""}
+- {id: direction_top1, experiment: direction_field_prediction, path: network.top1_hit.mean, text: ""}
+- {id: direction_top1_std, experiment: direction_field_prediction, path: network.top1_hit.std, text: ""}
+- {id: direction_random_top1, experiment: direction_field_prediction, path: random_baseline.top1_hit, text: ""}
+- {id: direction_prior_top1, experiment: direction_field_prediction, path: global_prior_baseline.top1_hit, text: ""}
+- {id: direction_eligible_share, experiment: direction_field_prediction, path: eligible_fraction, scale: 100, format: .1f, text: ""}
 
 # ---- 误差分析（5.8 节、图 10） ----
 - {id: failure_bin_1_2, experiment: failure_analysis, path: error_rate_by_nviable.1-2, scale: 100, format: .1f, text: "16.2"}
